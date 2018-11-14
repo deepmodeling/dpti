@@ -55,3 +55,4 @@ def block_avg(inp, skip = 0, block_size = 10) :
         block_err = None
 
     return block_avg, block_err
+
