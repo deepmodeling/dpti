@@ -2,6 +2,7 @@
 
 import os, re, shutil, logging
 import numpy as np
+import subprocess as sp
 
 iter_format = "%06d"
 task_format = "%02d"
@@ -55,4 +56,18 @@ def block_avg(inp, skip = 0, block_size = 10) :
         block_err = None
 
     return block_avg, block_err
+
+def cvt_conf (fin, 
+              fout, 
+              ofmt = 'vasp') :
+    """
+    Format convert from fin to fout, specify the output format by ofmt
+    """
+    thisfile = os.path.abspath(__file__)
+    thisdir = os.path.dirname(thisfile)
+    cmd = os.path.join(thisdir, 'ovito_file_convert.py')
+    cmd_opt = '-m '+ofmt
+    cmd_line = cmd + ' ' + cmd_opt + ' ' + fin + ' ' + fout
+    sp.check_call(cmd_line, shell = True)    
+    # sp.check_call([cmd, cmd_opt, fin, fout])
 

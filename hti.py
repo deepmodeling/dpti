@@ -1,4 +1,4 @@
-#/usr/bin/env python3
+#!/usr/bin/env python3
 
 import os, sys, json, argparse, glob
 import numpy as np
@@ -7,12 +7,13 @@ from lib.utils import make_iter_name
 from lib.utils import create_path
 from lib.utils import copy_file_list
 from lib.utils import block_avg
+from lib.lammps import get_thermo
 
 def _gen_lammps_input (conf_file, 
                        mass_map,
                        lamb,
                        model,
-                       spring_k,
+                       spring_k_,
                        nsteps,
                        dt,
                        ens,
@@ -22,6 +23,7 @@ def _gen_lammps_input (conf_file,
                        tau_p = 0.5,
                        prt_freq = 100, 
                        norm_style = 'first') :
+    spring_k = spring_k_[0]
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -82,21 +84,6 @@ def _gen_lammps_input (conf_file,
     
     return ret
 
-
-def _get_lammps_thermo(filename) :
-    with open(filename, 'r') as fp :
-        fc = fp.read().split('\n')
-    for sl in range(len(fc)) :
-        if 'Step KinEng PotEng TotEng' in fc[sl] :
-            break
-    for el in range(len(fc)) :
-        if 'Loop time of' in fc[el] :
-            break
-    data = []
-    for ii in range(sl+1, el) :
-        data.append([float(jj) for jj in fc[ii].split()])
-    data = np.array(data)
-    return data
 
 # ret = _gen_lammps_input('conf.lmp',
 #                   [27],
@@ -176,7 +163,7 @@ def post_tasks(jdata) :
 
     for ii in all_tasks :
         log_name = os.path.join(ii, 'log.lammps')
-        data = _get_lammps_thermo(log_name)
+        data = get_thermo(log_name)
         sa, se = block_avg(data[:, 7], skip = stat_skip, block_size = stat_bsize)
         da, de = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
         lmda_name = os.path.join(ii, 'lambda.out')
@@ -215,12 +202,24 @@ def post_tasks(jdata) :
     print(diff_e)
 
 def _main ():
-    with open('param.json') as fp: 
+    parser = argparse.ArgumentParser(
+        description="Compute free energy of Einstein molecule")
+    parser.add_argument('PARAM', type=str,
+                        help='json parameter file')
+    parser.add_argument('TASK', type=str,
+                        help='Can be \'gen\': generate tasks. \n\'compute\': compute the free energy difference')
+    args = parser.parse_args()
+
+    with open(args.PARAM) as fp: 
         jdata = json.load(fp)
 
-    # make_tasks(jdata)
-    post_tasks(jdata)
-    # _get_lammps_thermo('log.lammps')
+    if args.TASK == 'gen' :
+        make_tasks(jdata)
+    elif args.TASK == 'compute' :
+        post_tasks(jdata)
+    else :
+        raise RuntimeError('unknow task: '+args.TASK)
+    # get_thermo('log.lammps')
     
 if __name__ == '__main__' :
     _main()
