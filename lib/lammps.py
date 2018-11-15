@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
 
-import numpy
+import numpy as np
+
+def get_natoms(filename) :
+    with open(filename, 'r') as fp :
+        lines = fp.read().split('\n')
+    for ii in lines :
+        if 'atoms' in ii:
+            natoms = int(ii.split()[0])
+            return natoms
+    raise RuntimeError("cannot find key word \'atoms\' in "+conf)
 
 def get_thermo(filename) :
     with open(filename, 'r') as fp :

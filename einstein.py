@@ -12,8 +12,6 @@ def _compute_lambda(temp, mass) :
     return 1./np.sqrt(ret)    
 
 def _compute_spring(temp, spring_k) :
-    ev2joul = pc.electron_volt
-    ang2m = pc.angstrom
     ret = (spring_k * pc.electron_volt / (pc.angstrom * pc.angstrom)) / (pc.Boltzmann * temp * np.pi) 
     return np.sqrt(ret)
 

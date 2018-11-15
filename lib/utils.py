@@ -71,3 +71,22 @@ def cvt_conf (fin,
     sp.check_call(cmd_line, shell = True)    
     # sp.check_call([cmd, cmd_opt, fin, fout])
 
+def integrate(xx, yy) :
+    diff_e = 0
+    ntasks = len(xx) - 1
+    assert (len(yy) - 1 == ntasks)
+    for ii in range(ntasks) :
+        diff_e += 0.5 * (xx[ii+1] - xx[ii]) * (yy[ii+1] + yy[ii])
+    return (diff_e)
+    
+def integrate(xx, yy, ye) :
+    diff_e = 0
+    err = 0
+    ntasks = len(xx) - 1
+    assert (len(yy) - 1 == ntasks)
+    for ii in range(ntasks) :
+        diff_e += 0.5 * (xx[ii+1] - xx[ii]) * (yy[ii+1] + yy[ii])
+        err += np.square(0.5 * (xx[ii+1] - xx[ii]) * ye[ii+1])
+        err += np.square(0.5 * (xx[ii+1] - xx[ii]) * ye[ii])
+    return diff_e, np.sqrt(err)
+    
