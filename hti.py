@@ -121,13 +121,12 @@ def _parse_lambda(in_s) :
         all_l = parse_str(jj)
     return np.array(all_l)
 
-def make_tasks(iter_index, jdata) :
+def make_tasks(iter_name, jdata) :
     # lambda_str = jdata['lambda'].split(':')
     # all_lambda = np.arange(float(lambda_str[0]),
     #                        float(lambda_str[1]) + float(lambda_str[2]), 
     #                        float(lambda_str[2]))
     all_lambda = _parse_lambda(jdata['lambda'])
-    print(all_lambda)
     protect_eps = jdata['protect_eps']
     if all_lambda[0] == 0:
         all_lambda[0] += protect_eps
@@ -144,7 +143,6 @@ def make_tasks(iter_index, jdata) :
     stat_freq = jdata['stat_freq']
     temp = jdata['temp']
 
-    iter_name = make_iter_name(iter_index)
     create_path(iter_name)
     cwd = os.getcwd()
     os.chdir(iter_name)
@@ -175,10 +173,9 @@ def make_tasks(iter_index, jdata) :
         os.chdir(cwd)
 
 
-def post_tasks(iter_index, jdata) :
+def post_tasks(iter_name, jdata) :
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
-    iter_name = make_iter_name(iter_index)
     all_tasks = glob.glob(os.path.join(iter_name, 'task*'))
     all_tasks.sort()
     ntasks = len(all_tasks)
@@ -231,25 +228,28 @@ def post_tasks(iter_index, jdata) :
 def _main ():
     parser = argparse.ArgumentParser(
         description="Compute free energy by Hamiltonian TI")
-    parser.add_argument('JOB_IDX', type=int,
-                        help='index of job')
-    parser.add_argument('PARAM', type=str,
-                        help='json parameter file')
-    parser.add_argument('TASK', type=str,
-                        help='Can be \'gen\': generate tasks. \n\'compute\': compute the free energy difference')
+    subparsers = parser.add_subparsers(title='Valid subcommands', dest='command')
+
+    parser_gen = subparsers.add_parser('gen', help='Generate a job')
+    parser_gen.add_argument('PARAM', type=str ,
+                            help='json parameter file')
+    parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
+                            help='the output folder for the job')
+
+    parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
+    parser_comp.add_argument('JOB', type=str ,
+                             help='folder of the job')
     args = parser.parse_args()
 
-    with open(args.PARAM) as fp: 
-        jdata = json.load(fp)
+    if args.command == 'gen' :
+        output = args.output
+        jdata = json.load(open(args.PARAM, 'r'))
+        make_tasks(output, jdata)
+    elif args.command == 'compute' :
+        job = args.JOB
+        jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
+        post_tasks(job, jdata)
 
-    job_idx = int(args.JOB_IDX)
-    if args.TASK == 'gen' :
-        make_tasks(job_idx, jdata)
-    elif args.TASK == 'compute' :
-        post_tasks(job_idx, jdata)
-    else :
-        raise RuntimeError('unknow task: '+args.TASK)
-    # get_thermo('log.lammps')
     
 if __name__ == '__main__' :
     _main()
