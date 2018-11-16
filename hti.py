@@ -214,15 +214,16 @@ def post_tasks(iter_index, jdata) :
     all_print.append(np.arange(len(all_lambda)))
     all_print.append(all_lambda)
     all_print.append(de)
+    all_print.append(all_err)
     all_print.append(all_ed / all_lambda)
     all_print.append(all_es / (1 - all_lambda))
-    all_print.append(all_ed)
-    all_print.append(all_es)
+    all_print.append(all_ed_err / all_lambda)
+    all_print.append(all_es_err / (1 - all_lambda))
     all_print = np.array(all_print)
     np.savetxt(os.path.join(iter_name, 'hti.out'), 
                all_print.T, 
                fmt = '%.8e', 
-               header = 'idx lmbda dU Ud Us l*Ud (1-l)*Us')
+               header = 'idx lmbda dU dU_err Ud Us Ud_err Us_err')
 
     diff_e, err = integrate(all_lambda, de, all_err)
     print(diff_e, err)
