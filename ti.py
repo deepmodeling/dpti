@@ -8,6 +8,7 @@ from lib.utils import create_path
 from lib.utils import copy_file_list
 from lib.utils import block_avg
 from lib.utils import integrate
+from lib.utils import parse_seq
 from lib.lammps import get_thermo
 from lib.lammps import get_natoms
 
@@ -88,8 +89,33 @@ def make_tasks(iter_name, jdata) :
     nsteps = jdata['nsteps']
     dt = jdata['dt']
     stat_freq = jdata['stat_freq']
+    # thermos = jdata['thermos']
     ens = jdata['ens']
-    thermos = jdata['thermos']
+    path = jdata['path']
+    if 'nvt' in ens :
+        if path == 't' :
+            temps = parse_seq(jdata['temps'])
+            tau_t = jdata['tau_t']
+            ntasks = len(temps)
+        else :
+            raise RuntimeError('supported path of nvt ens is \'t\'')
+    elif 'npt' in ens :
+        if path == 't' :
+            temps = parse_seq(jdata['temps'])
+            press = jdata['press']
+            tau_t = jdata['tau_t']
+            tau_p = jdata['tau_p']
+            ntasks = len(temps)
+        elif path == 'p' :
+            temps = jdata['temps']
+            press = parse_seq(jdata['press'])
+            tau_t = jdata['tau_t']
+            tau_p = jdata['tau_p']
+            ntasks = len(press)
+        else :
+            raise RuntimeError('supported path of npt ens are \'t\' or \'p\'')
+    else :
+        raise RuntimeError('invalid ens')
 
     create_path(iter_name)
     cwd = os.getcwd()
@@ -97,25 +123,60 @@ def make_tasks(iter_name, jdata) :
     with open('in.json', 'w') as fp:
         json.dump(jdata, fp, indent=4)
     os.chdir(cwd)
-    for idx,ii in enumerate(thermos) :
-        work_path = os.path.join(iter_name, 'task.%06d' % idx)
+    for ii in range(ntasks) :
+        work_path = os.path.join(iter_name, 'task.%06d' % ii)
         create_path(work_path)
         os.chdir(work_path)
         os.symlink(os.path.relpath(equi_conf), 'conf.lmp')
         os.symlink(os.path.relpath(model), 'graph.pb')
-        lmp_str \
-            = _gen_lammps_input('conf.lmp',
-                                model_mass_map, 
-                                'graph.pb',
-                                nsteps, 
-                                dt,
-                                ens,
-                                ii,
-                                prt_freq = stat_freq)
+        if 'nvt' in ens and path == 't' :
+            lmp_str \
+                = _gen_lammps_input('conf.lmp',
+                                    model_mass_map, 
+                                    'graph.pb',
+                                    nsteps, 
+                                    dt,
+                                    ens,
+                                    temps[ii],
+                                    tau_t = tau_t,
+                                    prt_freq = stat_freq)
+            with open('thermo.out', 'w') as fp :
+                fp.write('%f' % temps[ii])
+        elif 'npt' in ens and path == 't' :
+            lmp_str \
+                = _gen_lammps_input('conf.lmp',
+                                    model_mass_map, 
+                                    'graph.pb',
+                                    nsteps, 
+                                    dt,
+                                    ens,
+                                    temps[ii],
+                                    press,
+                                    tau_t = tau_t,
+                                    tau_p = tau_p,
+                                    prt_freq = stat_freq)
+            with open('thermo.out', 'w') as fp :
+                fp.write('%f %f' % (temps[ii], press))
+        elif 'npt' in ens and path == 'p' :
+            lmp_str \
+                = _gen_lammps_input('conf.lmp',
+                                    model_mass_map, 
+                                    'graph.pb',
+                                    nsteps, 
+                                    dt,
+                                    ens,
+                                    temps,
+                                    press[ii],
+                                    tau_t = tau_t,
+                                    tau_p = tau_p,
+                                    prt_freq = stat_freq)
+            with open('thermo.out', 'w') as fp :
+                fp.write('%f %f' % (temps, press[ii]))
+        else:
+            raise RuntimeError('invalid ens or path setting' )
+
         with open('in.lammps', 'w') as fp :
             fp.write(lmp_str)
-        with open('thermo.out', 'w') as fp :
-            fp.write(str(ii))
         os.chdir(cwd)
 
 def post_tasks(iter_name, jdata, Eo) :
@@ -171,7 +232,7 @@ def post_tasks(iter_name, jdata, Eo) :
 def _main ():
     parser = argparse.ArgumentParser(
         description="Compute free energy by TI")
-    subparsers = parser.add_subparsers(title='Valid subcommands', dest='command')
+    subparsers = parser.add_subparsers(title='Valid subcommands', dest='command', help = 'valid commands')
 
     parser_gen = subparsers.add_parser('gen', help='Generate a job')
     parser_gen.add_argument('PARAM', type=str ,
@@ -186,6 +247,9 @@ def _main ():
                              help='free energy of starting point')
     args = parser.parse_args()
 
+    if args.command is None :
+        parser.print_help()
+        exit
     if args.command == 'gen' :
         output = args.output
         jdata = json.load(open(args.PARAM, 'r'))

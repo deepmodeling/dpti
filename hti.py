@@ -7,6 +7,7 @@ from lib.utils import create_path
 from lib.utils import copy_file_list
 from lib.utils import block_avg
 from lib.utils import integrate
+from lib.utils import parse_seq
 from lib.lammps import get_thermo
 
 def make_iter_name (iter_index) :
@@ -90,43 +91,8 @@ def _gen_lammps_input (conf_file,
     return ret
 
 
-# ret = _gen_lammps_input('conf.lmp',
-#                   [27],
-#                   1,
-#                   'graph.000.pb',
-#                   100,
-#                   1000,
-#                   0.002,
-#                   'nvt',
-#                   100)
-# print(ret)
-
-def _parse_str(in_s) :
-    fmt_s = in_s.split(':') 
-    if len(fmt_s) == 1 :
-        return np.array([float(fmt_s[0])])
-    else :
-        assert(len(fmt_s)) == 3 
-        return np.arange(float(fmt_s[0]),
-                         float(fmt_s[1]), 
-                         float(fmt_s[2]))
-
-def _parse_lambda(in_s) :
-    all_l = []
-    if type(in_s) == list :
-        for ii in in_s :
-            for jj in _parse_str(ii) :
-                all_l.append(jj)                
-    else :
-        all_l = parse_str(jj)
-    return np.array(all_l)
-
 def make_tasks(iter_name, jdata) :
-    # lambda_str = jdata['lambda'].split(':')
-    # all_lambda = np.arange(float(lambda_str[0]),
-    #                        float(lambda_str[1]) + float(lambda_str[2]), 
-    #                        float(lambda_str[2]))
-    all_lambda = _parse_lambda(jdata['lambda'])
+    all_lambda = parse_seq(jdata['lambda'])
     protect_eps = jdata['protect_eps']
     if all_lambda[0] == 0:
         all_lambda[0] += protect_eps
@@ -241,6 +207,9 @@ def _main ():
                              help='folder of the job')
     args = parser.parse_args()
 
+    if args.command is None :
+        parser.print_help()
+        exit
     if args.command == 'gen' :
         output = args.output
         jdata = json.load(open(args.PARAM, 'r'))

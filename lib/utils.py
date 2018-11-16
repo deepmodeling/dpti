@@ -71,6 +71,30 @@ def cvt_conf (fin,
     sp.check_call(cmd_line, shell = True)    
     # sp.check_call([cmd, cmd_opt, fin, fout])
 
+def _parse_one_str(in_s) :
+    fmt_s = in_s.split(':') 
+    if len(fmt_s) == 1 :
+        return np.array([float(fmt_s[0])])
+    else :
+        assert(len(fmt_s)) == 3 
+        return np.arange(float(fmt_s[0]),
+                         float(fmt_s[1]), 
+                         float(fmt_s[2]))
+
+def parse_seq(in_s) :
+    all_l = []
+    if type(in_s) == list and type(in_s[0]) == str :
+        for ii in in_s :
+            for jj in _parse_one_str(ii) :
+                all_l.append(jj)      
+    elif type(in_s) == list and ( type(in_s[0]) == float or type(in_s[0]) == int ) :
+        all_l = [float(ii) for ii in in_s]
+    elif type(in_s) == str :
+        all_l = parse_str(jj)
+    else :
+        raise RuntimeError("the type of seq should be one of: string, list_of_strings, list_of_floats")
+    return np.array(all_l)
+
 def integrate(xx, yy) :
     diff_e = 0
     ntasks = len(xx) - 1

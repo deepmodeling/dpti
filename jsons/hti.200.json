@@ -1,0 +1,19 @@
+{
+    "equi_conf":	"conf.lmp",
+    "lambda":		["0.0:0.1:0.01", 
+			 "0.1:0.9:0.1", 
+			 "0.9:1.0:0.01",
+			 "1"],
+    "protect_eps":	1e-8,
+    "model":		"graph.000.pb",
+    "model_mass_map":	[27],
+    "spring_k":		[3],
+    "nsteps":		400000,
+    "dt":		0.002,
+    "stat_freq":	10,
+    "stat_skip":	10000,
+    "stat_bsize":	5000,
+    "temp":		200,
+
+    "_comment":		"that's all"
+}
