@@ -2,7 +2,9 @@
 
 import os, sys, json, argparse, glob
 import numpy as np
+import scipy.constants as pc
 
+import einstein
 from lib.utils import create_path
 from lib.utils import copy_file_list
 from lib.utils import block_avg
@@ -189,7 +191,35 @@ def post_tasks(iter_name, jdata) :
                header = 'idx lmbda dU dU_err Ud Us Ud_err Us_err')
 
     diff_e, err = integrate(all_lambda, de, all_err)
-    print(diff_e, err)
+
+    data = get_thermo(os.path.join(all_tasks[-1], 'log.lammps'))
+    pa, pe = block_avg(data[:, 5], skip = stat_skip, block_size = stat_bsize)
+    va, ve = block_avg(data[:, 6], skip = stat_skip, block_size = stat_bsize)
+    ea, ee = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
+    ta, te = block_avg(data[:, 4], skip = stat_skip, block_size = stat_bsize)
+    thermo_info = {}
+    thermo_info['p'] = pa
+    thermo_info['p_err'] = pe
+    thermo_info['v'] = va
+    thermo_info['v_err'] = ve
+    thermo_info['e'] = ea
+    thermo_info['e_err'] = ee
+    thermo_info['t'] = ta
+    thermo_info['t_err'] = te
+    unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
+    thermo_info['pv'] = pa * va * unit_cvt
+    thermo_info['pv_err'] = pe * va * unit_cvt
+
+    return diff_e, err, thermo_info
+
+def _print_thermo_info(info) :
+    ptr = '# thermodynamics\n'
+    ptr += '# E (err)  [eV]:  %20.8f %20.8f\n' % (info['e'], info['e_err'])
+    ptr += '# T (err)   [K]:  %20.8f %20.8f\n' % (info['t'], info['t_err'])
+    ptr += '# P (err) [bar]:  %20.8f %20.8f\n' % (info['p'], info['p_err'])
+    ptr += '# V (err) [A^3]:  %20.8f %20.8f\n' % (info['v'], info['v_err'])
+    ptr += '# PV(err)  [eV]:  %20.8f %20.8f' % (info['pv'], info['pv_err'])
+    print(ptr)
 
 def _main ():
     parser = argparse.ArgumentParser(
@@ -205,6 +235,9 @@ def _main ():
     parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
     parser_comp.add_argument('JOB', type=str ,
                              help='folder of the job')
+    parser_comp.add_argument('-t','--type', type=str, default = 'helmholtz', 
+                             choices=['helmholtz', 'gibbs'], 
+                             help='the type of free energy')
     args = parser.parse_args()
 
     if args.command is None :
@@ -217,8 +250,20 @@ def _main ():
     elif args.command == 'compute' :
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
-        post_tasks(job, jdata)
-
+        e0 = einstein.free_energy(jdata)
+        de, de_err, thermo_info = post_tasks(job, jdata)
+        _print_thermo_info(thermo_info)
+        print('# free ener of Einstein Mole: %20.8f' % e0)
+        if args.type == 'helmholtz' :
+            print('# Helmholtz free ener (err) [eV]:')
+            print(e0 + de, de_err)
+        if args.type == 'gibbs' :
+            pv = thermo_info['pv']
+            pv_err = thermo_info['pv_err']
+            e1 = e0 + de + pv
+            e1_err = np.sqrt(de_err**2 + pv_err**2)
+            print('# Gibbs free ener (err) [eV]:')
+            print(e1, e1_err)
     
 if __name__ == '__main__' :
     _main()

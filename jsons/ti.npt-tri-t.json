@@ -1,0 +1,19 @@
+{
+    "equi_conf":	"conf.lmp",
+    "model":		"graph.000.pb",
+    "model_mass_map":	[27],    
+    "nsteps":		100000,
+    "dt":		0.002,
+    "ens":		"npt-aniso",
+    "path":		"t",
+    "temps":		[100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200],
+    "press":		1,
+    "tau_t":		0.1,
+    "tau_p":		0.5,
+
+    "stat_freq":	10,
+    "stat_skip":	2000,
+    "stat_bsize":	2000,
+
+    "_comment":		"that's all"
+}

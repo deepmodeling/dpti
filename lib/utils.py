@@ -90,7 +90,7 @@ def parse_seq(in_s) :
     elif type(in_s) == list and ( type(in_s[0]) == float or type(in_s[0]) == int ) :
         all_l = [float(ii) for ii in in_s]
     elif type(in_s) == str :
-        all_l = parse_str(jj)
+        all_l = _parse_one_str(in_s)
     else :
         raise RuntimeError("the type of seq should be one of: string, list_of_strings, list_of_floats")
     return np.array(all_l)

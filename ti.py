@@ -156,7 +156,7 @@ def make_tasks(iter_name, jdata) :
                                     tau_p = tau_p,
                                     prt_freq = stat_freq)
             with open('thermo.out', 'w') as fp :
-                fp.write('%f %f' % (temps[ii], press))
+                fp.write('%f' % (temps[ii]))
         elif 'npt' in ens and path == 'p' :
             lmp_str \
                 = _gen_lammps_input('conf.lmp',
@@ -171,7 +171,7 @@ def make_tasks(iter_name, jdata) :
                                     tau_p = tau_p,
                                     prt_freq = stat_freq)
             with open('thermo.out', 'w') as fp :
-                fp.write('%f %f' % (temps, press[ii]))
+                fp.write('%f' % (press[ii]))
         else:
             raise RuntimeError('invalid ens or path setting' )
 
@@ -179,12 +179,46 @@ def make_tasks(iter_name, jdata) :
             fp.write(lmp_str)
         os.chdir(cwd)
 
+def _compute_thermo (lmplog, stat_skip, stat_bsize) :
+    data = get_thermo(lmplog)
+    ea, ee = block_avg(data[:, 3], skip = stat_skip, block_size = stat_bsize)
+    ha, he = block_avg(data[:, 4], skip = stat_skip, block_size = stat_bsize)
+    ta, te = block_avg(data[:, 5], skip = stat_skip, block_size = stat_bsize)
+    pa, pe = block_avg(data[:, 6], skip = stat_skip, block_size = stat_bsize)
+    va, ve = block_avg(data[:, 7], skip = stat_skip, block_size = stat_bsize)
+    thermo_info = {}
+    thermo_info['p'] = pa
+    thermo_info['p_err'] = pe
+    thermo_info['v'] = va
+    thermo_info['v_err'] = ve
+    thermo_info['e'] = ea
+    thermo_info['e_err'] = ee
+    thermo_info['t'] = ta
+    thermo_info['t_err'] = te
+    thermo_info['h'] = ha
+    thermo_info['h_err'] = he
+    unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
+    thermo_info['pv'] = pa * va * unit_cvt
+    thermo_info['pv_err'] = pe * va * unit_cvt
+    return thermo_info
+
+def _print_thermo_info(info, more_head = '') :
+    ptr = '# thermodynamics %s\n' % more_head
+    ptr += '# E (err)  [eV]:  %20.8f %20.8f\n' % (info['e'], info['e_err'])
+    ptr += '# H (err)  [eV]:  %20.8f %20.8f\n' % (info['h'], info['h_err'])
+    ptr += '# T (err)   [K]:  %20.8f %20.8f\n' % (info['t'], info['t_err'])
+    ptr += '# P (err) [bar]:  %20.8f %20.8f\n' % (info['p'], info['p_err'])
+    ptr += '# V (err) [A^3]:  %20.8f %20.8f\n' % (info['v'], info['v_err'])
+    ptr += '# PV(err)  [eV]:  %20.8f %20.8f' % (info['pv'], info['pv_err'])
+    print(ptr)
+
 def post_tasks(iter_name, jdata, Eo) :
     equi_conf = jdata['equi_conf']
     natoms = get_natoms(equi_conf)
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
     ens = jdata['ens']
+    path = jdata['path']
 
     all_tasks = glob.glob(os.path.join(iter_name, 'task*'))
     all_tasks.sort()
@@ -195,14 +229,25 @@ def post_tasks(iter_name, jdata, Eo) :
     all_e_err = []
     integrand = []
     integrand_err = []
-    ener_col = 3
-    if 'npt' in ens :
-        ener_col = 4
+    if 'nvt' in ens and path == 't' :
+        # TotEng
+        stat_col = 3
+        print('# TI in NVT along T path')
+    elif 'npt' in ens and path == 't' :
+        # Enthalpy
+        stat_col = 4
+        print('# NPT in NVT along T path')
+    elif 'npt' in ens and path == 'p' :
+        # volume
+        stat_col = 7
+        print('# NPT in NVT along P path')
+    else:
+        raise RuntimeError('invalid ens or path setting' )
 
     for ii in all_tasks :
         log_name = os.path.join(ii, 'log.lammps')
         data = get_thermo(log_name)
-        ea, ee = block_avg(data[:, ener_col], 
+        ea, ee = block_avg(data[:, stat_col], 
                            skip = stat_skip, 
                            block_size = stat_bsize)
         all_e.append(ea)
@@ -210,8 +255,16 @@ def post_tasks(iter_name, jdata, Eo) :
         thermo_name = os.path.join(ii, 'thermo.out')
         tt = float(open(thermo_name).read())
         all_t.append(tt)
-        integrand.append(ea / (tt * tt))
-        integrand_err.append(ee / (tt * tt))
+        if path == 't' :
+            integrand.append(ea / (tt * tt))
+            integrand_err.append(ee / (tt * tt))
+        elif path == 'p' :
+            # cvt from barA^3 to eV
+            unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
+            integrand.append(ea * unit_cvt)
+            integrand_err.append(ee * unit_cvt)
+        else:
+            raise RuntimeError('invalid path setting' )
 
     all_print = []
     all_print.append(np.arange(len(all_tasks)))
@@ -223,10 +276,20 @@ def post_tasks(iter_name, jdata, Eo) :
     np.savetxt(os.path.join(iter_name, 'ti.out'), 
                all_print.T, 
                fmt = '%.8e', 
-               header = 'idx tt Integrand U U_err')
+               header = 'idx t/p Integrand U/V U/V_err')
+
+    info0 = _compute_thermo(os.path.join(all_tasks[ 0], 'log.lammps'), stat_skip, stat_bsize)
+    info1 = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), stat_skip, stat_bsize)
+    _print_thermo_info(info0, 'at 0')
+    _print_thermo_info(info1, 'at 1')
 
     diff_e, err = integrate(all_t, integrand, integrand_err)
-    e1 = (Eo / (all_t[0]) - diff_e) * all_t[-1]
+
+    if path == 't' :
+        e1 = (Eo / (all_t[0]) - diff_e) * all_t[-1]
+        err *= all_t[-1]
+    elif path == 'p' :
+        e1 = Eo + diff_e        
     print(e1, err)
 
 def _main ():
