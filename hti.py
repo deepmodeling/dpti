@@ -92,8 +92,70 @@ def _gen_lammps_input (conf_file,
     
     return ret
 
+def _gen_lammps_input_ideal (conf_file, 
+                             mass_map,
+                             lamb,
+                             model,
+                             nsteps,
+                             dt,
+                             ens,
+                             temp,
+                             pres = 1.0, 
+                             tau_t = 0.1,
+                             tau_p = 0.5,
+                             prt_freq = 100, 
+                             norm_style = 'first') :
+    ret = ''
+    ret += 'clear\n'
+    ret += '# --------------------- VARIABLES-------------------------\n'
+    ret += 'variable        NSTEPS          equal %d\n' % nsteps
+    ret += 'variable        THERMO_FREQ     equal %d\n' % prt_freq
+    ret += 'variable        DUMP_FREQ       equal %d\n' % prt_freq
+    ret += 'variable        TEMP            equal %f\n' % temp
+    ret += 'variable        PRES            equal %f\n' % pres
+    ret += 'variable        TAU_T           equal %f\n' % tau_t
+    ret += 'variable        TAU_P           equal %f\n' % tau_p
+    ret += 'variable        LAMBDA          equal %.10e\n' % lamb
+    ret += 'variable        ZERO            equal 0\n'
+    ret += '# ---------------------- INITIALIZAITION ------------------\n'
+    ret += 'units           metal\n'
+    ret += 'boundary        p p p\n'
+    ret += 'atom_style      atomic\n'
+    ret += '# --------------------- ATOM DEFINITION ------------------\n'
+    ret += 'box             tilt large\n'
+    ret += 'read_data       %s\n' % conf_file
+    ret += 'change_box      all triclinic\n'
+    for jj in range(len(mass_map)) :
+        ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
+    ret += '# --------------------- FORCE FIELDS ---------------------\n'
+    ret += 'pair_style      deepmd %s\n' % model
+    ret += 'pair_coeff\n'
+    ret += 'fix             l_deep all adapt 1 pair deepmd scale * * v_LAMBDA\n'
+    ret += 'compute         e_deep all pe pair\n'
+    ret += '# --------------------- MD SETTINGS ----------------------\n'    
+    ret += 'neighbor        1.0 bin\n'
+    ret += 'timestep        %s\n' % dt
+    ret += 'thermo          ${THERMO_FREQ}\n'
+    ret += 'thermo_style    custom step ke pe etotal temp press vol v_ZERO c_e_deep\n'
+    ret += 'thermo_modify   format 9 %.16e\n'
+    # ret += 'dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
+    if ens == 'nvt' :
+        ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
+    elif ens == 'npt-iso' or ens == 'npt':
+        ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}\n'
+    elif ens == 'nve' :
+        ret += 'fix             1 all nve\n'
+    else :
+        raise RuntimeError('unknow ensemble %s\n' % ens)        
+    ret += '# --------------------- INITIALIZE -----------------------\n'    
+    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(0, 2**16))
+    ret += '# --------------------- RUN ------------------------------\n'    
+    ret += 'run             ${NSTEPS}\n'
+    
+    return ret
 
-def make_tasks(iter_name, jdata) :
+
+def make_tasks(iter_name, jdata, ref) :
     all_lambda = parse_seq(jdata['lambda'])
     protect_eps = jdata['protect_eps']
     if all_lambda[0] == 0:
@@ -110,6 +172,7 @@ def make_tasks(iter_name, jdata) :
     spring_k = jdata['spring_k']
     stat_freq = jdata['stat_freq']
     temp = jdata['temp']
+    jdata['reference'] = ref
 
     create_path(iter_name)
     cwd = os.getcwd()
@@ -123,23 +186,56 @@ def make_tasks(iter_name, jdata) :
         os.chdir(work_path)
         os.symlink(os.path.relpath(equi_conf), 'conf.lmp')
         os.symlink(os.path.relpath(model), 'graph.pb')
-        lmp_str \
-            = _gen_lammps_input('conf.lmp',
-                                model_mass_map, 
-                                ii, 
-                                'graph.pb',
-                                spring_k, 
-                                nsteps, 
-                                dt,
-                                'nvt',
-                                temp, 
-                                prt_freq = stat_freq)
+        if ref == 'einstein' :
+            lmp_str \
+                = _gen_lammps_input('conf.lmp',
+                                    model_mass_map, 
+                                    ii, 
+                                    'graph.pb',
+                                    spring_k, 
+                                    nsteps, 
+                                    dt,
+                                    'nvt',
+                                    temp, 
+                                    prt_freq = stat_freq)
+        elif ref == 'ideal' :
+            lmp_str \
+                = _gen_lammps_input_ideal('conf.lmp',
+                                          model_mass_map, 
+                                          ii, 
+                                          'graph.pb',
+                                          nsteps, 
+                                          dt,
+                                          'nvt',
+                                          temp, 
+                                          prt_freq = stat_freq)            
+        else :
+            raise RuntimeError('unknow reference system type ' + ref)
         with open('in.lammps', 'w') as fp :
             fp.write(lmp_str)
         with open('lambda.out', 'w') as fp :
             fp.write(str(ii))
         os.chdir(cwd)
 
+def _compute_thermo(fname, stat_skip, stat_bsize) :
+    data = get_thermo(fname)
+    pa, pe = block_avg(data[:, 5], skip = stat_skip, block_size = stat_bsize)
+    va, ve = block_avg(data[:, 6], skip = stat_skip, block_size = stat_bsize)
+    ea, ee = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
+    ta, te = block_avg(data[:, 4], skip = stat_skip, block_size = stat_bsize)
+    thermo_info = {}
+    thermo_info['p'] = pa
+    thermo_info['p_err'] = pe
+    thermo_info['v'] = va
+    thermo_info['v_err'] = ve
+    thermo_info['e'] = ea
+    thermo_info['e_err'] = ee
+    thermo_info['t'] = ta
+    thermo_info['t_err'] = te
+    unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
+    thermo_info['pv'] = pa * va * unit_cvt
+    thermo_info['pv_err'] = pe * va * unit_cvt
+    return thermo_info
 
 def post_tasks(iter_name, jdata) :
     stat_skip = jdata['stat_skip']
@@ -157,6 +253,7 @@ def post_tasks(iter_name, jdata) :
     for ii in all_tasks :
         log_name = os.path.join(ii, 'log.lammps')
         data = get_thermo(log_name)
+        np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
         sa, se = block_avg(data[:, 7], skip = stat_skip, block_size = stat_bsize)
         da, de = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
         lmda_name = os.path.join(ii, 'lambda.out')
@@ -192,25 +289,11 @@ def post_tasks(iter_name, jdata) :
 
     diff_e, err = integrate(all_lambda, de, all_err)
 
-    data = get_thermo(os.path.join(all_tasks[-1], 'log.lammps'))
-    pa, pe = block_avg(data[:, 5], skip = stat_skip, block_size = stat_bsize)
-    va, ve = block_avg(data[:, 6], skip = stat_skip, block_size = stat_bsize)
-    ea, ee = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
-    ta, te = block_avg(data[:, 4], skip = stat_skip, block_size = stat_bsize)
-    thermo_info = {}
-    thermo_info['p'] = pa
-    thermo_info['p_err'] = pe
-    thermo_info['v'] = va
-    thermo_info['v_err'] = ve
-    thermo_info['e'] = ea
-    thermo_info['e_err'] = ee
-    thermo_info['t'] = ta
-    thermo_info['t_err'] = te
-    unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
-    thermo_info['pv'] = pa * va * unit_cvt
-    thermo_info['pv_err'] = pe * va * unit_cvt
+    thermo_info = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), 
+                                  stat_skip, stat_bsize)
 
     return diff_e, err, thermo_info
+
 
 def _print_thermo_info(info) :
     ptr = '# thermodynamics\n'
@@ -231,6 +314,9 @@ def _main ():
                             help='json parameter file')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
+    parser_gen.add_argument('-r','--reference', type=str, default = 'einstein', 
+                            choices=['einstein', 'ideal'], 
+                            help='the reference state, einstein crystal or ideal gas')
 
     parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
     parser_comp.add_argument('JOB', type=str ,
@@ -246,14 +332,19 @@ def _main ():
     if args.command == 'gen' :
         output = args.output
         jdata = json.load(open(args.PARAM, 'r'))
-        make_tasks(output, jdata)
+        make_tasks(output, jdata, args.reference)
     elif args.command == 'compute' :
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
-        e0 = einstein.free_energy(jdata)
         de, de_err, thermo_info = post_tasks(job, jdata)
         _print_thermo_info(thermo_info)
-        print('# free ener of Einstein Mole: %20.8f' % e0)
+        if 'reference' not in jdata :
+            jdata['reference'] = 'einstein'
+        if jdata['reference'] == 'einstein' :
+            e0 = einstein.free_energy(jdata)
+            print('# free ener of Einstein Mole: %20.8f' % e0)
+        else :
+            e0 = 0
         if args.type == 'helmholtz' :
             print('# Helmholtz free ener (err) [eV]:')
             print(e0 + de, de_err)
