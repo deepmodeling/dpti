@@ -28,7 +28,8 @@ def _gen_lammps_input (conf_file,
                        tau_t = 0.1,
                        tau_p = 0.5,
                        prt_freq = 100, 
-                       norm_style = 'first') :
+                       norm_style = 'first', 
+                       switch_style = 'both') :
     spring_k = spring_k_[0]
     ret = ''
     ret += 'clear\n'
@@ -54,10 +55,22 @@ def _gen_lammps_input (conf_file,
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
     ret += 'pair_style      deepmd %s\n' % model
     ret += 'pair_coeff\n'
-    ret += 'fix             l_spring all spring/self %.10e\n' % (spring_k * (1 - lamb))
-    ret += 'fix_modify      l_spring energy yes\n'
-    ret += 'fix             l_deep all adapt 1 pair deepmd scale * * v_LAMBDA\n'
-    ret += 'compute         e_deep all pe pair\n'
+    if switch_style == 'both' :
+        ret += 'fix             l_spring all spring/self %.10e\n' % (spring_k * (1 - lamb))
+        ret += 'fix_modify      l_spring energy yes\n'
+        ret += 'fix             l_deep all adapt 1 pair deepmd scale * * v_LAMBDA\n'
+        ret += 'compute         e_deep all pe pair\n'
+    elif switch_style == 'deep_on' :
+        ret += 'fix             l_spring all spring/self %.10e\n' % (spring_k)
+        ret += 'fix_modify      l_spring energy yes\n'
+        ret += 'fix             l_deep all adapt 1 pair deepmd scale * * v_LAMBDA\n'
+        ret += 'compute         e_deep all pe pair\n'
+    elif switch_style == 'spring_off' :
+        ret += 'fix             l_spring all spring/self %.10e\n' % (spring_k * (1 - lamb))
+        ret += 'fix_modify      l_spring energy yes\n'
+        ret += 'compute         e_deep all pe pair\n'
+    else :
+        raise RuntimeError('unknow switch_style ' + switch_style)        
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % dt
@@ -155,12 +168,12 @@ def _gen_lammps_input_ideal (conf_file,
     return ret
 
 
-def make_tasks(iter_name, jdata, ref) :
+def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
     all_lambda = parse_seq(jdata['lambda'])
     protect_eps = jdata['protect_eps']
-    if all_lambda[0] == 0:
+    if all_lambda[0] == 0 and (switch_style == 'both' or switch_style == 'deep_on'):
         all_lambda[0] += protect_eps
-    if all_lambda[-1] == 1:
+    if all_lambda[-1] == 1 and (switch_style == 'both' or switch_style == 'spring_off'):
         all_lambda[-1] -= protect_eps
     equi_conf = jdata['equi_conf']
     equi_conf = os.path.abspath(equi_conf)
@@ -173,6 +186,7 @@ def make_tasks(iter_name, jdata, ref) :
     stat_freq = jdata['stat_freq']
     temp = jdata['temp']
     jdata['reference'] = ref
+    jdata['switch_style'] = switch_style
 
     create_path(iter_name)
     cwd = os.getcwd()
@@ -196,8 +210,9 @@ def make_tasks(iter_name, jdata, ref) :
                                     nsteps, 
                                     dt,
                                     'nvt',
-                                    temp, 
-                                    prt_freq = stat_freq)
+                                    temp,
+                                    prt_freq = stat_freq, 
+                                    switch_style = switch_style)
         elif ref == 'ideal' :
             lmp_str \
                 = _gen_lammps_input_ideal('conf.lmp',
@@ -317,6 +332,9 @@ def _main ():
     parser_gen.add_argument('-r','--reference', type=str, default = 'einstein', 
                             choices=['einstein', 'ideal'], 
                             help='the reference state, einstein crystal or ideal gas')
+    parser_gen.add_argument('-s','--switch', type=str, default = 'both', 
+                            choices=['both', 'deep_on', 'spring_off'], 
+                            help='the reference state, einstein crystal or ideal gas')
 
     parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
     parser_comp.add_argument('JOB', type=str ,
@@ -332,7 +350,7 @@ def _main ():
     if args.command == 'gen' :
         output = args.output
         jdata = json.load(open(args.PARAM, 'r'))
-        make_tasks(output, jdata, args.reference)
+        make_tasks(output, jdata, args.reference, args.switch)
     elif args.command == 'compute' :
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
