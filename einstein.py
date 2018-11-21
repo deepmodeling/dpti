@@ -15,6 +15,27 @@ def _compute_spring(temp, spring_k) :
     ret = (spring_k * pc.electron_volt / (pc.angstrom * pc.angstrom)) / (pc.Boltzmann * temp * np.pi) 
     return np.sqrt(ret)
 
+def ideal_gas_fe(jdata) :
+    equi_conf = jdata['equi_conf']
+    temp = jdata['temp']
+    mass_map = jdata['model_mass_map']
+    tmp_poscar = 'tmp.%06d.POSCAR' % np.random.randint(0, 999999)
+
+    cvt_conf(equi_conf, tmp_poscar)
+    vol = poscar_vol(tmp_poscar)
+    with open(tmp_poscar) as fp :
+        lines = list(fp)
+        natoms = [int(ii) for ii in lines[6].split()]    
+    os.remove(tmp_poscar)
+
+    Lambda_k = [_compute_lambda(temp, ii) for ii in mass_map]    
+    fe = 0
+    for idx,ii in enumerate(natoms) :
+        # kinetic contrib
+        fe += 3 * ii * np.log(Lambda_k[idx])
+    fe *= pc.Boltzmann * temp / pc.electron_volt
+    return fe
+
 def free_energy (jdata) :
     equi_conf = jdata['equi_conf']
     spring_k = jdata['spring_k']

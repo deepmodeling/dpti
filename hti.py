@@ -362,7 +362,8 @@ def _main ():
             e0 = einstein.free_energy(jdata)
             print('# free ener of Einstein Mole: %20.8f' % e0)
         else :
-            e0 = 0
+            e0 = einstein.ideal_gas_fe(jdata)
+            print('# free ener of ideal gas: %20.8f' % e0)
         if args.type == 'helmholtz' :
             print('# Helmholtz free ener (err) [eV]:')
             print(e0 + de, de_err)

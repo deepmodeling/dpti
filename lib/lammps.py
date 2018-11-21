@@ -25,3 +25,14 @@ def get_thermo(filename) :
         data.append([float(jj) for jj in fc[ii].split()])
     data = np.array(data)
     return data
+
+def get_last_dump(dump) :
+    with open(dump, 'r') as fp :
+        lines = fp.read().split('\n')
+    step_idx = -1
+    for idx,ii in enumerate(lines) :
+        if 'ITEM: TIMESTEP' in ii :
+            step_idx = idx
+    if step_idx == -1 :
+        raise RuntimeError("cannot find timestep in lammps dump, something wrong")    
+    return '\n'.join(lines[step_idx:])
