@@ -54,7 +54,7 @@ def make_task(iter_name, jdata, pres) :
     if pres == None :
         pres = jdata['pres']
     elif 'pres' in jdata :
-        print('P = %f suppress the pres in json data' % pres)
+        print('P = %f overrides the pres in json data' % pres)
     jdata['pres'] = pres
     
     create_path(iter_name)
