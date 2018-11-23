@@ -23,6 +23,21 @@ def posi_diff(box, r0, r1) :
     return dr
 
 
+def compute_bonds(box, atype, posis, max_roh = 1.3):
+    natoms = len(posis)
+    bonds = []
+    for ii in range(natoms) :
+        bonds.append([])
+    for ii in range(natoms) :
+        if atype[ii] == 1 :
+            for jj in range(natoms) :
+                if atype[jj] == 2 :
+                    dr = posi_diff(box, posis[ii], posis[jj])
+                    if np.linalg.norm(dr) < max_roh :
+                        bonds[ii].append(jj)
+                        bonds[jj].append(ii)
+    return bonds
+
 def add_bonds (lines_, max_roh = 1.3) :
     lines = lines_
     natoms = lmp.get_natoms_vec(lines)
@@ -34,19 +49,7 @@ def add_bonds (lines_, max_roh = 1.3) :
     posis = lmp.get_posi(lines)
     bounds, tilt = lmp.get_lmpbox(lines)
     orig, box = lmp.lmpbox2box(bounds, tilt)
-    posi_diff(box, posis[0], posis[1])
-
-    bonds = []
-    for ii in range(sum(natoms)) :
-        bonds.append([])
-    for ii in range(sum(natoms)) :
-        if atype[ii] == 1 :
-            for jj in range(sum(natoms)) :
-                if atype[jj] == 2 :
-                    dr = posi_diff(box, posis[ii], posis[jj])
-                    if np.linalg.norm(dr) < max_roh :
-                        bonds[ii].append(jj)
-                        bonds[jj].append(ii)
+    bonds = compute_bonds(box, atype, posis, max_roh)
 
     # check water moles
     for ii in range(len(bonds)) :

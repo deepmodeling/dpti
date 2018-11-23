@@ -19,23 +19,23 @@ def _get_block (lines, keys) :
         idx += 1
     return ret
 
-def lmpbox2box(bonds, tilt) :
+def lmpbox2box(lohi, tilt) :
     xy = tilt[0]
     xz = tilt[1]
     yz = tilt[2]
-    orig = np.array([bonds[0][0], bonds[1][0], bonds[2][0]])
+    orig = np.array([lohi[0][0], lohi[1][0], lohi[2][0]])
     lens = []
     for dd in range(3) :
-        lens.append(bonds[dd][1] - bonds[dd][0])
+        lens.append(lohi[dd][1] - lohi[dd][0])
     xx = [lens[0], 0, 0]
     yy = [xy, lens[1], 0]
     zz=  [xz, yz, lens[2]]
     return orig, np.array([xx, yy, zz])
 
 def box2lmpbox(orig, box) :
-    bonds = np.zeros([3,2])
+    lohi = np.zeros([3,2])
     for dd in range(3) :
-        bonds[dd][0] = orig[dd]
+        lohi[dd][0] = orig[dd]
     tilt = np.zeros(3)
     tilt[0] = box[1][0]
     tilt[1] = box[2][0]
@@ -45,8 +45,8 @@ def box2lmpbox(orig, box) :
     lens[1] = box[1][1]
     lens[2] = box[2][2]
     for dd in range(3) :
-        bonds[dd][1] = bonds[dd][0] + lens[dd]
-    return bonds, tilt
+        lohi[dd][1] = lohi[dd][0] + lens[dd]
+    return lohi, tilt
 
 def get_atoms(lines) :
     return _get_block(lines, 'Atoms')
@@ -118,6 +118,22 @@ def get_lmpbox(lines) :
         if 'xy' in ii and 'xz' in ii and 'yz' in ii :
             tilt = np.array([float(jj) for jj in ii.split()[0:3]])
     return box_info, tilt
+
+
+def system_data(lines) :
+    system = {}
+    system['atom_numbs'] = get_natoms_vec(lines)
+    system['atom_names'] = []
+    for ii in range(len(system['atom_numbs'])) :
+        system['atom_names'].append('TYPE_%d' % ii)
+    lohi, tilt = get_lmpbox(lines)
+    orig, cell = lmpbox2box(lohi, tilt)
+    system['orig'] = np.array(orig)
+    system['cell'] = np.array(cell)
+    natoms = sum(system['atom_numbs'])
+    system['atom_types'] = get_atype(lines)
+    system['coordinates'] = get_posi(lines)
+    return system
     
     # orig = np.array([box_info[0][0], box_info[1][0], box_info[2][0]])
     # box = np.zeros([3,3])
