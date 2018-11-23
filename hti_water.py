@@ -109,7 +109,7 @@ def _gen_lammps_input (step,
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % dt
     ret += 'thermo          ${THERMO_FREQ}\n'
-    ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol ebond eangle c_e_deep\n'
+    ret += 'thermo_style    custom step ke pe etotal temp press vol ebond eangle c_e_deep\n'
     ret += 'thermo_modify   format 8 %.16e\n'
     ret += 'thermo_modify   format 9 %.16e\n'
     ret += 'thermo_modify   format 10 %.16e\n'
@@ -213,7 +213,7 @@ def _compute_thermo(fname, stat_skip, stat_bsize) :
     data = get_thermo(fname)
     pa, pe = block_avg(data[:, 5], skip = stat_skip, block_size = stat_bsize)
     va, ve = block_avg(data[:, 6], skip = stat_skip, block_size = stat_bsize)
-    ea, ee = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
+    ea, ee = block_avg(data[:, 3], skip = stat_skip, block_size = stat_bsize)
     ta, te = block_avg(data[:, 4], skip = stat_skip, block_size = stat_bsize)
     thermo_info = {}
     thermo_info['p'] = pa
@@ -229,7 +229,8 @@ def _compute_thermo(fname, stat_skip, stat_bsize) :
     thermo_info['pv_err'] = pe * va * unit_cvt
     return thermo_info
 
-def post_tasks(iter_name, jdata) :
+def _post_tasks(iter_name, step) :
+    jdata = json.load(open(os.path.join(iter_name, 'in.json')))
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
     all_tasks = glob.glob(os.path.join(iter_name, 'task*'))
@@ -237,47 +238,57 @@ def post_tasks(iter_name, jdata) :
     ntasks = len(all_tasks)
     
     all_lambda = []
-    all_es = []
-    all_es_err = []
-    all_ed = []
-    all_ed_err = []
+    all_bd_a = []
+    all_bd_e = []
+    all_ag_a = []
+    all_ag_e = []
+    all_dp_a = []
+    all_dp_e = []
 
     for ii in all_tasks :
         log_name = os.path.join(ii, 'log.lammps')
         data = get_thermo(log_name)
         np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
-        sa, se = block_avg(data[:, 7], skip = stat_skip, block_size = stat_bsize)
-        da, de = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
+        bd_a, bd_e = block_avg(data[:, 7], skip = stat_skip, block_size = stat_bsize)
+        ag_a, ag_e = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
+        dp_a, dp_e = block_avg(data[:, 9], skip = stat_skip, block_size = stat_bsize)
         lmda_name = os.path.join(ii, 'lambda.out')
         ll = float(open(lmda_name).read())
         all_lambda.append(ll)
-        all_es.append(sa)
-        all_ed.append(da)
-        all_es_err.append(se)
-        all_ed_err.append(de)
+        all_bd_a.append(bd_a)
+        all_bd_e.append(bd_e)
+        all_ag_a.append(ag_a)
+        all_ag_e.append(ag_e)
+        all_dp_a.append(dp_a)
+        all_dp_e.append(dp_e)
 
     all_lambda = np.array(all_lambda)
-    all_es = np.array(all_es)
-    all_ed = np.array(all_ed)
-    all_es_err = np.array(all_es_err)
-    all_ed_err = np.array(all_ed_err)
-    de = all_ed / all_lambda - all_es / (1 - all_lambda)
-    all_err = np.sqrt(np.square(all_ed_err / all_lambda) + np.square(all_es_err / (1 - all_lambda)))
+    all_bd_a = np.array(all_bd_a)
+    all_bd_e = np.array(all_bd_e)
+    all_ag_a = np.array(all_ag_a)
+    all_ag_e = np.array(all_ag_e)
+    all_dp_a = np.array(all_dp_a)
+    all_dp_e = np.array(all_dp_e)
+    if step == 'angle_on' :        
+        de = all_ag_a / all_lambda
+        all_err = np.sqrt(np.square(all_ag_e / all_lambda))
+    elif step == 'deep_on' :
+        de = all_dp_a / all_lambda
+        all_err = np.sqrt(np.square(all_dp_e / all_lambda))
+    elif step == 'bond_angle_off' :
+        de = - (all_bd_a + all_ag_a) / (1 - all_lambda)
+        all_err = np.sqrt(np.square(all_bd_e / (1 - all_lambda)) + np.square(all_ag_e / (1 - all_lambda)))
 
     all_print = []
     all_print.append(np.arange(len(all_lambda)))
     all_print.append(all_lambda)
     all_print.append(de)
     all_print.append(all_err)
-    all_print.append(all_ed / all_lambda)
-    all_print.append(all_es / (1 - all_lambda))
-    all_print.append(all_ed_err / all_lambda)
-    all_print.append(all_es_err / (1 - all_lambda))
     all_print = np.array(all_print)
     np.savetxt(os.path.join(iter_name, 'hti.out'), 
                all_print.T, 
                fmt = '%.8e', 
-               header = 'idx lmbda dU dU_err Ud Us Ud_err Us_err')
+               header = 'idx lmbda dU dU_err')
 
     diff_e, err = integrate(all_lambda, de, all_err)
 
@@ -285,7 +296,6 @@ def post_tasks(iter_name, jdata) :
                                   stat_skip, stat_bsize)
 
     return diff_e, err, thermo_info
-
 
 def _print_thermo_info(info) :
     ptr = '# thermodynamics\n'
@@ -295,6 +305,20 @@ def _print_thermo_info(info) :
     ptr += '# V (err) [A^3]:  %20.8f %20.8f\n' % (info['v'], info['v_err'])
     ptr += '# PV(err)  [eV]:  %20.8f %20.8f' % (info['pv'], info['pv_err'])
     print(ptr)
+
+def post_tasks(iter_name) :
+    subtask_name = os.path.join(iter_name, '00.angle_on')
+    e, err, tinfo = _post_tasks(subtask_name, 'angle_on')
+    _print_thermo_info(tinfo)
+    print(e, err)
+    subtask_name = os.path.join(iter_name, '01.deep_on')
+    e, err, tinfo = _post_tasks(subtask_name, 'deep_on')
+    _print_thermo_info(tinfo)
+    print(e, err)
+    subtask_name = os.path.join(iter_name, '02.bond_angle_off')
+    e, err, tinfo = _post_tasks(subtask_name, 'bond_angle_off')
+    _print_thermo_info(tinfo)
+    print(e, err)
 
 def _main ():
     parser = argparse.ArgumentParser(
@@ -323,7 +347,7 @@ def _main ():
         jdata = json.load(open(args.PARAM, 'r'))
         make_tasks(output, jdata)
     elif args.command == 'compute' :
-        pass
+        post_tasks(args.JOB)
     
 if __name__ == '__main__' :
     _main()
