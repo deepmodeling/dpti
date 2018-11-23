@@ -236,11 +236,11 @@ def post_tasks(iter_name, jdata, Eo) :
     elif 'npt' in ens and path == 't' :
         # Enthalpy
         stat_col = 4
-        print('# NPT in NVT along T path')
+        print('# TI in NPT along T path')
     elif 'npt' in ens and path == 'p' :
         # volume
         stat_col = 7
-        print('# NPT in NVT along P path')
+        print('# TI in NPT along P path')
     else:
         raise RuntimeError('invalid ens or path setting' )
 
@@ -280,17 +280,46 @@ def post_tasks(iter_name, jdata, Eo) :
 
     info0 = _compute_thermo(os.path.join(all_tasks[ 0], 'log.lammps'), stat_skip, stat_bsize)
     info1 = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), stat_skip, stat_bsize)
-    _print_thermo_info(info0, 'at 0')
-    _print_thermo_info(info1, 'at 1')
+    _print_thermo_info(info0, 'at start point')
+    _print_thermo_info(info1, 'at end point')
 
-    diff_e, err = integrate(all_t, integrand, integrand_err)
+    all_temps = []
+    all_press = []
+    all_fe = []
+    all_fe_err = []
+    for ii in range(0, len(all_t)) :
+        diff_e, err = integrate(all_t[0:ii+1], integrand[0:ii+1], integrand_err[0:ii+1])
+        if path == 't' :
+            e1 = (Eo / (all_t[0]) - diff_e) * all_t[ii]
+            err *= all_t[ii]
+            all_temps.append(all_t[ii])
+            if 'npt' in ens :
+                all_press.append(jdata['press'])
+        elif path == 'p':
+            e1 = Eo + diff_e        
+            all_temps.append(jdata['temps'])
+            all_press.append(all_t[ii])
+        all_fe.append(e1)
+        all_fe_err.append(err)
 
-    if path == 't' :
-        e1 = (Eo / (all_t[0]) - diff_e) * all_t[-1]
-        err *= all_t[-1]
-    elif path == 'p' :
-        e1 = Eo + diff_e        
-    print(e1, err)
+    if 'nvt' == ens :
+        print('#%8s  %15s  %9s' % ('T(ctrl)', 'F', 'err'))
+        for ii in range(len(all_temps)) :
+            print ('%9.2f  %15.8e  %9.2e' 
+                   % (all_temps[ii], all_fe[ii], all_fe_err[ii]))
+    elif 'npt' in ens :
+        print('#%8s  %15s  %15s  %9s' % ('T(ctrl)', 'P(ctrl)', 'F', 'err'))
+        for ii in range(len(all_temps)) :
+            print ('%9.2f  %15.8e  %15.8e  %9.2e' 
+                   % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii]))            
+
+    # diff_e, err = integrate(all_t, integrand, integrand_err)
+    # if path == 't' :
+    #     e1 = (Eo / (all_t[0]) - diff_e) * all_t[-1]
+    #     err *= all_t[-1]
+    # elif path == 'p' :
+    #     e1 = Eo + diff_e        
+    # print(e1, err)
 
 def _main ():
     parser = argparse.ArgumentParser(
