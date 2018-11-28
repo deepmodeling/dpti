@@ -125,7 +125,7 @@ def system_data(lines) :
     system['atom_numbs'] = get_natoms_vec(lines)
     system['atom_names'] = []
     for ii in range(len(system['atom_numbs'])) :
-        system['atom_names'].append('TYPE_%d' % ii)
+        system['atom_names'].append('Type_%d' % ii)
     lohi, tilt = get_lmpbox(lines)
     orig, cell = lmpbox2box(lohi, tilt)
     system['orig'] = np.array(orig)
@@ -134,6 +134,9 @@ def system_data(lines) :
     system['atom_types'] = get_atype(lines)
     system['coordinates'] = get_posi(lines)
     return system
+
+def to_system_data(lines) :
+    return system_data(lines)
     
     # orig = np.array([box_info[0][0], box_info[1][0], box_info[2][0]])
     # box = np.zeros([3,3])

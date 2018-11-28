@@ -111,7 +111,6 @@ def system_data(lines) :
     system['coordinates'] = get_posi(lines)
     return system
 
-
 if __name__ == '__main__' :
     fname = 'dump.hti'
     lines = open(fname).read().split('\n')

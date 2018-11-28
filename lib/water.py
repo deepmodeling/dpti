@@ -63,6 +63,7 @@ def add_bonds (lines_, max_roh = 1.3) :
     for ii in range(len(bonds)) :
         if atype[ii] == 1:
             ret_bd.append("%d 1 %d %d" % (idx, 1+ii, 1+bonds[ii][0]))
+            idx += 1
             ret_bd.append("%d 1 %d %d" % (idx, 1+ii, 1+bonds[ii][1]))
             idx += 1
 
