@@ -140,6 +140,11 @@ def water_bond(iter_name, skip = 1) :
         posis = sys_data['coordinates']
         cell  = sys_data['cell']
         bonds = compute_bonds(cell, atype, posis)
+        if ii == skip : 
+            bonds_0 = bonds 
+        else :
+            if bonds_0 != bonds :
+                print('proton trans detected at frame %d' % ii)
         rr = []
         tt = []
         for ii in range(len(bonds)) :
