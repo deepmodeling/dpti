@@ -105,6 +105,7 @@ def _gen_lammps_input (step,
         ret += _ff_deep_on(lamb, model, bond_k, bond_l, angle_k, angle_t)
     elif step == 'bond_angle_off':
         ret += _ff_bond_angle_off(lamb, model, bond_k, bond_l, angle_k, angle_t)
+    ret += 'special_bonds   lj/coul 1 1 1 angle no\n'
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % dt
