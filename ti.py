@@ -247,6 +247,7 @@ def post_tasks(iter_name, jdata, Eo) :
     for ii in all_tasks :
         log_name = os.path.join(ii, 'log.lammps')
         data = get_thermo(log_name)
+        np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
         ea, ee = block_avg(data[:, stat_col], 
                            skip = stat_skip, 
                            block_size = stat_bsize)
@@ -310,7 +311,7 @@ def post_tasks(iter_name, jdata, Eo) :
     elif 'npt' in ens :
         print('#%8s  %15s  %15s  %9s' % ('T(ctrl)', 'P(ctrl)', 'F', 'err'))
         for ii in range(len(all_temps)) :
-            print ('%9.2f  %15.8e  %15.8e  %9.2e' 
+            print ('%9.2f  %15.8e  %15.8f  %9.2e' 
                    % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii]))            
 
     # diff_e, err = integrate(all_t, integrand, integrand_err)

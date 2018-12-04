@@ -7,11 +7,11 @@ import scipy.constants as pc
 from lib.utils import cvt_conf
 from lib.vasp import poscar_vol
 
-def _compute_lambda(temp, mass) :
+def compute_lambda(temp, mass) :
     ret = 2. * np.pi * mass * (1e-3 / pc.Avogadro) * pc.Boltzmann * temp / (pc.Planck * pc.Planck)
     return 1./np.sqrt(ret)    
 
-def _compute_spring(temp, spring_k) :
+def compute_spring(temp, spring_k) :
     ret = (spring_k * pc.electron_volt / (pc.angstrom * pc.angstrom)) / (pc.Boltzmann * temp * np.pi) 
     return np.sqrt(ret)
 
@@ -28,7 +28,7 @@ def ideal_gas_fe(jdata) :
         natoms = [int(ii) for ii in lines[6].split()]    
     os.remove(tmp_poscar)
 
-    Lambda_k = [_compute_lambda(temp, ii) for ii in mass_map]    
+    Lambda_k = [compute_lambda(temp, ii) for ii in mass_map]    
     fe = 0
     for idx,ii in enumerate(natoms) :
         # kinetic contrib
@@ -50,8 +50,8 @@ def free_energy (jdata) :
         natoms = [int(ii) for ii in lines[6].split()]    
     os.remove(tmp_poscar)
     
-    Lambda_k = [_compute_lambda(temp, ii) for ii in mass_map]
-    Lambda_s = [_compute_spring(temp, ii) for ii in spring_k]
+    Lambda_k = [compute_lambda(temp, ii) for ii in mass_map]
+    Lambda_s = [compute_spring(temp, ii) for ii in spring_k]
     # print(np.log(Lambda_k), np.log(Lambda_s))
     
     with open(equi_conf) as fp:

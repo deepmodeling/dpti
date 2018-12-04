@@ -5,6 +5,7 @@ import numpy as np
 import scipy.constants as pc
 
 import einstein
+import lib.lmp as lmp
 import lib.water as water
 from lib.utils import create_path
 from lib.utils import copy_file_list
@@ -307,19 +308,47 @@ def _print_thermo_info(info) :
     ptr += '# PV(err)  [eV]:  %20.8f %20.8f' % (info['pv'], info['pv_err'])
     print(ptr)
 
+def compute_ideal_mol(iter_name) :
+    jdata = json.load(open(os.path.join(iter_name, 'in.json')))
+    mass_map = jdata['model_mass_map']
+    conf_lines = open(os.path.join(iter_name, 'orig.lmp')).read().split('\n')
+    natom_vec = lmp.get_natoms_vec(conf_lines)
+    temp = jdata['temp']
+    kk = jdata['bond_k']
+    # kinetic contribution
+    fe = 0
+    for ii in range(len(natom_vec)) :
+        mass = mass_map[ii]
+        natoms = natom_vec[ii]
+        lambda_k = einstein.compute_lambda(temp, mass)
+        fe += 3 * natoms * np.log(lambda_k)
+    natoms_o = natom_vec[0]
+    assert(natoms_o*3 == sum(natom_vec))
+    # spring contribution
+    lambda_s = einstein.compute_spring(temp, kk * 1.0)
+    fe += 3 * 2 * natoms_o * np.log(lambda_s)
+    # to kbT log Z
+    fe *= pc.Boltzmann * temp / pc.electron_volt
+    return fe
+
 def post_tasks(iter_name) :
     subtask_name = os.path.join(iter_name, '00.angle_on')
-    e, err, tinfo = _post_tasks(subtask_name, 'angle_on')
-    _print_thermo_info(tinfo)
-    print(e, err)
+    fe = compute_ideal_mol(subtask_name)
+    e0, err0, tinfo0 = _post_tasks(subtask_name, 'angle_on')
+    # _print_thermo_info(tinfo)
+    # print(e, err)
     subtask_name = os.path.join(iter_name, '01.deep_on')
-    e, err, tinfo = _post_tasks(subtask_name, 'deep_on')
-    _print_thermo_info(tinfo)
-    print(e, err)
+    e1, err1, tinfo1 = _post_tasks(subtask_name, 'deep_on')
+    # _print_thermo_info(tinfo)
+    # print(e, err)
     subtask_name = os.path.join(iter_name, '02.bond_angle_off')
-    e, err, tinfo = _post_tasks(subtask_name, 'bond_angle_off')
-    _print_thermo_info(tinfo)
-    print(e, err)
+    e2, err2, tinfo2 = _post_tasks(subtask_name, 'bond_angle_off')
+    # _print_thermo_info(tinfo)
+    # print(e, err)
+    fe = fe + e0 + e1 + e2
+    err = np.sqrt(np.square(err0) + np.square(err1) + np.square(err2))
+    return fe, err, tinfo2
+
 
 def _main ():
     parser = argparse.ArgumentParser(
@@ -348,7 +377,18 @@ def _main ():
         jdata = json.load(open(args.PARAM, 'r'))
         make_tasks(output, jdata)
     elif args.command == 'compute' :
-        post_tasks(args.JOB)
+        fe, fe_err, thermo_info = post_tasks(args.JOB)
+        _print_thermo_info(thermo_info)
+        if args.type == 'helmholtz' :
+            print('# Helmholtz free ener (err) [eV]:')
+            print(fe, fe_err)
+        if args.type == 'gibbs' :
+            pv = thermo_info['pv']
+            pv_err = thermo_info['pv_err']
+            e1 = fe + pv
+            e1_err = np.sqrt(fe_err**2 + pv_err**2)
+            print('# Gibbs free ener (err) [eV]:')
+            print(e1, e1_err)        
     
 if __name__ == '__main__' :
     _main()
