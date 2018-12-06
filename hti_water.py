@@ -111,10 +111,10 @@ def _gen_lammps_input (step,
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % dt
     ret += 'thermo          ${THERMO_FREQ}\n'
-    ret += 'thermo_style    custom step ke pe etotal temp press vol ebond eangle c_e_deep\n'
-    ret += 'thermo_modify   format 8 %.16e\n'
+    ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol ebond eangle c_e_deep\n'
     ret += 'thermo_modify   format 9 %.16e\n'
     ret += 'thermo_modify   format 10 %.16e\n'
+    ret += 'thermo_modify   format 11 %.16e\n'
     # ret += 'dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
     if ens == 'nvt' :
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
@@ -168,8 +168,7 @@ def _make_tasks(iter_name, jdata, step) :
     create_path(iter_name)
     cwd = os.getcwd()
     os.chdir(iter_name)
-    with open('in.json', 'w') as fp:
-        json.dump(jdata, fp, indent=4)
+    os.symlink(os.path.join('..', 'in.json'), 'in.json')
     os.symlink(os.path.relpath(equi_conf), 'orig.lmp')
     lines = water.add_bonds(open('orig.lmp').read().split('\n'))
     open('conf.lmp', 'w').write('\n'.join(lines))
@@ -204,6 +203,11 @@ def _make_tasks(iter_name, jdata, step) :
 
 def make_tasks(iter_name, jdata) :
     create_path(iter_name)
+    cwd = os.getcwd()
+    os.chdir(iter_name)    
+    with open('in.json', 'w') as fp:
+        json.dump(jdata, fp, indent=4)
+    os.chdir(cwd)
     subtask_name = os.path.join(iter_name, '00.angle_on')
     _make_tasks(subtask_name, jdata, 'angle_on')
     subtask_name = os.path.join(iter_name, '01.deep_on')
@@ -213,10 +217,11 @@ def make_tasks(iter_name, jdata) :
 
 def _compute_thermo(fname, stat_skip, stat_bsize) :
     data = get_thermo(fname)
-    pa, pe = block_avg(data[:, 5], skip = stat_skip, block_size = stat_bsize)
-    va, ve = block_avg(data[:, 6], skip = stat_skip, block_size = stat_bsize)
     ea, ee = block_avg(data[:, 3], skip = stat_skip, block_size = stat_bsize)
-    ta, te = block_avg(data[:, 4], skip = stat_skip, block_size = stat_bsize)
+    ha, he = block_avg(data[:, 4], skip = stat_skip, block_size = stat_bsize)
+    ta, te = block_avg(data[:, 5], skip = stat_skip, block_size = stat_bsize)
+    pa, pe = block_avg(data[:, 6], skip = stat_skip, block_size = stat_bsize)
+    va, ve = block_avg(data[:, 7], skip = stat_skip, block_size = stat_bsize)
     thermo_info = {}
     thermo_info['p'] = pa
     thermo_info['p_err'] = pe
@@ -224,6 +229,8 @@ def _compute_thermo(fname, stat_skip, stat_bsize) :
     thermo_info['v_err'] = ve
     thermo_info['e'] = ea
     thermo_info['e_err'] = ee
+    thermo_info['h'] = ha
+    thermo_info['h_err'] = he
     thermo_info['t'] = ta
     thermo_info['t_err'] = te
     unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
@@ -251,9 +258,9 @@ def _post_tasks(iter_name, step) :
         log_name = os.path.join(ii, 'log.lammps')
         data = get_thermo(log_name)
         np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
-        bd_a, bd_e = block_avg(data[:, 7], skip = stat_skip, block_size = stat_bsize)
-        ag_a, ag_e = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
-        dp_a, dp_e = block_avg(data[:, 9], skip = stat_skip, block_size = stat_bsize)
+        bd_a, bd_e = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
+        ag_a, ag_e = block_avg(data[:, 9], skip = stat_skip, block_size = stat_bsize)
+        dp_a, dp_e = block_avg(data[:,10], skip = stat_skip, block_size = stat_bsize)
         lmda_name = os.path.join(ii, 'lambda.out')
         ll = float(open(lmda_name).read())
         all_lambda.append(ll)
@@ -302,6 +309,7 @@ def _post_tasks(iter_name, step) :
 def _print_thermo_info(info) :
     ptr = '# thermodynamics\n'
     ptr += '# E (err)  [eV]:  %20.8f %20.8f\n' % (info['e'], info['e_err'])
+    ptr += '# H (err)  [eV]:  %20.8f %20.8f\n' % (info['h'], info['h_err'])
     ptr += '# T (err)   [K]:  %20.8f %20.8f\n' % (info['t'], info['t_err'])
     ptr += '# P (err) [bar]:  %20.8f %20.8f\n' % (info['p'], info['p_err'])
     ptr += '# V (err) [A^3]:  %20.8f %20.8f\n' % (info['v'], info['v_err'])
