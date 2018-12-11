@@ -2,6 +2,7 @@
 
 import os, sys, json, argparse, glob
 import numpy as np
+import scipy.constants as pc
 
 from lib.utils import create_path
 from lib.utils import cvt_conf
@@ -215,6 +216,96 @@ def water_bond(iter_name, skip = 1) :
     return (np.average(all_rr)), (np.average(all_tt))
 
 
+def _compute_thermo (lmplog, stat_skip, stat_bsize) :
+    data = lib.lammps.get_thermo(lmplog)
+    ea, ee = block_avg(data[:, 3], skip = stat_skip, block_size = stat_bsize)
+    ha, he = block_avg(data[:, 4], skip = stat_skip, block_size = stat_bsize)
+    ta, te = block_avg(data[:, 5], skip = stat_skip, block_size = stat_bsize)
+    pa, pe = block_avg(data[:, 6], skip = stat_skip, block_size = stat_bsize)
+    va, ve = block_avg(data[:, 7], skip = stat_skip, block_size = stat_bsize)
+    lxx, lxxe = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
+    lyy, lyye = block_avg(data[:, 9], skip = stat_skip, block_size = stat_bsize)
+    lzz, lzze = block_avg(data[:,10], skip = stat_skip, block_size = stat_bsize)
+    lxy, lxye = block_avg(data[:,11], skip = stat_skip, block_size = stat_bsize)
+    lxz, lxze = block_avg(data[:,12], skip = stat_skip, block_size = stat_bsize)
+    lyz, lyze = block_avg(data[:,13], skip = stat_skip, block_size = stat_bsize)
+    pxx, pxxe = block_avg(data[:,14], skip = stat_skip, block_size = stat_bsize)
+    pyy, pyye = block_avg(data[:,15], skip = stat_skip, block_size = stat_bsize)
+    pzz, pzze = block_avg(data[:,16], skip = stat_skip, block_size = stat_bsize)
+    pxy, pxye = block_avg(data[:,17], skip = stat_skip, block_size = stat_bsize)
+    pxz, pxze = block_avg(data[:,18], skip = stat_skip, block_size = stat_bsize)
+    pyz, pyze = block_avg(data[:,19], skip = stat_skip, block_size = stat_bsize)
+    thermo_info = {}
+    thermo_info['p'] = pa
+    thermo_info['p_err'] = pe
+    thermo_info['v'] = va
+    thermo_info['v_err'] = ve
+    thermo_info['e'] = ea
+    thermo_info['e_err'] = ee
+    thermo_info['t'] = ta
+    thermo_info['t_err'] = te
+    thermo_info['h'] = ha
+    thermo_info['h_err'] = he
+    unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
+    thermo_info['pv'] = pa * va * unit_cvt
+    thermo_info['pv_err'] = pe * va * unit_cvt
+    thermo_info['lxx'] = lxx
+    thermo_info['lxx_err'] = lxxe
+    thermo_info['lyy'] = lyy
+    thermo_info['lyy_err'] = lyye
+    thermo_info['lzz'] = lzz
+    thermo_info['lzz_err'] = lzze
+    thermo_info['lxy'] = lxy
+    thermo_info['lxy_err'] = lxye
+    thermo_info['lxz'] = lxz
+    thermo_info['lxz_err'] = lxze
+    thermo_info['lyz'] = lyz
+    thermo_info['lyz_err'] = lyze
+    thermo_info['pxx'] = pxx
+    thermo_info['pxx_err'] = pxxe
+    thermo_info['pyy'] = pyy
+    thermo_info['pyy_err'] = pyye
+    thermo_info['pzz'] = pzz
+    thermo_info['pzz_err'] = pzze
+    thermo_info['pxy'] = pxy
+    thermo_info['pxy_err'] = pxye
+    thermo_info['pxz'] = pxz
+    thermo_info['pxz_err'] = pxze
+    thermo_info['pyz'] = pyz
+    thermo_info['pyz_err'] = pyze
+    return thermo_info
+
+def _print_thermo_info(info, more_head = '') :
+    ptr = '# thermodynamics %s\n' % more_head
+    ptr += '# E (err)  [eV]:  %20.8f %20.8f\n' % (info['e'], info['e_err'])
+    ptr += '# H (err)  [eV]:  %20.8f %20.8f\n' % (info['h'], info['h_err'])
+    ptr += '# T (err)   [K]:  %20.8f %20.8f\n' % (info['t'], info['t_err'])
+    ptr += '# P (err) [bar]:  %20.8f %20.8f\n' % (info['p'], info['p_err'])
+    ptr += '# V (err) [A^3]:  %20.8f %20.8f\n' % (info['v'], info['v_err'])
+    ptr += '# PV(err)  [eV]:  %20.8f %20.8f\n' % (info['pv'], info['pv_err'])
+    ptr += '# Lxx(err)  [A]:  %20.8f %20.8f\n' % (info['lxx'], info['lxx_err'])
+    ptr += '# Lyy(err)  [A]:  %20.8f %20.8f\n' % (info['lyy'], info['lyy_err'])
+    ptr += '# Lzz(err)  [A]:  %20.8f %20.8f\n' % (info['lzz'], info['lzz_err'])
+    ptr += '# Lxy(err)  [A]:  %20.8f %20.8f\n' % (info['lxy'], info['lxy_err'])
+    ptr += '# Lxz(err)  [A]:  %20.8f %20.8f\n' % (info['lxz'], info['lxz_err'])
+    ptr += '# Lyz(err)  [A]:  %20.8f %20.8f\n' % (info['lyz'], info['lyz_err'])
+    ptr += '# Pxx(err)[bar]:  %20.8f %20.8f\n' % (info['pxx'], info['pxx_err'])
+    ptr += '# Pyy(err)[bar]:  %20.8f %20.8f\n' % (info['pyy'], info['pyy_err'])
+    ptr += '# Pzz(err)[bar]:  %20.8f %20.8f\n' % (info['pzz'], info['pzz_err'])
+    ptr += '# Pxy(err)[bar]:  %20.8f %20.8f\n' % (info['pxy'], info['pxy_err'])
+    ptr += '# Pxz(err)[bar]:  %20.8f %20.8f\n' % (info['pxz'], info['pxz_err'])
+    ptr += '# Pyz(err)[bar]:  %20.8f %20.8f' % (info['pyz'], info['pyz_err'])
+    print(ptr)
+
+def post_task(iter_name) :
+    j_file = os.path.join(iter_name, 'in.json')
+    jdata = json.load(open(j_file))
+    stat_skip = jdata['stat_skip']
+    stat_bsize = jdata['stat_bsize']
+    log_file = os.path.join(iter_name, 'log.lammps')
+    info = _compute_thermo(log_file, stat_skip, stat_bsize)
+    _print_thermo_info(info)
+
 def _main ():
     parser = argparse.ArgumentParser(
         description="Equilibrium simulation")
@@ -245,6 +336,11 @@ def _main ():
                              help='folder of the job')
     parser_stat.add_argument('-s','--skip', type=int, default = 1,
                              help='skip this number of frames')
+
+    parser_stat = subparsers.add_parser('compute', help= 'Compute thermodynamics')
+    parser_stat.add_argument('JOB', type=str ,
+                             help='folder of the job')
+
     args = parser.parse_args()
 
     
@@ -259,6 +355,9 @@ def _main ():
     elif args.command == 'stat-bond' :
         b, a = water_bond(args.JOB, args.skip)
         print(b, a/np.pi*180)
+    elif args.command == 'compute' :
+        post_task(args.JOB)
+
 
 if __name__ == '__main__' :
     _main()
