@@ -33,7 +33,8 @@ def _gen_lammps_input (conf_file,
     ret += 'variable        DUMP_FREQ       equal %d\n' % dump_freq
     ret += 'variable        NREPEAT         equal ${NSTEPS}/${DUMP_FREQ}\n'
     ret += 'variable        TEMP            equal %f\n' % temp
-    ret += 'variable        PRES            equal %f\n' % pres
+    if pres is not None :
+        ret += 'variable        PRES            equal %f\n' % pres
     ret += 'variable        TAU_T           equal %f\n' % tau_t
     ret += 'variable        TAU_P           equal %f\n' % tau_p
     ret += '# ---------------------- INITIALIZAITION ------------------\n'
