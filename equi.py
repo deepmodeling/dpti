@@ -54,9 +54,9 @@ def _gen_lammps_input (conf_file,
     ret += 'timestep        %s\n' % dt
     ret += 'thermo          ${THERMO_FREQ}\n'
     if ens == 'nvt' :        
-        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol\n'
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz\n'
     elif 'npt' in ens :
-        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz\n'
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz\n'
     else :
         raise RuntimeError('unknow ensemble %s\n' % ens)                
     if dump_ave_posi: 
