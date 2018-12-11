@@ -29,6 +29,7 @@ def get_thermo(filename) :
 def get_last_dump(dump) :
     with open(dump, 'r') as fp :
         lines = fp.read().split('\n')
+    lines = lines[:-1]
     step_idx = -1
     for idx,ii in enumerate(lines) :
         if 'ITEM: TIMESTEP' in ii :

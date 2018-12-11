@@ -5,9 +5,12 @@ import numpy as np
 
 from lib.utils import create_path
 from lib.utils import cvt_conf
+from lib.utils import block_avg
 from lib.water import compute_bonds
 from lib.water import posi_diff
+import lib.lmp
 import lib.dump 
+import lib.lammps
 
 def _gen_lammps_input (conf_file, 
                        mass_map,
@@ -20,13 +23,15 @@ def _gen_lammps_input (conf_file,
                        tau_t = 0.1,
                        tau_p = 0.5,
                        prt_freq = 100, 
-                       dump_freq = 1000) :
+                       dump_freq = 1000, 
+                       dump_ave_posi = False) :
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
     ret += 'variable        NSTEPS          equal %d\n' % nsteps
     ret += 'variable        THERMO_FREQ     equal %d\n' % prt_freq
     ret += 'variable        DUMP_FREQ       equal %d\n' % dump_freq
+    ret += 'variable        NREPEAT         equal ${NSTEPS}/${DUMP_FREQ}\n'
     ret += 'variable        TEMP            equal %f\n' % temp
     ret += 'variable        PRES            equal %f\n' % pres
     ret += 'variable        TAU_T           equal %f\n' % tau_t
@@ -51,9 +56,12 @@ def _gen_lammps_input (conf_file,
     if ens == 'nvt' :        
         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol\n'
     elif 'npt' in ens :
-        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol\n'
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz\n'
     else :
         raise RuntimeError('unknow ensemble %s\n' % ens)                
+    if dump_ave_posi: 
+        ret += 'fix             ap all ave/atom ${DUMP_FREQ} ${NREPEAT} ${NSTEPS} x y z\n'
+        ret += 'dump            fp all custom ${NSTEPS} dump.avgposi id type f_ap[1] f_ap[2] f_ap[3]\n'
     ret += 'dump            1 all custom ${DUMP_FREQ} dump.equi id type x y z vx vy vz\n'
     if ens == 'nvt' :
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
@@ -74,9 +82,40 @@ def _gen_lammps_input (conf_file,
     
     return ret
 
-def make_task(iter_name, jdata, temp, pres) :
+def npt_equi_conf(npt_name) :
+    thermo_file = os.path.join(npt_name, 'log.lammps')
+    dump_file = os.path.join(npt_name, 'dump.equi')
+    j_file = os.path.join(npt_name, 'in.json')
+    jdata = json.load(open(j_file))
+    stat_skip = jdata['stat_skip']
+    stat_bsize = jdata['stat_bsize']
+
+    data = lib.lammps.get_thermo(thermo_file)
+    lx, lxe = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
+    ly, lye = block_avg(data[:, 9], skip = stat_skip, block_size = stat_bsize)
+    lz, lze = block_avg(data[:,10], skip = stat_skip, block_size = stat_bsize)
+    xy, xye = block_avg(data[:,11], skip = stat_skip, block_size = stat_bsize)
+    xz, xze = block_avg(data[:,12], skip = stat_skip, block_size = stat_bsize)
+    yz, yze = block_avg(data[:,13], skip = stat_skip, block_size = stat_bsize)
+    
+    last_dump = lib.lammps.get_last_dump(dump_file).split('\n')
+    sys_data = lib.dump.system_data(last_dump)
+    sys_data['cell'][0][0] = lx
+    sys_data['cell'][1][1] = ly
+    sys_data['cell'][2][2] = lz
+    sys_data['cell'][1][0] = xy
+    sys_data['cell'][2][0] = xz
+    sys_data['cell'][2][1] = yz
+
+    conf_lmp = lib.lmp.from_system_data(sys_data)
+    return conf_lmp
+
+
+def make_task(iter_name, jdata, temp, pres, avg_posi, npt_conf) :
     equi_conf = jdata['equi_conf']
     equi_conf = os.path.abspath(equi_conf)
+    if npt_conf is not None :
+        npt_conf = os.path.abspath(npt_conf)
     model = jdata['model']
     model = os.path.abspath(model)
     model_mass_map = jdata['model_mass_map']
@@ -105,7 +144,10 @@ def make_task(iter_name, jdata, temp, pres) :
     os.chdir(iter_name)
     with open('in.json', 'w') as fp:
         json.dump(jdata, fp, indent=4)
-    os.symlink(os.path.relpath(equi_conf), 'conf.lmp')
+    if npt_conf is None :
+        os.symlink(os.path.relpath(equi_conf), 'conf.lmp')
+    else :        
+        open('conf.lmp', 'w').write(npt_equi_conf(npt_conf))
     os.symlink(os.path.relpath(model), 'graph.pb')
     lmp_str \
         = _gen_lammps_input('conf.lmp',
@@ -119,7 +161,8 @@ def make_task(iter_name, jdata, temp, pres) :
                             tau_t = tau_t,
                             tau_p = tau_p,
                             prt_freq = stat_freq, 
-                            dump_freq = dump_freq)
+                            dump_freq = dump_freq, 
+                            dump_ave_posi = avg_posi)
     with open('in.lammps', 'w') as fp :
         fp.write(lmp_str)
     os.chdir(cwd)
@@ -177,6 +220,10 @@ def _main ():
                             help='the temperature of the system')
     parser_gen.add_argument('-p','--pressure', type=float,
                             help='the pressure of the system')
+    parser_gen.add_argument('-a','--avg-posi', action = 'store_true',
+                            help='dump the average position of atoms')
+    parser_gen.add_argument('-c','--conf-npt', type=str,
+                            help='use conf computed from NPT simulation')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
 
@@ -199,7 +246,7 @@ def _main ():
         exit
     if args.command == 'gen' :
         jdata = json.load(open(args.PARAM, 'r'))        
-        make_task(args.output, jdata, args.temperature, args.pressure)
+        make_task(args.output, jdata, args.temperature, args.pressure, args.avg_posi, args.conf_npt)
     elif args.command == 'extract' :
         extract(args.JOB, args.output)
     elif args.command == 'stat-bond' :

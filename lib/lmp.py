@@ -137,19 +137,32 @@ def system_data(lines) :
 
 def to_system_data(lines) :
     return system_data(lines)
-    
-    # orig = np.array([box_info[0][0], box_info[1][0], box_info[2][0]])
-    # box = np.zeros([3,3])
-    # for dd in range(3) :
-    #     box[dd][dd] = box_info[dd][1] - box_info[dd][0]
-    # return orig, box
 
-# fname = 'water-SPCE.data'
-# lines = open(fname).read().split('\n')
-# ret = _get_block(lines, 'Bonds')
-# print('\n'.join(ret))
-# print(get_box(lines))
-# print(get_natoms_vec(lines))
+def from_system_data(system) :
+    ret = ''
+    ret += '\n'
+    natoms = sum(system['atom_numbs'])
+    ntypes = len(system['atom_numbs'])    
+    ret += '%d atoms\n' % natoms
+    ret += '%d atom types\n' % ntypes
+    ret += '0 %f xlo xhi\n' % system['cell'][0][0]
+    ret += '0 %f ylo yhi\n' % system['cell'][1][1]
+    ret += '0 %f zlo zhi\n' % system['cell'][2][2]
+    ret += '%f %f %f xy xz yz\n' % \
+    (system['cell'][1][0], system['cell'][2][0], system['cell'][2][1])
+    ret += '\n'
+    ret += 'Atoms # atomic\n'
+    ret += '\n'
+    for ii in range(natoms) :
+        ret += '%d %d %f %f %f\n' % \
+               (ii+1,
+                system['atom_types'][ii],
+                system['coordinates'][ii][0] - system['orig'][0],
+                system['coordinates'][ii][1] - system['orig'][1],
+                system['coordinates'][ii][2] - system['orig'][2]
+        )
+    return ret
+
 
 if __name__ == '__main__' :
     fname = 'water-SPCE.data'
