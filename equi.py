@@ -111,6 +111,12 @@ def npt_equi_conf(npt_name) :
     conf_lmp = lib.lmp.from_system_data(sys_data)
     return conf_lmp
 
+def extract(job_dir, output) :
+    dump_file = os.path.join(job_dir, 'dump.equi')
+    last_dump = lib.lammps.get_last_dump(dump_file).split('\n')
+    sys_data = lib.dump.system_data(last_dump)
+    conf_lmp = lib.lmp.from_system_data(sys_data)
+    open(output, 'w').write(conf_lmp)
 
 def make_task(iter_name, jdata, temp, pres, avg_posi, npt_conf) :
     equi_conf = jdata['equi_conf']
