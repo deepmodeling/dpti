@@ -339,7 +339,7 @@ def compute_ideal_mol(iter_name) :
     # spring contribution
     lambda_s = einstein.compute_spring(temp, kk * 1.0)
     fe += 3 * natoms_h * np.log(lambda_s)
-    fe -= natoms_o * np.log(vol)
+    fe -= natoms_o * np.log((vol * (pc.angstrom**3)))
     # N!
     fe += natoms * np.log(natoms) - natoms
     # to kbT log Z
