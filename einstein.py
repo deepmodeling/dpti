@@ -32,7 +32,9 @@ def ideal_gas_fe(jdata) :
     fe = 0
     for idx,ii in enumerate(natoms) :
         # kinetic contrib
-        fe += 3 * ii * np.log(Lambda_k[idx])
+        rho = ii / vol
+        fe += ii * np.log(rho * (Lambda_k[idx] ** 3)) 
+        fe -= ii
     fe *= pc.Boltzmann * temp / pc.electron_volt
     return fe
 

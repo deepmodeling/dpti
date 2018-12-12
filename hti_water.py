@@ -320,6 +320,8 @@ def compute_ideal_mol(iter_name) :
     jdata = json.load(open(os.path.join(iter_name, 'in.json')))
     mass_map = jdata['model_mass_map']
     conf_lines = open(os.path.join(iter_name, 'orig.lmp')).read().split('\n')
+    data_sys = lmp.system_data(conf_lines)
+    vol = np.linalg.det(data_sys['cell'])
     natom_vec = lmp.get_natoms_vec(conf_lines)
     temp = jdata['temp']
     kk = jdata['bond_k']
@@ -331,10 +333,15 @@ def compute_ideal_mol(iter_name) :
         lambda_k = einstein.compute_lambda(temp, mass)
         fe += 3 * natoms * np.log(lambda_k)
     natoms_o = natom_vec[0]
-    assert(natoms_o*3 == sum(natom_vec))
+    natoms_h = 2 * natoms_o
+    natoms = natoms_o + natoms_h
+    assert(natoms == sum(natom_vec))
     # spring contribution
     lambda_s = einstein.compute_spring(temp, kk * 1.0)
-    fe += 3 * 2 * natoms_o * np.log(lambda_s)
+    fe += 3 * natoms_h * np.log(lambda_s)
+    fe -= natoms_o * np.log(vol)
+    # N!
+    fe += natoms * np.log(natoms) - natoms
     # to kbT log Z
     fe *= pc.Boltzmann * temp / pc.electron_volt
     return fe
