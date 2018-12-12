@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, sys, json, argparse, glob
+import os, sys, json, argparse, glob, shutil
 import numpy as np
 import scipy.constants as pc
 
@@ -191,6 +191,7 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
     create_path(iter_name)
     cwd = os.getcwd()
     os.chdir(iter_name)
+    shutil.copyfile(os.path.relpath(equi_conf), './conf.lmp')
     with open('in.json', 'w') as fp:
         json.dump(jdata, fp, indent=4)
     os.chdir(cwd)
@@ -198,7 +199,7 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
         work_path = os.path.join(iter_name, 'task.%06d' % idx)
         create_path(work_path)
         os.chdir(work_path)
-        os.symlink(os.path.relpath(equi_conf), 'conf.lmp')
+        os.symlink(os.path.join('..','conf.lmp'), 'conf.lmp')
         os.symlink(os.path.relpath(model), 'graph.pb')
         if ref == 'einstein' :
             lmp_str \
@@ -363,7 +364,9 @@ def _main ():
         if 'reference' not in jdata :
             jdata['reference'] = 'einstein'
         if jdata['reference'] == 'einstein' :
-            e0 = einstein.free_energy(jdata)
+            jdata1 = jdata
+            jdata1['equi_conf'] = os.path.join(args.JOB, 'conf.lmp')
+            e0 = einstein.free_energy(jdata1)
             print('# free ener of Einstein Mole: %20.8f' % e0)
         else :
             e0 = einstein.ideal_gas_fe(jdata)
