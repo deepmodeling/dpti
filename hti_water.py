@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, sys, json, argparse, glob
+import os, sys, json, argparse, glob, shutil
 import numpy as np
 import scipy.constants as pc
 
@@ -172,7 +172,7 @@ def _make_tasks(iter_name, jdata, step) :
     cwd = os.getcwd()
     os.chdir(iter_name)
     os.symlink(os.path.join('..', 'in.json'), 'in.json')
-    os.symlink(os.path.relpath(equi_conf), 'orig.lmp')
+    os.symlink(os.path.join('..', 'conf.lmp'), 'orig.lmp')
     lines = water.add_bonds(open('orig.lmp').read().split('\n'))
     open('conf.lmp', 'w').write('\n'.join(lines))
     os.chdir(cwd)
@@ -205,11 +205,13 @@ def _make_tasks(iter_name, jdata, step) :
         os.chdir(cwd)
 
 def make_tasks(iter_name, jdata) :
+    equi_conf = os.path.abspath(jdata['equi_conf'])
     create_path(iter_name)
     cwd = os.getcwd()
     os.chdir(iter_name)    
     with open('in.json', 'w') as fp:
         json.dump(jdata, fp, indent=4)
+    shutil.copyfile(equi_conf, 'conf.lmp')
     os.chdir(cwd)
     subtask_name = os.path.join(iter_name, '00.angle_on')
     _make_tasks(subtask_name, jdata, 'angle_on')
@@ -403,16 +405,29 @@ def _main ():
     elif args.command == 'compute' :
         fe, fe_err, thermo_info = post_tasks(args.JOB)
         _print_thermo_info(thermo_info)
+        fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
+        sys_data = lmp.to_system_data(fp_conf.read().split('\n'))
+        natoms = sum(sys_data['atom_numbs'])
+        jdata = json.load(open(os.path.join(args.JOB, 'in.json'), 'r'))
+        if 'ncopies' in jdata :
+            natoms *= np.prod(jdata['ncopies'])
+        nmols = natoms // 3
+        print ('# numb atoms: %d' % natoms)
+        print ('# numb  mols: %d' % nmols)        
         if args.type == 'helmholtz' :
             print('# Helmholtz free ener (err) [eV]:')
-            print(fe, fe_err)
+            print('%20.8f  %10.3e' % (fe, fe_err))
+            print('# Helmholtz free ener per mol (err) [eV]:')
+            print('%20.8f  %10.3e' % (fe / nmols, fe_err / np.sqrt(nmols)))
         if args.type == 'gibbs' :
             pv = thermo_info['pv']
             pv_err = thermo_info['pv_err']
             e1 = fe + pv
             e1_err = np.sqrt(fe_err**2 + pv_err**2)
             print('# Gibbs free ener (err) [eV]:')
-            print(e1, e1_err)        
+            print('%20.8f  %10.3e' % (e1, e1_err))
+            print('# Gibbs free ener per mol (err) [eV]:')
+            print('%20.8f  %10.3e' % (e1 / nmols, e1_err / np.sqrt(nmols)))
     
 if __name__ == '__main__' :
     _main()
