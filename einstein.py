@@ -3,9 +3,6 @@
 import os, sys, json, argparse, glob
 import numpy as np
 import scipy.constants as pc
-
-from lib.utils import cvt_conf
-from lib.vasp import poscar_vol
 import lib.lmp
 
 def compute_lambda(temp, mass) :
@@ -20,14 +17,14 @@ def ideal_gas_fe(jdata) :
     equi_conf = jdata['equi_conf']
     temp = jdata['temp']
     mass_map = jdata['model_mass_map']
-    tmp_poscar = 'tmp.%06d.POSCAR' % np.random.randint(0, 999999)
+    if 'copies' in jdata :
+        ncopies = np.prod(jdata['copies'])
+    else :
+        ncopies = 1
 
-    cvt_conf(equi_conf, tmp_poscar)
-    vol = poscar_vol(tmp_poscar)
-    with open(tmp_poscar) as fp :
-        lines = list(fp)
-        natoms = [int(ii) for ii in lines[6].split()]    
-    os.remove(tmp_poscar)
+    sys_data = lib.lmp.to_system_data(open(equi_conf).read().split('\n'))
+    vol = np.linalg.det(sys_data['cell'])
+    natoms = sys_data['atom_numbs']
 
     Lambda_k = [compute_lambda(temp, ii) for ii in mass_map]    
     fe = 0
@@ -38,13 +35,17 @@ def ideal_gas_fe(jdata) :
         fe -= ii
         fe += 0.5 * np.log(2. * np.pi * ii)
     fe *= pc.Boltzmann * temp / pc.electron_volt
-    return fe
+    return fe * ncopies
 
 def free_energy (jdata) :
     equi_conf = jdata['equi_conf']
     spring_k = jdata['spring_k']
     temp = jdata['temp']
     mass_map = jdata['model_mass_map']
+    if 'copies' in jdata :
+        ncopies = np.prod(jdata['copies'])
+    else :
+        ncopies = 1
 
     sys_data = lib.lmp.to_system_data(open(equi_conf).read().split('\n'))
     vol = np.linalg.det(sys_data['cell'])
@@ -72,7 +73,7 @@ def free_energy (jdata) :
         else :
             fe += 3 * ii * np.log(Lambda_s[idx])
     fe *= pc.Boltzmann * temp / pc.electron_volt
-    return fe
+    return fe * ncopies
     
 def _main() :
     parser = argparse.ArgumentParser(
