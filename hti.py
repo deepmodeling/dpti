@@ -28,6 +28,7 @@ def _gen_lammps_input (conf_file,
                        tau_t = 0.1,
                        tau_p = 0.5,
                        prt_freq = 100, 
+                       copies = None,
                        norm_style = 'first', 
                        switch_style = 'both') :
     spring_k = spring_k_[0]
@@ -49,9 +50,11 @@ def _gen_lammps_input (conf_file,
     ret += '# --------------------- ATOM DEFINITION ------------------\n'
     ret += 'box             tilt large\n'
     ret += 'read_data       %s\n' % conf_file
+    if copies is not None :
+        ret += 'replicate       %d %d %d\n' % (copies[0], copies[1], copies[2])
     ret += 'change_box      all triclinic\n'
     for jj in range(len(mass_map)) :
-        ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
+        ret += "mass            %d %f\n" %(jj+1, mass_map[jj])
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
     ret += 'pair_style      deepmd %s\n' % model
     ret += 'pair_coeff\n'
@@ -117,6 +120,7 @@ def _gen_lammps_input_ideal (conf_file,
                              tau_t = 0.1,
                              tau_p = 0.5,
                              prt_freq = 100, 
+                             copies = None,
                              norm_style = 'first') :
     ret = ''
     ret += 'clear\n'
@@ -137,9 +141,11 @@ def _gen_lammps_input_ideal (conf_file,
     ret += '# --------------------- ATOM DEFINITION ------------------\n'
     ret += 'box             tilt large\n'
     ret += 'read_data       %s\n' % conf_file
+    if copies is not None :
+        ret += 'replicate       %d %d %d\n' % (copies[0], copies[1], copies[2])
     ret += 'change_box      all triclinic\n'
     for jj in range(len(mass_map)) :
-        ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
+        ret += "mass            %d %f\n" %(jj+1, mass_map[jj])
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
     ret += 'pair_style      deepmd %s\n' % model
     ret += 'pair_coeff\n'
@@ -184,6 +190,9 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
     dt = jdata['dt']
     spring_k = jdata['spring_k']
     stat_freq = jdata['stat_freq']
+    copies = None
+    if 'copies' in jdata :
+        copies = jdata['copies']
     temp = jdata['temp']
     jdata['reference'] = ref
     jdata['switch_style'] = switch_style
@@ -213,6 +222,7 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
                                     'nvt',
                                     temp,
                                     prt_freq = stat_freq, 
+                                    copies = copies,
                                     switch_style = switch_style)
         elif ref == 'ideal' :
             lmp_str \
@@ -223,8 +233,9 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
                                           nsteps, 
                                           dt,
                                           'nvt',
-                                          temp, 
-                                          prt_freq = stat_freq)            
+                                          temp,
+                                          prt_freq = stat_freq, 
+                                          copies = copies)
         else :
             raise RuntimeError('unknow reference system type ' + ref)
         with open('in.lammps', 'w') as fp :
