@@ -48,8 +48,8 @@ def _main ():
         fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
         sys_data = lmp.to_system_data(fp_conf.read().split('\n'))
         natoms = sum(sys_data['atom_numbs'])
-        if 'ncopies' in jdata :
-            natoms *= np.prod(jdata['ncopies'])
+        if 'copies' in jdata :
+            natoms *= np.prod(jdata['copies'])
         nmols = natoms // 3
         print ('# numb atoms: %d' % natoms)
         print ('# numb  mols: %d' % nmols)
