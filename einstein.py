@@ -24,7 +24,7 @@ def ideal_gas_fe(jdata) :
 
     sys_data = lib.lmp.to_system_data(open(equi_conf).read().split('\n'))
     vol = np.linalg.det(sys_data['cell'])
-    natoms = sys_data['atom_numbs']
+    natoms = [ii * ncopies for ii in sys_data['atom_numbs']]
 
     Lambda_k = [compute_lambda(temp, ii) for ii in mass_map]    
     fe = 0
@@ -35,7 +35,7 @@ def ideal_gas_fe(jdata) :
         fe -= ii
         fe += 0.5 * np.log(2. * np.pi * ii)
     fe *= pc.Boltzmann * temp / pc.electron_volt
-    return fe * ncopies
+    return fe
 
 def free_energy (jdata) :
     equi_conf = jdata['equi_conf']
@@ -49,7 +49,7 @@ def free_energy (jdata) :
 
     sys_data = lib.lmp.to_system_data(open(equi_conf).read().split('\n'))
     vol = np.linalg.det(sys_data['cell'])
-    natoms = sys_data['atom_numbs']
+    natoms = [ii * ncopies for ii in sys_data['atom_numbs']]
     
     Lambda_k = [compute_lambda(temp, ii) for ii in mass_map]
     Lambda_s = [compute_spring(temp, ii) for ii in spring_k]
@@ -73,7 +73,7 @@ def free_energy (jdata) :
         else :
             fe += 3 * ii * np.log(Lambda_s[idx])
     fe *= pc.Boltzmann * temp / pc.electron_volt
-    return fe * ncopies
+    return fe
     
 def _main() :
     parser = argparse.ArgumentParser(
