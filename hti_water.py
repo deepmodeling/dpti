@@ -77,7 +77,8 @@ def _gen_lammps_input (step,
                        pres = 1.0, 
                        tau_t = 0.1,
                        tau_p = 0.5,
-                       prt_freq = 100) :
+                       prt_freq = 100, 
+                       copies = None) :
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -96,6 +97,8 @@ def _gen_lammps_input (step,
     ret += '# --------------------- ATOM DEFINITION ------------------\n'
     ret += 'box             tilt large\n'
     ret += 'read_data       %s\n' % conf_file
+    if copies is not None :
+        ret += 'replicate       %d %d %d\n' % (copies[0], copies[1], copies[2])
     ret += 'change_box      all triclinic\n'
     for jj in range(len(mass_map)) :
         ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
@@ -322,9 +325,14 @@ def compute_ideal_mol(iter_name) :
     conf_lines = open(os.path.join(iter_name, 'orig.lmp')).read().split('\n')
     data_sys = lmp.system_data(conf_lines)
     vol = np.linalg.det(data_sys['cell'])
-    natom_vec = lmp.get_natoms_vec(conf_lines)
     temp = jdata['temp']
     kk = jdata['bond_k']
+    if 'copies' in jdata :
+        ncopies = np.prod(jdata['copies'])
+    else :
+        ncopies = 1
+    natom_vec = [ii * ncopies for ii in data_sys['atom_numbs']]
+
     # kinetic contribution
     fe = 0
     for ii in range(len(natom_vec)) :
@@ -338,11 +346,11 @@ def compute_ideal_mol(iter_name) :
     assert(natoms == sum(natom_vec))
     # spring contribution
     lambda_s = einstein.compute_spring(temp, kk * 1.0)
-    fe += 3 * natoms_h * np.log(lambda_s)
     fe -= natoms_o * np.log((vol * (pc.angstrom**3)))
+    fe += 3 * natoms_h * np.log(lambda_s)
     # N!
     fe += natoms_o * np.log(natoms_o) - natoms_o + 0.5 * np.log(2. * np.pi * natoms_o) 
-    fe += natoms_h * np.log(2)
+    fe += natoms_h * np.log(np.sqrt(2))
     # to kbT log Z
     fe *= pc.Boltzmann * temp / pc.electron_volt
     return fe
