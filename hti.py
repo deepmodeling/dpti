@@ -325,7 +325,7 @@ def post_tasks(iter_name, jdata) :
     return diff_e, err, thermo_info
 
 
-def _print_thermo_info(info) :
+def print_thermo_info(info) :
     ptr = '# thermodynamics\n'
     ptr += '# E (err)  [eV]:  %20.8f %20.8f\n' % (info['e'], info['e_err'])
     ptr += '# H (err)  [eV]:  %20.8f %20.8f\n' % (info['h'], info['h_err'])
@@ -371,7 +371,7 @@ def _main ():
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
         de, de_err, thermo_info = post_tasks(job, jdata)
-        _print_thermo_info(thermo_info)
+        print_thermo_info(thermo_info)
         if 'reference' not in jdata :
             jdata['reference'] = 'einstein'
         if jdata['reference'] == 'einstein' :
