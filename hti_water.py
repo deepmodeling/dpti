@@ -341,7 +341,8 @@ def compute_ideal_mol(iter_name) :
     fe += 3 * natoms_h * np.log(lambda_s)
     fe -= natoms_o * np.log((vol * (pc.angstrom**3)))
     # N!
-    fe += natoms * np.log(natoms) - natoms
+    fe += natoms_o * np.log(natoms_o) - natoms_o + 0.5 * np.log(2. * np.pi * natoms_o) 
+    fe += natoms_h * np.log(2)
     # to kbT log Z
     fe *= pc.Boltzmann * temp / pc.electron_volt
     return fe

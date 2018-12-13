@@ -35,6 +35,7 @@ def ideal_gas_fe(jdata) :
         rho = ii / (vol * (pc.angstrom**3))
         fe += ii * np.log(rho * (Lambda_k[idx] ** 3)) 
         fe -= ii
+        fe += 0.5 * np.log(2. * np.pi * ii)
     fe *= pc.Boltzmann * temp / pc.electron_volt
     return fe
 
