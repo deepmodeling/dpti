@@ -118,7 +118,7 @@ def extract(job_dir, output) :
     conf_lmp = lib.lmp.from_system_data(sys_data)
     open(output, 'w').write(conf_lmp)
 
-def make_task(iter_name, jdata, temp, pres, avg_posi, npt_conf) :
+def make_task(iter_name, jdata, ens, temp, pres, avg_posi, npt_conf) :
     equi_conf = jdata['equi_conf']
     equi_conf = os.path.abspath(equi_conf)
     if npt_conf is not None :
@@ -130,10 +130,14 @@ def make_task(iter_name, jdata, temp, pres, avg_posi, npt_conf) :
     dt = jdata['dt']
     stat_freq = jdata['stat_freq']
     dump_freq = jdata['dump_freq']
-    ens = jdata['ens']
     tau_t = jdata['tau_t']
     tau_p = jdata['tau_p']
 
+    if ens == None :
+        ens = jdata['ens']
+    elif 'ens' in jdata :
+        print('ens = %s overrides the ens in json data' % ens)
+    jdata['ens'] = ens
     if temp == None :
         temp = jdata['temp']
     elif 'temp' in jdata :
@@ -313,6 +317,8 @@ def _main ():
     parser_gen = subparsers.add_parser('gen', help='Generate a job')
     parser_gen.add_argument('PARAM', type=str ,
                             help='json parameter file')
+    parser_gen.add_argument('-e','--ensemble', type=str,
+                            help='the ensemble of the simulation')
     parser_gen.add_argument('-t','--temperature', type=float,
                             help='the temperature of the system')
     parser_gen.add_argument('-p','--pressure', type=float,
@@ -348,7 +354,7 @@ def _main ():
         exit
     if args.command == 'gen' :
         jdata = json.load(open(args.PARAM, 'r'))        
-        make_task(args.output, jdata, args.temperature, args.pressure, args.avg_posi, args.conf_npt)
+        make_task(args.output, jdata, args.ensemble, args.temperature, args.pressure, args.avg_posi, args.conf_npt)
     elif args.command == 'extract' :
         extract(args.JOB, args.output)
     elif args.command == 'stat-bond' :
