@@ -167,6 +167,9 @@ def _make_tasks(iter_name, jdata, step) :
     pres = jdata['pres']
     tau_t = jdata['tau_t']
     tau_p = jdata['tau_p']
+    copies = None
+    if 'copies' in jdata :
+        copies = jdata['copies']
 
     create_path(iter_name)
     cwd = os.getcwd()
@@ -197,7 +200,8 @@ def _make_tasks(iter_name, jdata, step) :
                                 pres, 
                                 tau_t = tau_t,
                                 tau_p = tau_p,
-                                prt_freq = stat_freq)
+                                prt_freq = stat_freq, 
+                                copies = copies)
         with open('in.lammps', 'w') as fp :
             fp.write(lmp_str)
         with open('lambda.out', 'w') as fp :
