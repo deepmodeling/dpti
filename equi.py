@@ -5,7 +5,6 @@ import numpy as np
 import scipy.constants as pc
 
 from lib.utils import create_path
-from lib.utils import cvt_conf
 from lib.utils import block_avg
 from lib.water import compute_bonds
 from lib.water import posi_diff
