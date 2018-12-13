@@ -65,18 +65,18 @@ def _main ():
             print('# free ener of ideal gas: %20.8f' % e0)
         if args.type == 'helmholtz' :
             print('# Helmholtz free ener (err) [eV]:')
-            print('%20.8e  %10.3e' % (e0 + de, de_err))
+            print('%20.8f  %10.3e' % (e0 + de, de_err))
             print('# Helmholtz free ener per mol (err) [eV]:')
-            print('%20.8e  %10.3e' % ((e0 + de) / nmols, de_err / np.sqrt(nmols)))
+            print('%20.8f  %10.3e' % ((e0 + de) / nmols, de_err / np.sqrt(nmols)))
         if args.type == 'gibbs' :
             pv = thermo_info['pv']
             pv_err = thermo_info['pv_err']
             e1 = e0 + de + pv
             e1_err = np.sqrt(de_err**2 + pv_err**2)
             print('# Gibbs free ener (err) [eV]:')
-            print('%20.8e  %10.3e' % (e1, e1_err))
+            print('%20.8f  %10.3e' % (e1, e1_err))
             print('# Gibbs free ener per mol (err) [eV]:')
-            print('%20.8e  %10.3e' % (e1 / nmols, e1_err / np.sqrt(nmols)))
+            print('%20.8f  %10.3e' % (e1 / nmols, e1_err / np.sqrt(nmols)))
 
 
 if __name__ == '__main__' :
