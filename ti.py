@@ -26,7 +26,8 @@ def _gen_lammps_input (conf_file,
                        pres = 1.0, 
                        tau_t = 0.1,
                        tau_p = 0.5,
-                       prt_freq = 100) :
+                       prt_freq = 100,
+                       copies = None) :
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -44,6 +45,8 @@ def _gen_lammps_input (conf_file,
     ret += '# --------------------- ATOM DEFINITION ------------------\n'
     ret += 'box             tilt large\n'
     ret += 'read_data       %s\n' % conf_file
+    if copies is not None :
+        ret += 'replicate       %d %d %d\n' % (copies[0], copies[1], copies[2])
     ret += 'change_box      all triclinic\n'
     for jj in range(len(mass_map)) :
         ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
@@ -84,6 +87,9 @@ def _gen_lammps_input (conf_file,
 def make_tasks(iter_name, jdata) :
     equi_conf = jdata['equi_conf']
     equi_conf = os.path.abspath(equi_conf)
+    copies = None
+    if 'copies' in jdata :
+        copies = jdata['copies']
     model = jdata['model']
     model = os.path.abspath(model)
     model_mass_map = jdata['model_mass_map']
@@ -140,7 +146,8 @@ def make_tasks(iter_name, jdata) :
                                     ens,
                                     temps[ii],
                                     tau_t = tau_t,
-                                    prt_freq = stat_freq)
+                                    prt_freq = stat_freq, 
+                                    copies = copies)
             with open('thermo.out', 'w') as fp :
                 fp.write('%f' % temps[ii])
         elif 'npt' in ens and path == 't' :
@@ -155,7 +162,8 @@ def make_tasks(iter_name, jdata) :
                                     press,
                                     tau_t = tau_t,
                                     tau_p = tau_p,
-                                    prt_freq = stat_freq)
+                                    prt_freq = stat_freq, 
+                                    copies = copies)
             with open('thermo.out', 'w') as fp :
                 fp.write('%f' % (temps[ii]))
         elif 'npt' in ens and path == 'p' :
@@ -170,7 +178,8 @@ def make_tasks(iter_name, jdata) :
                                     press[ii],
                                     tau_t = tau_t,
                                     tau_p = tau_p,
-                                    prt_freq = stat_freq)
+                                    prt_freq = stat_freq, 
+                                    copies = copies)
             with open('thermo.out', 'w') as fp :
                 fp.write('%f' % (press[ii]))
         else:
