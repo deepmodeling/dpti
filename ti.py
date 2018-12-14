@@ -8,6 +8,7 @@ from lib.utils import create_path
 from lib.utils import copy_file_list
 from lib.utils import block_avg
 from lib.utils import integrate
+from lib.utils import integrate_sys_err
 from lib.utils import parse_seq
 from lib.lammps import get_thermo
 from lib.lammps import get_natoms
@@ -288,11 +289,14 @@ def post_tasks(iter_name, jdata, Eo) :
     all_press = []
     all_fe = []
     all_fe_err = []
+    all_fe_sys_err = []
     for ii in range(0, len(all_t)) :
         diff_e, err = integrate(all_t[0:ii+1], integrand[0:ii+1], integrand_err[0:ii+1])
+        sys_err = integrate_sys_err(all_t[0:ii+1], integrand[0:ii+1])
         if path == 't' :
             e1 = (Eo / (all_t[0]) - diff_e) * all_t[ii]
             err *= all_t[ii]
+            sys_err *= all_t[ii]
             all_temps.append(all_t[ii])
             if 'npt' in ens :
                 all_press.append(jdata['press'])
@@ -302,17 +306,18 @@ def post_tasks(iter_name, jdata, Eo) :
             all_press.append(all_t[ii])
         all_fe.append(e1)
         all_fe_err.append(err)
+        all_fe_sys_err.append(sys_err)
 
     if 'nvt' == ens :
-        print('#%8s  %15s  %9s' % ('T(ctrl)', 'F', 'err'))
+        print('#%8s  %15s  %9s  %9s' % ('T(ctrl)', 'F', 'stat_err', 'inte_err'))
         for ii in range(len(all_temps)) :
-            print ('%9.2f  %15.8e  %9.2e' 
-                   % (all_temps[ii], all_fe[ii], all_fe_err[ii]))
+            print ('%9.2f  %15.8f  %9.2e  %9.2e' 
+                   % (all_temps[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii]))
     elif 'npt' in ens :
-        print('#%8s  %15s  %15s  %9s' % ('T(ctrl)', 'P(ctrl)', 'F', 'err'))
+        print('#%8s  %15s  %15s  %9s  %9s' % ('T(ctrl)', 'P(ctrl)', 'F', 'stat_err', 'inte_err'))
         for ii in range(len(all_temps)) :
-            print ('%9.2f  %15.8e  %15.8f  %9.2e' 
-                   % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii]))            
+            print ('%9.2f  %15.8e  %15.8f  %9.2e  %9.2e' 
+                   % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii]))
 
     # diff_e, err = integrate(all_t, integrand, integrand_err)
     # if path == 't' :

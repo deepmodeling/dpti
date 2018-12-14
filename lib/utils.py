@@ -114,3 +114,39 @@ def integrate(xx, yy, ye) :
         err += np.square(0.5 * (xx[ii+1] - xx[ii]) * ye[ii])
     return diff_e, np.sqrt(err)
     
+
+def _interval_deriv2 (xx, yy) :
+    mat = np.ones([3, 3])
+    for ii in range(3) :
+        mat[ii][0] = xx[ii]**2
+        mat[ii][1] = xx[ii]
+    coeff = np.linalg.solve(mat, yy)
+    return 2.*coeff[0]
+
+def _interval_sys_err (xx, yy, mode) :
+    if mode == 'middle' :        
+        d0 = np.abs(_interval_deriv2(xx[0:3], yy[0:3]))
+        d1 = np.abs(_interval_deriv2(xx[1:4], yy[1:4]))
+        dd = np.max([d0, d1])
+        dx = np.abs(xx[2] - xx[1])
+    elif mode == 'left' :
+        dd = np.abs(_interval_deriv2(xx[0:3], yy[0:3]))
+        dx = np.abs(xx[1] - xx[0])
+    elif mode == 'right' :
+        dd = np.abs(_interval_deriv2(xx[0:3], yy[0:3]))
+        dx = np.abs(xx[2] - xx[1])
+    return 1./12.*(dx**3)*dd
+
+
+def integrate_sys_err (xx, yy) :
+    err = 0
+    if len(xx) <= 2 :
+        return err
+    err += _interval_sys_err(xx[0:3], yy[0:3], 'left')
+    # print('here', err)
+    for ii in range(1, len(xx)-3) :
+        err += _interval_sys_err(xx[ii-1:ii+3], yy[ii-1:ii+3], 'middle')
+        # print('here2', _interval_sys_err(xx[ii-1:ii+3], yy[ii-1:ii+3], 'middle'))
+    err += _interval_sys_err(xx[-3:], yy[-3:], 'right')    
+    # print('here1', _interval_sys_err(xx[-3:], yy[-3:], 'right') )
+    return err
