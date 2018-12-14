@@ -22,6 +22,19 @@ def posi_diff(box, r0, r1) :
     dr = np.dot(box.T, dp)    
     return dr
 
+def posi_shift(box, r0, r1) :
+    rbox = np.linalg.inv(box)
+    rbox = rbox.T
+    p0 = (np.dot(rbox, r0))
+    p1 = (np.dot(rbox, r1))
+    dp = p0 - p1
+    shift = np.zeros(3)
+    for dd in range(3) :
+        if dp[dd] >= 0.5 : 
+            shift[dd] -= 1
+        elif dp[dd] < -0.5 :
+            shift[dd] += 1
+    return shift
 
 def compute_bonds(box, atype, posis, max_roh = 1.3):
     natoms = len(posis)
@@ -37,6 +50,7 @@ def compute_bonds(box, atype, posis, max_roh = 1.3):
                         bonds[ii].append(jj)
                         bonds[jj].append(ii)
     return bonds
+
 
 def add_bonds (lines_, max_roh = 1.3) :
     lines = lines_
@@ -57,6 +71,27 @@ def add_bonds (lines_, max_roh = 1.3) :
             assert(len(bonds[ii]) == 2), 'ill defined O atom %d has H %s' % (ii, bonds[ii])
         elif atype[ii] == 2 :
             assert(len(bonds[ii]) == 1), 'ill defined H atom %d has O %s' % (ii, bonds[ii]) 
+
+    # pbc posi
+    for ii in range(sum(natoms)) :
+        if atype[ii] == 1:
+            j0idx = bonds[ii][0]
+            shift0 = posi_shift(box, posis[j0idx], posis[ii])
+            posis[j0idx] = posis[j0idx] + np.dot(box.T, shift0)
+            j1idx = bonds[ii][1]
+            shift1 = posi_shift(box, posis[j1idx], posis[ii])
+            posis[j1idx] = posis[j1idx] + np.dot(box.T, shift1)
+    for atoms_idx in range(len(lines)) :
+        if 'Atoms' in lines[atoms_idx] :
+            break
+    for ii in range(sum(natoms)) :
+        words = lines[atoms_idx + 2 +ii].split()
+        print(words)
+        words[2] = str(posis[ii][0])
+        words[3] = str(posis[ii][1])
+        words[4] = str(posis[ii][2])
+        lines[atoms_idx+2+ii] = ' '.join(words)
+
 
     ret_bd = []
     idx = 1
