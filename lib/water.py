@@ -86,7 +86,6 @@ def add_bonds (lines_, max_roh = 1.3) :
             break
     for ii in range(sum(natoms)) :
         words = lines[atoms_idx + 2 +ii].split()
-        print(words)
         words[2] = str(posis[ii][0])
         words[3] = str(posis[ii][1])
         words[4] = str(posis[ii][2])
