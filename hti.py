@@ -9,6 +9,7 @@ from lib.utils import create_path
 from lib.utils import copy_file_list
 from lib.utils import block_avg
 from lib.utils import integrate
+from lib.utils import integrate_sys_err
 from lib.utils import parse_seq
 from lib.lammps import get_thermo
 
@@ -318,11 +319,12 @@ def post_tasks(iter_name, jdata) :
                header = 'idx lmbda dU dU_err Ud Us Ud_err Us_err')
 
     diff_e, err = integrate(all_lambda, de, all_err)
+    sys_err = integrate_sys_err(all_lambda, de)
 
     thermo_info = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), 
                                   stat_skip, stat_bsize)
 
-    return diff_e, err, thermo_info
+    return diff_e, [err,sys_err], thermo_info
 
 
 def print_thermo_info(info) :
@@ -384,14 +386,14 @@ def _main ():
             print('# free ener of ideal gas: %20.8f' % e0)
         if args.type == 'helmholtz' :
             print('# Helmholtz free ener (err) [eV]:')
-            print(e0 + de, de_err)
+            print(e0 + de, de_err[0], de_err[1])
         if args.type == 'gibbs' :
             pv = thermo_info['pv']
             pv_err = thermo_info['pv_err']
             e1 = e0 + de + pv
-            e1_err = np.sqrt(de_err**2 + pv_err**2)
+            e1_err = np.sqrt(de_err[0]**2 + pv_err**2)
             print('# Gibbs free ener (err) [eV]:')
-            print(e1, e1_err)
+            print(e1, e1_err, de_err[1])
     
 if __name__ == '__main__' :
     _main()

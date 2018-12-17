@@ -18,12 +18,6 @@ def _main ():
                             help='json parameter file')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
-    parser_gen.add_argument('-r','--reference', type=str, default = 'einstein', 
-                            choices=['einstein', 'ideal'], 
-                            help='the reference state, einstein crystal or ideal gas')
-    parser_gen.add_argument('-s','--switch', type=str, default = 'both', 
-                            choices=['both', 'deep_on', 'spring_off'], 
-                            help='the reference state, einstein crystal or ideal gas')
 
     parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
     parser_comp.add_argument('JOB', type=str ,
@@ -39,7 +33,7 @@ def _main ():
     if args.command == 'gen' :
         output = args.output
         jdata = json.load(open(args.PARAM, 'r'))
-        hti.make_tasks(output, jdata, args.reference, args.switch)
+        hti.make_tasks(output, jdata, 'einstein', 'all')
     elif args.command == 'compute' :
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
@@ -61,22 +55,26 @@ def _main ():
             e0 = einstein.free_energy(jdata1)
             print('# free ener of Einstein Mole: %20.8f' % e0)
         else :
-            e0 = einstein.ideal_gas_fe(jdata)
-            print('# free ener of ideal gas: %20.8f' % e0)
+            raise RuntimeError("hti_ice should be used with reference einstein")
         if args.type == 'helmholtz' :
             print('# Helmholtz free ener (err) [eV]:')
-            print('%20.8f  %10.3e' % (e0 + de, de_err))
+            print('%20.8f  %10.3e  %10.3e' % (e0 + de, de_err[0], de_err[1]))
             print('# Helmholtz free ener per mol (err) [eV]:')
-            print('%20.8f  %10.3e' % ((e0 + de) / nmols, de_err / np.sqrt(nmols)))
+            print('%20.8f  %10.3e  %10.3e' % ((e0 + de) / nmols, 
+                                              de_err[0] / np.sqrt(nmols), 
+                                              de_err[1] / nmols
+            ))
         if args.type == 'gibbs' :
             pv = thermo_info['pv']
             pv_err = thermo_info['pv_err']
             e1 = e0 + de + pv
-            e1_err = np.sqrt(de_err**2 + pv_err**2)
+            e1_err = np.sqrt(de_err[0]**2 + pv_err**2)
             print('# Gibbs free ener (err) [eV]:')
-            print('%20.8f  %10.3e' % (e1, e1_err))
+            print('%20.8f  %10.3e  %10.3e' % (e1, e1_err, de_err[1]))
             print('# Gibbs free ener per mol (err) [eV]:')
-            print('%20.8f  %10.3e' % (e1 / nmols, e1_err / np.sqrt(nmols)))
+            print('%20.8f  %10.3e  %10.3e' % (e1 / nmols, 
+                                              e1_err / np.sqrt(nmols), 
+                                              de_err[1] / nmols))
 
 
 if __name__ == '__main__' :
