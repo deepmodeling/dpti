@@ -1,0 +1,116 @@
+%\documentclass[aps,pre,preprint,a4paper,onecolumn]{revtex4}
+\documentclass[aps,pre,a4paper,showkeys,fleqn]{revtex4}
+% \documentclass[aps, pre, reprint,unsortedaddress,a4paper,onecolumn, showkeys]{revtex4}
+
+\usepackage[]{amsmath}
+\usepackage{amssymb}
+\usepackage[caption = false]{subfig}
+\usepackage[dvips]{graphicx}
+\usepackage{color}
+\usepackage{tabularx}
+\usepackage{mathtools}
+\usepackage{algpseudocode}
+\usepackage{enumitem}
+\usepackage{multirow}
+\usepackage{epstopdf}  
+\usepackage{hyperref}
+\usepackage{footnote}
+\usepackage[hang,flushmargin]{footmisc}
+\usepackage{bm}
+\usepackage{xr}
+
+\newcommand*\chem[1]{\ensuremath{\mathrm{#1}}}
+
+\newcommand{\recheck}[1]{{\color{red} #1}}
+% \newcommand{\redc}[1]{{\color{red} #1}}
+\newcommand{\redc}[1]{{\color{red} #1}}
+\newcommand{\bluec}[1]{{\color{blue} #1}}
+\newcommand{\greenc}[1]{{\color{green} #1}}
+
+\begin{document}
+
+\title{
+Write down
+}
+
+\maketitle
+
+\section{Ideal Einstein molecules}
+Consider the lattice that is defined by the first atom in the system, saying the oxygen of the first water molecule.
+The number of atoms is denoted by $N$, the number of oxygen atoms is denoted by $N_O$ and the number of hydrogen atoms is denoted by $N_H$.
+The partition function is written as
+\begin{align*}
+  Q & = \frac{1}{h^{3N}}
+      \frac{(N_O-1)!N_h!}{N_O!N_h!}
+      \int e^{-\beta\sum_i\frac{p_i^2}{2m_i}} dp
+      \int dr_0\int e^{-\beta\sum_i k(r_i - r_{i0})^2} dr \\
+    &=
+      \frac{1}{h^{3N}}\frac{1}{N_O}
+      (2\pi m k_BT)^{\frac{3N}{2}}
+      {V}
+      \Big(\frac{\pi k_BT}{k}\Big)^{\frac{3N-3}2} \\
+    &=
+      \frac{V}{N_O}
+      \Big( \frac{2\pi m k_BT}{h^2} \Big)^{\frac{3N}{2}}
+      \Big( \frac{\pi k_BT}{k} \Big)^{\frac{3N-3}{2}}
+\end{align*}
+We let
+\begin{align*}
+  \Lambda_p = \Big(\frac{h^2}{2\pi m k_BT}\Big)^{\frac12}, \quad \Lambda_k = \Big(\frac{\pi k_BT}{k}\Big)^{\frac12}
+\end{align*}
+Then
+\begin{align*}
+  A
+  &=
+    -k_BT \ln Q \\
+  &=
+    -k_BT \ln \frac1{\rho_O} - k_BT \ln \Lambda_p^{-3N} - k_BT \ln \Lambda_s^{3N-3} \\
+  &=
+    k_BT \ln {\rho_O} + Nk_BT \ln \Lambda_p^3 - (N-1) k_BT \ln \Lambda_s^3
+\end{align*}
+
+
+\section{Ideal gas with springs}
+Consider the partition function
+\begin{align*}
+  Q
+  &=
+    \frac{1}{h^{3N}}\frac{1}{N_O! N_H!}
+    \frac{N_H!}{2^{N_O}}
+    \int e^{-\beta\sum_i\frac{p_i^2}{2m_i}} dp
+    \int e^{-\beta \sum_i [k(r^O_i-r^{H_1}_i)^2 + k(r^O_i-r^{H_1}_i)^2]} dr^{H_1}dr^{H_2} dr^O\\
+  &=
+    \frac{1}{h^{3N}}\frac{1}{N_O! 2^{N_O}}
+    (2\pi m k_BT)^{\frac{3N}{2}}
+    V^{N_O}
+    \Big(\frac{\pi k_BT}{k}\Big)^{\frac{3N_H}2} \\
+  &=
+    \frac{1}{N_O! 2^{N_O}}
+    \Lambda_p^{-3N}
+    V^{N_O}
+    \Lambda_k^{3N_H}
+\end{align*}
+Then
+\begin{align*}
+  A
+  &=
+    -k_BT\ln Q\\
+  &=
+    Nk_BT\ln \Lambda_p^3
+    -N_Ok_BT\ln V
+    -N_Hk_BT\ln\Lambda_k^3 
+    + k_BT(N_O\ln N_O - N_O + \frac12\ln 2\pi N_O)
+    + N_H k_BT\ln \sqrt2 \\
+  &=
+    Nk_BT\ln \Lambda_p^3
+    + N_Ok_BT\ln\rho_O
+    + N_Hk_BT\ln(\sqrt2/\Lambda_k^3)
+    + k_BT( - N_O + \frac12\ln 2\pi N_O)
+\end{align*}
+
+
+\bibliography{ref}{}
+\bibliographystyle{unsrt}
+% \bibliographystyle{apsrev4-1} % Tell bibtex which bibliography style to use
+
+\end{document}
