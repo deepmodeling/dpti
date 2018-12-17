@@ -16,6 +16,17 @@ from lib.lammps import get_natoms
 def make_iter_name (iter_index) :
     return "task_ti." + ('%04d' % iter_index)
 
+def parse_seq_ginv (seq) :
+    tmp_seq = parse_seq(seq)
+    t_begin = tmp_seq[0]
+    t_end = tmp_seq[-1]
+    ngrid = len(tmp_seq) - 1
+    hh = (1/t_end - 1/t_begin) / ngrid
+    inv_grid = np.arange(1/t_begin, 1/t_end+0.5*hh, hh)
+    inv_grid = 1./inv_grid
+    print(len(inv_grid), len(tmp_seq), inv_grid)
+    return inv_grid
+
 def _gen_lammps_input (conf_file, 
                        mass_map,
                        model,
@@ -110,17 +121,19 @@ def make_tasks(iter_name, jdata) :
         if path == 't' :
             temps = parse_seq(jdata['temps'])
             press = jdata['press']
-            tau_t = jdata['tau_t']
-            tau_p = jdata['tau_p']
+            ntasks = len(temps)
+        elif path == 't-ginv' :
+            temps = parse_seq_ginv(jdata['temps'])
+            press = jdata['press']
             ntasks = len(temps)
         elif path == 'p' :
             temps = jdata['temps']
             press = parse_seq(jdata['press'])
-            tau_t = jdata['tau_t']
-            tau_p = jdata['tau_p']
             ntasks = len(press)
         else :
             raise RuntimeError('supported path of npt ens are \'t\' or \'p\'')
+        tau_t = jdata['tau_t']
+        tau_p = jdata['tau_p']
     else :
         raise RuntimeError('invalid ens')
 
@@ -150,7 +163,7 @@ def make_tasks(iter_name, jdata) :
                                     copies = copies)
             with open('thermo.out', 'w') as fp :
                 fp.write('%f' % temps[ii])
-        elif 'npt' in ens and path == 't' :
+        elif 'npt' in ens and (path == 't' or path == 't-ginv'):
             lmp_str \
                 = _gen_lammps_input('conf.lmp',
                                     model_mass_map, 
