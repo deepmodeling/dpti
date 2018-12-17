@@ -58,7 +58,7 @@ def free_energy (jdata) :
     with open(equi_conf) as fp:
         lines = list(fp)
     for idx,ii in enumerate(lines) :
-        if 'Atoms #' in ii :
+        if 'Atoms' in ii :
             break
     first_type = int(lines[idx+2].split()[1]) - 1
     print('# fixed atom of type %d ' % first_type)
