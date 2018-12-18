@@ -234,7 +234,7 @@ def make_tasks(iter_name, jdata) :
     subtask_name = os.path.join(iter_name, '02.bond_angle_off')
     _make_tasks(subtask_name, jdata, 'bond_angle_off')
 
-def _compute_thermo(fname, stat_skip, stat_bsize) :
+def _compute_thermo(fname, natoms, stat_skip, stat_bsize) :
     data = get_thermo(fname)
     ea, ee = block_avg(data[:, 3], skip = stat_skip, block_size = stat_bsize)
     ha, he = block_avg(data[:, 4], skip = stat_skip, block_size = stat_bsize)
@@ -244,20 +244,20 @@ def _compute_thermo(fname, stat_skip, stat_bsize) :
     thermo_info = {}
     thermo_info['p'] = pa
     thermo_info['p_err'] = pe
-    thermo_info['v'] = va
-    thermo_info['v_err'] = ve
-    thermo_info['e'] = ea
-    thermo_info['e_err'] = ee
-    thermo_info['h'] = ha
-    thermo_info['h_err'] = he
+    thermo_info['v'] = va / natoms
+    thermo_info['v_err'] = ve / np.sqrt(natoms)
+    thermo_info['e'] = ea / natoms
+    thermo_info['e_err'] = ee / np.sqrt(natoms)
+    thermo_info['h'] = ea / natoms
+    thermo_info['h_err'] = he / np.sqrt(natoms)
     thermo_info['t'] = ta
     thermo_info['t_err'] = te
     unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
-    thermo_info['pv'] = pa * va * unit_cvt
-    thermo_info['pv_err'] = pe * va * unit_cvt
+    thermo_info['pv'] = pa * va * unit_cvt / natoms
+    thermo_info['pv_err'] = pe * va * unit_cvt  / np.sqrt(natoms)
     return thermo_info
 
-def _post_tasks(iter_name, step) :
+def _post_tasks(iter_name, step, natoms) :
     jdata = json.load(open(os.path.join(iter_name, 'in.json')))
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
@@ -322,12 +322,13 @@ def _post_tasks(iter_name, step) :
     sys_err = integrate_sys_err(all_lambda, de)
 
     thermo_info = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), 
+                                  natoms,
                                   stat_skip, stat_bsize)
 
     return diff_e, [err, sys_err], thermo_info
 
 def _print_thermo_info(info) :
-    ptr = '# thermodynamics\n'
+    ptr = '# thermodynamics (normalized by nmols)\n'
     ptr += '# E (err)  [eV]:  %20.8f %20.8f\n' % (info['e'], info['e_err'])
     ptr += '# H (err)  [eV]:  %20.8f %20.8f\n' % (info['h'], info['h_err'])
     ptr += '# T (err)   [K]:  %20.8f %20.8f\n' % (info['t'], info['t_err'])
@@ -372,18 +373,18 @@ def compute_ideal_mol(iter_name) :
     fe *= pc.Boltzmann * temp / pc.electron_volt
     return fe
 
-def post_tasks(iter_name) :
+def post_tasks(iter_name, natoms) :
     subtask_name = os.path.join(iter_name, '00.angle_on')
     fe = compute_ideal_mol(subtask_name)
-    e0, err0, tinfo0 = _post_tasks(subtask_name, 'angle_on')
+    e0, err0, tinfo0 = _post_tasks(subtask_name, 'angle_on', natoms)
     # _print_thermo_info(tinfo)
     # print(e, err)
     subtask_name = os.path.join(iter_name, '01.deep_on')
-    e1, err1, tinfo1 = _post_tasks(subtask_name, 'deep_on')
+    e1, err1, tinfo1 = _post_tasks(subtask_name, 'deep_on', natoms)
     # _print_thermo_info(tinfo)
     # print(e, err)
     subtask_name = os.path.join(iter_name, '02.bond_angle_off')
-    e2, err2, tinfo2 = _post_tasks(subtask_name, 'bond_angle_off')
+    e2, err2, tinfo2 = _post_tasks(subtask_name, 'bond_angle_off', natoms)
     # _print_thermo_info(tinfo)
     # print(e, err)
     fe = fe + e0 + e1 + e2
@@ -419,8 +420,6 @@ def _main ():
         jdata = json.load(open(args.PARAM, 'r'))
         make_tasks(output, jdata)
     elif args.command == 'compute' :
-        fe, fe_err, thermo_info = post_tasks(args.JOB)
-        _print_thermo_info(thermo_info)
         fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
         sys_data = lmp.to_system_data(fp_conf.read().split('\n'))
         natoms = sum(sys_data['atom_numbs'])
@@ -428,6 +427,8 @@ def _main ():
         if 'copies' in jdata :
             natoms *= np.prod(jdata['copies'])
         nmols = natoms // 3
+        fe, fe_err, thermo_info = post_tasks(args.JOB, nmols)
+        _print_thermo_info(thermo_info)
         print ('# numb atoms: %d' % natoms)
         print ('# numb  mols: %d' % nmols)        
         print_format = '%20.8f  %10.3e  %10.3e'

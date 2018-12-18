@@ -208,7 +208,7 @@ def make_tasks(iter_name, jdata) :
             fp.write(lmp_str)
         os.chdir(cwd)
 
-def _compute_thermo (lmplog, stat_skip, stat_bsize) :
+def _compute_thermo (lmplog, natoms, stat_skip, stat_bsize) :
     data = get_thermo(lmplog)
     ea, ee = block_avg(data[:, 3], skip = stat_skip, block_size = stat_bsize)
     ha, he = block_avg(data[:, 4], skip = stat_skip, block_size = stat_bsize)
@@ -218,21 +218,21 @@ def _compute_thermo (lmplog, stat_skip, stat_bsize) :
     thermo_info = {}
     thermo_info['p'] = pa
     thermo_info['p_err'] = pe
-    thermo_info['v'] = va
-    thermo_info['v_err'] = ve
-    thermo_info['e'] = ea
-    thermo_info['e_err'] = ee
+    thermo_info['v'] = va / natoms
+    thermo_info['v_err'] = ve / np.sqrt(natoms)
+    thermo_info['e'] = ea / natoms
+    thermo_info['e_err'] = ee / np.sqrt(natoms)
+    thermo_info['h'] = ea / natoms
+    thermo_info['h_err'] = he / np.sqrt(natoms)
     thermo_info['t'] = ta
     thermo_info['t_err'] = te
-    thermo_info['h'] = ha
-    thermo_info['h_err'] = he
     unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
-    thermo_info['pv'] = pa * va * unit_cvt
-    thermo_info['pv_err'] = pe * va * unit_cvt
+    thermo_info['pv'] = pa * va * unit_cvt / natoms
+    thermo_info['pv_err'] = pe * va * unit_cvt  / np.sqrt(natoms)
     return thermo_info
 
 def _print_thermo_info(info, more_head = '') :
-    ptr = '# thermodynamics %s\n' % more_head
+    ptr = '# thermodynamics (normalized by natoms) %s\n' % more_head
     ptr += '# E (err)  [eV]:  %20.8f %20.8f\n' % (info['e'], info['e_err'])
     ptr += '# H (err)  [eV]:  %20.8f %20.8f\n' % (info['h'], info['h_err'])
     ptr += '# T (err)   [K]:  %20.8f %20.8f\n' % (info['t'], info['t_err'])
@@ -313,8 +313,8 @@ def post_tasks(iter_name, jdata, Eo, natoms = None) :
                fmt = '%.8e', 
                header = 'idx t/p Integrand U/V U/V_err')
 
-    info0 = _compute_thermo(os.path.join(all_tasks[ 0], 'log.lammps'), stat_skip, stat_bsize)
-    info1 = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), stat_skip, stat_bsize)
+    info0 = _compute_thermo(os.path.join(all_tasks[ 0], 'log.lammps'), natoms, stat_skip, stat_bsize)
+    info1 = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), natoms, stat_skip, stat_bsize)
     _print_thermo_info(info0, 'at start point')
     _print_thermo_info(info1, 'at end point')
 

@@ -252,7 +252,7 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
             fp.write(str(ii))
         os.chdir(cwd)
 
-def _compute_thermo(fname, stat_skip, stat_bsize) :
+def _compute_thermo(fname, natoms, stat_skip, stat_bsize) :
     data = get_thermo(fname)
     ea, ee = block_avg(data[:, 3], skip = stat_skip, block_size = stat_bsize)
     ha, he = block_avg(data[:, 4], skip = stat_skip, block_size = stat_bsize)
@@ -262,17 +262,17 @@ def _compute_thermo(fname, stat_skip, stat_bsize) :
     thermo_info = {}
     thermo_info['p'] = pa
     thermo_info['p_err'] = pe
-    thermo_info['v'] = va
-    thermo_info['v_err'] = ve
-    thermo_info['e'] = ea
-    thermo_info['e_err'] = ee
-    thermo_info['h'] = ea
-    thermo_info['h_err'] = he
+    thermo_info['v'] = va / natoms
+    thermo_info['v_err'] = ve / np.sqrt(natoms)
+    thermo_info['e'] = ea / natoms
+    thermo_info['e_err'] = ee / np.sqrt(natoms)
+    thermo_info['h'] = ea / natoms
+    thermo_info['h_err'] = he / np.sqrt(natoms)
     thermo_info['t'] = ta
     thermo_info['t_err'] = te
     unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
-    thermo_info['pv'] = pa * va * unit_cvt
-    thermo_info['pv_err'] = pe * va * unit_cvt
+    thermo_info['pv'] = pa * va * unit_cvt / natoms
+    thermo_info['pv_err'] = pe * va * unit_cvt  / np.sqrt(natoms)
     return thermo_info
 
 def post_tasks(iter_name, jdata, natoms = None) :
@@ -339,13 +339,14 @@ def post_tasks(iter_name, jdata, natoms = None) :
     sys_err = integrate_sys_err(all_lambda, de)
 
     thermo_info = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), 
+                                  natoms,
                                   stat_skip, stat_bsize)
 
     return diff_e, [err,sys_err], thermo_info
 
 
 def print_thermo_info(info) :
-    ptr = '# thermodynamics\n'
+    ptr = '# thermodynamics (normalized by natoms)\n'
     ptr += '# E (err)  [eV]:  %20.8f %20.8f\n' % (info['e'], info['e_err'])
     ptr += '# H (err)  [eV]:  %20.8f %20.8f\n' % (info['h'], info['h_err'])
     ptr += '# T (err)   [K]:  %20.8f %20.8f\n' % (info['t'], info['t_err'])
