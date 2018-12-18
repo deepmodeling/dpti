@@ -43,20 +43,20 @@ The partition function is written as
   Q & = \frac{1}{h^{3N}}
       \frac{(N_O-1)!N_h!}{N_O!N_h!}
       \int e^{-\beta\sum_i\frac{p_i^2}{2m_i}} dp
-      \int dr_0\int e^{-\beta\sum_i k(r_i - r_{i0})^2} dr \\
+      \int dr_0\int e^{-\beta\sum_i \frac 12k(r_i - r_{i0})^2} dr \\
     &=
       \frac{1}{h^{3N}}\frac{1}{N_O}
       (2\pi m k_BT)^{\frac{3N}{2}}
       {V}
-      \Big(\frac{\pi k_BT}{k}\Big)^{\frac{3N-3}2} \\
+      \Big(\frac{2\pi k_BT}{k}\Big)^{\frac{3N-3}2} \\
     &=
       \frac{V}{N_O}
       \Big( \frac{2\pi m k_BT}{h^2} \Big)^{\frac{3N}{2}}
-      \Big( \frac{\pi k_BT}{k} \Big)^{\frac{3N-3}{2}}
+      \Big( \frac{2\pi k_BT}{k} \Big)^{\frac{3N-3}{2}}
 \end{align*}
 We let
 \begin{align*}
-  \Lambda_p = \Big(\frac{h^2}{2\pi m k_BT}\Big)^{\frac12}, \quad \Lambda_k = \Big(\frac{\pi k_BT}{k}\Big)^{\frac12}
+  \Lambda_p = \Big(\frac{h^2}{2\pi m k_BT}\Big)^{\frac12}, \quad \Lambda_k = \Big(\frac{2\pi k_BT}{k}\Big)^{\frac12}
 \end{align*}
 Then
 \begin{align*}

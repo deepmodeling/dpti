@@ -10,7 +10,7 @@ def compute_lambda(temp, mass) :
     return 1./np.sqrt(ret)    
 
 def compute_spring(temp, spring_k) :
-    ret = (spring_k * pc.electron_volt / (pc.angstrom * pc.angstrom)) / (pc.Boltzmann * temp * np.pi) 
+    ret = (0.5 * spring_k * pc.electron_volt / (pc.angstrom * pc.angstrom)) / (pc.Boltzmann * temp * np.pi) 
     return np.sqrt(ret)
 
 def ideal_gas_fe(jdata) :
