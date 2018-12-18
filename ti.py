@@ -256,7 +256,7 @@ def post_tasks(iter_name, jdata, Eo) :
         # TotEng
         stat_col = 3
         print('# TI in NVT along T path')
-    elif 'npt' in ens and path == 't' :
+    elif 'npt' in ens and (path == 't' or path == 't-ginv') :
         # Enthalpy
         stat_col = 4
         print('# TI in NPT along T path')
@@ -279,7 +279,7 @@ def post_tasks(iter_name, jdata, Eo) :
         thermo_name = os.path.join(ii, 'thermo.out')
         tt = float(open(thermo_name).read())
         all_t.append(tt)
-        if path == 't' :
+        if path == 't' or path == 't-ginv':
             integrand.append(ea / (tt * tt))
             integrand_err.append(ee / (tt * tt))
         elif path == 'p' :
@@ -315,7 +315,7 @@ def post_tasks(iter_name, jdata, Eo) :
     for ii in range(0, len(all_t)) :
         diff_e, err = integrate(all_t[0:ii+1], integrand[0:ii+1], integrand_err[0:ii+1])
         sys_err = integrate_sys_err(all_t[0:ii+1], integrand[0:ii+1])
-        if path == 't' :
+        if path == 't' or path == 't-ginv':
             e1 = (Eo / (all_t[0]) - diff_e) * all_t[ii]
             err *= all_t[ii]
             sys_err *= all_t[ii]
