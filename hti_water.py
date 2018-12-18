@@ -362,7 +362,7 @@ def compute_ideal_mol(iter_name) :
     natoms = natoms_o + natoms_h
     assert(natoms == sum(natom_vec))
     # spring contribution
-    lambda_s = einstein.compute_spring(temp, kk * 1.0)
+    lambda_s = einstein.compute_spring(temp, kk * 2.0)
     fe -= natoms_o * np.log((vol * (pc.angstrom**3)))
     fe += 3 * natoms_h * np.log(lambda_s)
     # N!
