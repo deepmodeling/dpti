@@ -12,6 +12,7 @@ from lib.utils import integrate
 from lib.utils import integrate_sys_err
 from lib.utils import parse_seq
 from lib.lammps import get_thermo
+from lib.lammps import get_natoms
 
 def make_iter_name (iter_index) :
     return "task_hti." + ('%04d' % iter_index)
@@ -199,9 +200,15 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
     jdata['switch_style'] = switch_style
 
     create_path(iter_name)
+    copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
+    shutil.copy2(equi_conf, copied_conf)
+    jdata['equi_conf'] = copied_conf
+    linked_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
+    os.symlink(model, linked_model)
+    jdata['model'] = linked_model
+
     cwd = os.getcwd()
     os.chdir(iter_name)
-    shutil.copyfile(os.path.relpath(equi_conf), './conf.lmp')
     with open('in.json', 'w') as fp:
         json.dump(jdata, fp, indent=4)
     os.chdir(cwd)
@@ -209,8 +216,8 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
         work_path = os.path.join(iter_name, 'task.%06d' % idx)
         create_path(work_path)
         os.chdir(work_path)
-        os.symlink(os.path.join('..','conf.lmp'), 'conf.lmp')
-        os.symlink(os.path.relpath(model), 'graph.pb')
+        os.symlink(os.path.relpath(copied_conf), 'conf.lmp')
+        os.symlink(os.path.relpath(linked_model), 'graph.pb')
         if ref == 'einstein' :
             lmp_str \
                 = _gen_lammps_input('conf.lmp',
@@ -268,12 +275,18 @@ def _compute_thermo(fname, stat_skip, stat_bsize) :
     thermo_info['pv_err'] = pe * va * unit_cvt
     return thermo_info
 
-def post_tasks(iter_name, jdata) :
+def post_tasks(iter_name, jdata, natoms = None) :
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
     all_tasks = glob.glob(os.path.join(iter_name, 'task*'))
     all_tasks.sort()
     ntasks = len(all_tasks)
+    equi_conf = jdata['equi_conf']
+    if natoms == None :
+        natoms = get_natoms(equi_conf)
+        if 'copies' in jdata :
+            natoms *= np.prod(jdata['copies'])
+    print('# natoms: %d' % natoms)
     
     all_lambda = []
     all_es = []
@@ -287,6 +300,10 @@ def post_tasks(iter_name, jdata) :
         np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
         sa, se = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
         da, de = block_avg(data[:, 9], skip = stat_skip, block_size = stat_bsize)
+        sa /= natoms
+        se /= np.sqrt(natoms)
+        da /= natoms
+        de /= np.sqrt(natoms)
         lmda_name = os.path.join(ii, 'lambda.out')
         ll = float(open(lmda_name).read())
         all_lambda.append(ll)
@@ -377,23 +394,22 @@ def _main ():
         if 'reference' not in jdata :
             jdata['reference'] = 'einstein'
         if jdata['reference'] == 'einstein' :
-            jdata1 = jdata
-            jdata1['equi_conf'] = os.path.join(args.JOB, 'conf.lmp')
-            e0 = einstein.free_energy(jdata1)
+            e0 = einstein.free_energy(jdata)
             print('# free ener of Einstein Mole: %20.8f' % e0)
         else :
             e0 = einstein.ideal_gas_fe(jdata)
             print('# free ener of ideal gas: %20.8f' % e0)
+        print_format = '%20.12f  %10.3e  %10.3e'
         if args.type == 'helmholtz' :
-            print('# Helmholtz free ener (err) [eV]:')
-            print(e0 + de, de_err[0], de_err[1])
+            print('# Helmholtz free ener per atom (stat_err inte_err) [eV]:')
+            print(print_format % (e0 + de, de_err[0], de_err[1]))
         if args.type == 'gibbs' :
             pv = thermo_info['pv']
             pv_err = thermo_info['pv_err']
             e1 = e0 + de + pv
             e1_err = np.sqrt(de_err[0]**2 + pv_err**2)
-            print('# Gibbs free ener (err) [eV]:')
-            print(e1, e1_err, de_err[1])
+            print('# Gibbs free ener per atom (stat_err inte_err) [eV]:')
+            print(print_format % (e1, e1_err, de_err[1]))
     
 if __name__ == '__main__' :
     _main()

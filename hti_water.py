@@ -152,7 +152,7 @@ def _make_tasks(iter_name, jdata, step) :
         if all_lambda[-1] == 1 :
             all_lambda[-1] -= protect_eps
     equi_conf = jdata['equi_conf']
-    equi_conf = os.path.abspath(equi_conf)    
+    equi_conf = os.path.abspath(equi_conf)
     model = jdata['model']
     model = os.path.abspath(model)
     model_mass_map = jdata['model_mass_map']
@@ -177,6 +177,7 @@ def _make_tasks(iter_name, jdata, step) :
     os.chdir(iter_name)
     os.symlink(os.path.join('..', 'in.json'), 'in.json')
     os.symlink(os.path.join('..', 'conf.lmp'), 'orig.lmp')
+    os.symlink(os.path.join('..', 'graph.pb'), 'graph.pb')
     lines = water.add_bonds(open('orig.lmp').read().split('\n'))
     open('conf.lmp', 'w').write('\n'.join(lines))
     os.chdir(cwd)
@@ -185,7 +186,7 @@ def _make_tasks(iter_name, jdata, step) :
         create_path(work_path)
         os.chdir(work_path)
         os.symlink(os.path.join('..', 'conf.lmp'), 'conf.lmp')
-        os.symlink(os.path.relpath(model), 'graph.pb')
+        os.symlink(os.path.join('..', 'graph.pb'), 'graph.pb')
         lmp_str \
             = _gen_lammps_input(step,
                                 'conf.lmp', 
@@ -211,12 +212,20 @@ def _make_tasks(iter_name, jdata, step) :
 
 def make_tasks(iter_name, jdata) :
     equi_conf = os.path.abspath(jdata['equi_conf'])
+    model = os.path.abspath(jdata['model'])
+
     create_path(iter_name)
+    copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
+    shutil.copy2(equi_conf, copied_conf)
+    jdata['equi_conf'] = copied_conf
+    linked_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
+    os.symlink(model, linked_model)
+    jdata['model'] = linked_model
+
     cwd = os.getcwd()
     os.chdir(iter_name)    
     with open('in.json', 'w') as fp:
         json.dump(jdata, fp, indent=4)
-    shutil.copyfile(equi_conf, 'conf.lmp')
     os.chdir(cwd)
     subtask_name = os.path.join(iter_name, '00.angle_on')
     _make_tasks(subtask_name, jdata, 'angle_on')
@@ -421,20 +430,21 @@ def _main ():
         nmols = natoms // 3
         print ('# numb atoms: %d' % natoms)
         print ('# numb  mols: %d' % nmols)        
+        print_format = '%20.8f  %10.3e  %10.3e'
         if args.type == 'helmholtz' :
             print('# Helmholtz free ener (err) [eV]:')
-            print('%20.8f  %10.3e  %10.3e' % (fe, fe_err[0], fe_err[1]))
+            print(print_format % (fe, fe_err[0], fe_err[1]))
             print('# Helmholtz free ener per mol (err) [eV]:')
-            print('%20.8f  %10.3e  %10.3e' % (fe / nmols, fe_err[0] / np.sqrt(nmols), fe_err[1] / nmols))
+            print(print_format % (fe / nmols, fe_err[0] / np.sqrt(nmols), fe_err[1] / nmols))
         if args.type == 'gibbs' :
             pv = thermo_info['pv']
             pv_err = thermo_info['pv_err']
             e1 = fe + pv
             e1_err = np.sqrt(fe_err[0]**2 + pv_err**2)
             print('# Gibbs free ener (err) [eV]:')
-            print('%20.8f  %10.3e  %10.3e' % (e1, e1_err, fe_err[1]))
+            print(print_format % (e1, e1_err, fe_err[1]))
             print('# Gibbs free ener per mol (err) [eV]:')
-            print('%20.8f  %10.3e  %10.3e' % (e1 / nmols, e1_err / np.sqrt(nmols), fe_err[1] / nmols))
+            print(print_format % (e1 / nmols, e1_err / np.sqrt(nmols), fe_err[1] / nmols))
     
 if __name__ == '__main__' :
     _main()

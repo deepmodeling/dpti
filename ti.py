@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, sys, json, argparse, glob
+import os, sys, json, argparse, glob, shutil
 import numpy as np
 import scipy.constants as pc
 
@@ -24,7 +24,6 @@ def parse_seq_ginv (seq) :
     hh = (1/t_end - 1/t_begin) / ngrid
     inv_grid = np.arange(1/t_begin, 1/t_end+0.5*hh, hh)
     inv_grid = 1./inv_grid
-    print(len(inv_grid), len(tmp_seq), inv_grid)
     return inv_grid
 
 def _gen_lammps_input (conf_file, 
@@ -138,6 +137,13 @@ def make_tasks(iter_name, jdata) :
         raise RuntimeError('invalid ens')
 
     create_path(iter_name)
+    copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
+    shutil.copy2(equi_conf, copied_conf)
+    jdata['equi_conf'] = copied_conf
+    linked_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
+    os.symlink(model, linked_model)
+    jdata['model'] = linked_model
+
     cwd = os.getcwd()
     os.chdir(iter_name)
     with open('in.json', 'w') as fp:
@@ -147,8 +153,8 @@ def make_tasks(iter_name, jdata) :
         work_path = os.path.join(iter_name, 'task.%06d' % ii)
         create_path(work_path)
         os.chdir(work_path)
-        os.symlink(os.path.relpath(equi_conf), 'conf.lmp')
-        os.symlink(os.path.relpath(model), 'graph.pb')
+        os.symlink(os.path.relpath(copied_conf), 'conf.lmp')
+        os.symlink(os.path.relpath(linked_model), 'graph.pb')
         if 'nvt' in ens and path == 't' :
             lmp_str \
                 = _gen_lammps_input('conf.lmp',
@@ -235,9 +241,12 @@ def _print_thermo_info(info, more_head = '') :
     ptr += '# PV(err)  [eV]:  %20.8f %20.8f' % (info['pv'], info['pv_err'])
     print(ptr)
 
-def post_tasks(iter_name, jdata, Eo) :
+def post_tasks(iter_name, jdata, Eo, natoms = None) :
     equi_conf = jdata['equi_conf']
-    natoms = get_natoms(equi_conf)
+    if natoms == None :        
+        natoms = get_natoms(equi_conf)
+        if 'copies' in jdata :
+            natoms *= np.prod(jdata['copies'])
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
     ens = jdata['ens']
@@ -266,6 +275,7 @@ def post_tasks(iter_name, jdata, Eo) :
         print('# TI in NPT along P path')
     else:
         raise RuntimeError('invalid ens or path setting' )
+    print('# natoms: %d' % natoms)
 
     for ii in all_tasks :
         log_name = os.path.join(ii, 'log.lammps')
@@ -274,6 +284,8 @@ def post_tasks(iter_name, jdata, Eo) :
         ea, ee = block_avg(data[:, stat_col], 
                            skip = stat_skip, 
                            block_size = stat_bsize)
+        ea /= natoms
+        ee /= np.sqrt(natoms)
         all_e.append(ea)
         all_e_err.append(ee)
         thermo_name = os.path.join(ii, 'thermo.out')
@@ -291,7 +303,6 @@ def post_tasks(iter_name, jdata, Eo) :
             raise RuntimeError('invalid path setting' )
 
     all_print = []
-    all_print.append(np.arange(len(all_tasks)))
     all_print.append(all_t)
     all_print.append(integrand)
     all_print.append(all_e)
@@ -341,13 +352,6 @@ def post_tasks(iter_name, jdata, Eo) :
             print ('%9.2f  %15.8e  %15.8f  %9.2e  %9.2e' 
                    % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii]))
 
-    # diff_e, err = integrate(all_t, integrand, integrand_err)
-    # if path == 't' :
-    #     e1 = (Eo / (all_t[0]) - diff_e) * all_t[-1]
-    #     err *= all_t[-1]
-    # elif path == 'p' :
-    #     e1 = Eo + diff_e        
-    # print(e1, err)
 
 def _main ():
     parser = argparse.ArgumentParser(

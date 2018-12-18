@@ -35,6 +35,7 @@ def ideal_gas_fe(jdata) :
         fe -= ii
         fe += 0.5 * np.log(2. * np.pi * ii)
     fe *= pc.Boltzmann * temp / pc.electron_volt
+    fe /= np.sum(natoms)
     return fe
 
 def free_energy (jdata) :
@@ -73,6 +74,7 @@ def free_energy (jdata) :
         else :
             fe += 3 * ii * np.log(Lambda_s[idx])
     fe *= pc.Boltzmann * temp / pc.electron_volt
+    fe /= np.sum(natoms)
     return fe
     
 def _main() :
