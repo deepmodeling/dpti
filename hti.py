@@ -321,7 +321,7 @@ def post_tasks(iter_name, jdata, natoms = None) :
     all_err = np.sqrt(np.square(all_ed_err / all_lambda) + np.square(all_es_err / (1 - all_lambda)))
 
     all_print = []
-    all_print.append(np.arange(len(all_lambda)))
+    # all_print.append(np.arange(len(all_lambda)))
     all_print.append(all_lambda)
     all_print.append(de)
     all_print.append(all_err)
@@ -333,7 +333,7 @@ def post_tasks(iter_name, jdata, natoms = None) :
     np.savetxt(os.path.join(iter_name, 'hti.out'), 
                all_print.T, 
                fmt = '%.8e', 
-               header = 'idx lmbda dU dU_err Ud Us Ud_err Us_err')
+               header = 'lmbda dU dU_err Ud Us Ud_err Us_err')
 
     diff_e, err = integrate(all_lambda, de, all_err)
     sys_err = integrate_sys_err(all_lambda, de)
