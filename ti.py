@@ -139,7 +139,7 @@ def make_tasks(iter_name, jdata) :
 
     create_path(iter_name)
     copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
-    shutil.copy2(equi_conf, copied_conf)
+    shutil.copyfile(equi_conf, copied_conf)
     jdata['equi_conf'] = copied_conf
     linked_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
     os.symlink(model, linked_model)
@@ -418,7 +418,7 @@ def refine_task (from_task, to_task, err) :
         if back_map[ii] < 0 : 
             continue
         for jj in ['data', 'log.lammps'] :
-            shutil.copy2(
+            shutil.copyfile(
                 os.path.join(from_task_list[back_map[ii]], jj), 
                 os.path.join(to_task_list[ii], jj), 
             )

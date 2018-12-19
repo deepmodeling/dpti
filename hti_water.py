@@ -216,7 +216,7 @@ def make_tasks(iter_name, jdata) :
 
     create_path(iter_name)
     copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
-    shutil.copy2(equi_conf, copied_conf)
+    shutil.copyfile(equi_conf, copied_conf)
     jdata['equi_conf'] = copied_conf
     linked_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
     os.symlink(model, linked_model)
