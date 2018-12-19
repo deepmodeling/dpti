@@ -280,6 +280,12 @@ def _post_tasks(iter_name, step, natoms) :
         bd_a, bd_e = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
         ag_a, ag_e = block_avg(data[:, 9], skip = stat_skip, block_size = stat_bsize)
         dp_a, dp_e = block_avg(data[:,10], skip = stat_skip, block_size = stat_bsize)
+        bd_a /= natoms
+        ag_a /= natoms
+        dp_a /= natoms
+        bd_e /= np.sqrt(natoms)
+        ag_e /= np.sqrt(natoms)
+        dp_e /= np.sqrt(natoms)
         lmda_name = os.path.join(ii, 'lambda.out')
         ll = float(open(lmda_name).read())
         all_lambda.append(ll)
@@ -308,7 +314,7 @@ def _post_tasks(iter_name, step, natoms) :
         all_err = np.sqrt(np.square(all_bd_e / (1 - all_lambda)) + np.square(all_ag_e / (1 - all_lambda)))
 
     all_print = []
-    all_print.append(np.arange(len(all_lambda)))
+    # all_print.append(np.arange(len(all_lambda)))
     all_print.append(all_lambda)
     all_print.append(de)
     all_print.append(all_err)
@@ -316,7 +322,7 @@ def _post_tasks(iter_name, step, natoms) :
     np.savetxt(os.path.join(iter_name, 'hti.out'), 
                all_print.T, 
                fmt = '%.8e', 
-               header = 'idx lmbda dU dU_err')
+               header = 'lmbda dU dU_err')
 
     diff_e, err = integrate(all_lambda, de, all_err)
     sys_err = integrate_sys_err(all_lambda, de)
@@ -371,7 +377,7 @@ def compute_ideal_mol(iter_name) :
     fe += natoms_h * np.log(np.sqrt(2))
     # to kbT log Z
     fe *= pc.Boltzmann * temp / pc.electron_volt
-    return fe
+    return fe / natoms_o
 
 def post_tasks(iter_name, natoms) :
     subtask_name = os.path.join(iter_name, '00.angle_on')
@@ -431,21 +437,17 @@ def _main ():
         _print_thermo_info(thermo_info)
         print ('# numb atoms: %d' % natoms)
         print ('# numb  mols: %d' % nmols)        
-        print_format = '%20.8f  %10.3e  %10.3e'
+        print_format = '%20.12f  %10.3e  %10.3e'
         if args.type == 'helmholtz' :
-            print('# Helmholtz free ener (err) [eV]:')
-            print(print_format % (fe, fe_err[0], fe_err[1]))
             print('# Helmholtz free ener per mol (err) [eV]:')
-            print(print_format % (fe / nmols, fe_err[0] / np.sqrt(nmols), fe_err[1] / nmols))
+            print(print_format % (fe, fe_err[0], fe_err[1]))
         if args.type == 'gibbs' :
             pv = thermo_info['pv']
             pv_err = thermo_info['pv_err']
             e1 = fe + pv
             e1_err = np.sqrt(fe_err[0]**2 + pv_err**2)
-            print('# Gibbs free ener (err) [eV]:')
-            print(print_format % (e1, e1_err, fe_err[1]))
             print('# Gibbs free ener per mol (err) [eV]:')
-            print(print_format % (e1 / nmols, e1_err / np.sqrt(nmols), fe_err[1] / nmols))
+            print(print_format % (e1, e1_err, fe_err[1]))
     
 if __name__ == '__main__' :
     _main()
