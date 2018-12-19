@@ -376,9 +376,13 @@ def refine_task (from_task, to_task, err) :
         interval_err[ii] *= all_t[ii+1]
     
     interval_nrefine = []
-    for ii in interval_err :
-        interval_nrefine.append(max(1, int(np.ceil(np.sqrt(ii / err)))))
+    # for ii in interval_err :
+    #     interval_nrefine.append(max(1, int(np.ceil(np.sqrt(ii / err)))))
+    for ii in range(ntask-1) :
+        err_dist = err * (all_t[ii+1] - all_t[ii]) / (all_t[-1] - all_t[0])
+        interval_nrefine.append(max(1, int(np.ceil(np.sqrt(interval_err[ii] / err_dist)))))
     print(interval_nrefine)
+    assert(len(interval_nrefine) == len(interval_err))
 
     refined_t = []
     back_map = []
