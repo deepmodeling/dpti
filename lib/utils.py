@@ -87,7 +87,11 @@ def parse_seq(in_s) :
         for ii in in_s :
             for jj in _parse_one_str(ii) :
                 all_l.append(jj)      
-    elif type(in_s) == list and ( type(in_s[0]) == float or type(in_s[0]) == int ) :
+    elif type(in_s) == list and \
+         ( type(in_s[0]) == float or \
+           type(in_s[0]) == np.float32 or \
+           type(in_s[0]) == np.float64 or \
+           type(in_s[0]) == int ) :
         all_l = [float(ii) for ii in in_s]
     elif type(in_s) == str :
         all_l = _parse_one_str(in_s)
@@ -123,7 +127,7 @@ def _interval_deriv2 (xx, yy) :
     coeff = np.linalg.solve(mat, yy)
     return 2.*coeff[0]
 
-def _interval_sys_err (xx, yy, mode) :
+def interval_sys_err (xx, yy, mode) :
     if mode == 'middle' :        
         d0 = np.abs(_interval_deriv2(xx[0:3], yy[0:3]))
         d1 = np.abs(_interval_deriv2(xx[1:4], yy[1:4]))
@@ -142,11 +146,11 @@ def integrate_sys_err (xx, yy) :
     err = 0
     if len(xx) <= 2 :
         return err
-    err += _interval_sys_err(xx[0:3], yy[0:3], 'left')
+    err += interval_sys_err(xx[0:3], yy[0:3], 'left')
     # print('here', err)
-    for ii in range(1, len(xx)-3) :
-        err += _interval_sys_err(xx[ii-1:ii+3], yy[ii-1:ii+3], 'middle')
-        # print('here2', _interval_sys_err(xx[ii-1:ii+3], yy[ii-1:ii+3], 'middle'))
-    err += _interval_sys_err(xx[-3:], yy[-3:], 'right')    
-    # print('here1', _interval_sys_err(xx[-3:], yy[-3:], 'right') )
+    for ii in range(1, len(xx)-2) :
+        err += interval_sys_err(xx[ii-1:ii+3], yy[ii-1:ii+3], 'middle')
+        # print('here2', interval_sys_err(xx[ii-1:ii+3], yy[ii-1:ii+3], 'middle'))
+    err += interval_sys_err(xx[-3:], yy[-3:], 'right')    
+    # print('here1', interval_sys_err(xx[-3:], yy[-3:], 'right') )
     return err

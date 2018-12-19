@@ -50,6 +50,8 @@ def _main ():
         nmols = natoms // 3
         e0 = float(args.Eo)
         ti.post_tasks(job, jdata, e0, natoms = nmols)
+    elif args.command == 'refine' :
+        refine_task(args.input, args.output, args.error)
 
     
 if __name__ == '__main__' :

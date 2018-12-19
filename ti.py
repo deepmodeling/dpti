@@ -9,6 +9,7 @@ from lib.utils import copy_file_list
 from lib.utils import block_avg
 from lib.utils import integrate
 from lib.utils import integrate_sys_err
+from lib.utils import interval_sys_err
 from lib.utils import parse_seq
 from lib.lammps import get_thermo
 from lib.lammps import get_natoms
@@ -311,7 +312,7 @@ def post_tasks(iter_name, jdata, Eo, natoms = None) :
     np.savetxt(os.path.join(iter_name, 'ti.out'), 
                all_print.T, 
                fmt = '%.8e', 
-               header = 'idx t/p Integrand U/V U/V_err')
+               header = 't/p Integrand U/V U/V_err')
 
     info0 = _compute_thermo(os.path.join(all_tasks[ 0], 'log.lammps'), natoms, stat_skip, stat_bsize)
     info1 = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), natoms, stat_skip, stat_bsize)
@@ -344,14 +345,86 @@ def post_tasks(iter_name, jdata, Eo, natoms = None) :
     if 'nvt' == ens :
         print('#%8s  %15s  %9s  %9s' % ('T(ctrl)', 'F', 'stat_err', 'inte_err'))
         for ii in range(len(all_temps)) :
-            print ('%9.2f  %15.8f  %9.2e  %9.2e' 
+            print ('%9.2f  %20.12f  %9.2e  %9.2e' 
                    % (all_temps[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii]))
     elif 'npt' in ens :
         print('#%8s  %15s  %15s  %9s  %9s' % ('T(ctrl)', 'P(ctrl)', 'F', 'stat_err', 'inte_err'))
         for ii in range(len(all_temps)) :
-            print ('%9.2f  %15.8e  %15.8f  %9.2e  %9.2e' 
+            print ('%9.2f  %15.8e  %20.12f  %9.2e  %9.2e' 
                    % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii]))
 
+
+def refine_task (from_task, to_task, err) :
+    from_task = os.path.abspath(from_task)
+    to_task = os.path.abspath(to_task)
+
+    from_ti = os.path.join(from_task, 'ti.out')
+    if not os.path.isfile(from_ti) :
+        raise RuntimeError("cannot find file %s, task should be computed befor refined" % from_ti)
+    tmp_array = np.loadtxt(from_ti)
+    all_t = tmp_array[:,0]
+    integrand = tmp_array[:,1]
+    ntask = all_t.size
+
+    interval_err = []
+    interval_err.append(interval_sys_err(all_t[0:3], integrand[0:3], 'left'))
+    for ii in range(1, ntask-2) :
+        interval_err.append(
+            interval_sys_err(all_t[ii-1:ii+3], integrand[ii-1:ii+3], 'middle'))
+    interval_err.append(interval_sys_err(all_t[-3:], integrand[-3:], 'right'))
+    for ii in range(0, ntask-1) :
+        interval_err[ii] *= all_t[ii+1]
+    
+    interval_nrefine = []
+    for ii in interval_err :
+        interval_nrefine.append(max(1, int(np.ceil(np.sqrt(ii / err)))))
+    print(interval_nrefine)
+
+    refined_t = []
+    back_map = []
+    for ii in range(0, ntask-1) :
+        refined_t.append(all_t[ii])
+        back_map.append(ii)
+        hh = (all_t[ii+1] - all_t[ii]) / interval_nrefine[ii]
+        for jj in range(1, interval_nrefine[ii]) :
+            refined_t.append(all_t[ii] + jj * hh)
+            back_map.append(-1)
+    refined_t.append(all_t[-1])
+    back_map.append(ntask-1)
+    
+    from_json = os.path.join(from_task, 'in.json')
+    to_json = os.path.join(to_task, 'in.json')
+    from_jdata = json.load(open(from_json))
+    to_jdata = from_jdata
+    if to_jdata['path'] == 't-ginv' :
+        to_jdata['path'] = 't'
+    to_jdata['temps'] = refined_t
+    to_jdata['orig_task'] = from_task
+    to_jdata['back_map'] = back_map
+    # create_path(to_task)
+    # with open(to_json, 'w') as fp :
+    #     json.dump(to_jdata, fp, indent=4)
+
+    make_tasks(to_task, to_jdata)
+    
+    from_task_list = glob.glob(os.path.join(from_task, 'task.*'))
+    from_task_list.sort()
+    to_task_list = glob.glob(os.path.join(to_task, 'task.*'))
+    to_task_list.sort()
+    assert(len(from_task_list) == ntask)
+    assert(len(to_task_list) == len(refined_t))
+
+    for ii in range(len(to_task_list)) :
+        if back_map[ii] < 0 : 
+            continue
+        for jj in ['data', 'log.lammps'] :
+            shutil.copy2(
+                os.path.join(from_task_list[back_map[ii]], jj), 
+                os.path.join(to_task_list[ii], jj), 
+            )
+        with open(os.path.join(to_task_list[ii], 'from.dir'), 'w') as fp:
+            fp.write(from_task_list[back_map[ii]])
+            
 
 def _main ():
     parser = argparse.ArgumentParser(
@@ -369,6 +442,14 @@ def _main ():
                              help='folder of the job')
     parser_comp.add_argument('-e', '--Eo', type=float, default = 0,
                              help='free energy of starting point')
+
+    parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
+    parser_comp.add_argument('-i', '--input', type=str,
+                             help='input job')
+    parser_comp.add_argument('-o', '--output', type=str,
+                             help='output job')
+    parser_comp.add_argument('-e', '--error', type=float,
+                             help='the error required')
     args = parser.parse_args()
 
     if args.command is None :
@@ -383,6 +464,8 @@ def _main ():
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
         e0 = float(args.Eo)
         post_tasks(job, jdata, e0)
+    elif args.command == 'refine' :
+        refine_task(args.input, args.output, args.error)
 
     
 if __name__ == '__main__' :
