@@ -223,7 +223,7 @@ def _compute_thermo (lmplog, natoms, stat_skip, stat_bsize) :
     thermo_info['v_err'] = ve / np.sqrt(natoms)
     thermo_info['e'] = ea / natoms
     thermo_info['e_err'] = ee / np.sqrt(natoms)
-    thermo_info['h'] = ea / natoms
+    thermo_info['h'] = ha / natoms
     thermo_info['h_err'] = he / np.sqrt(natoms)
     thermo_info['t'] = ta
     thermo_info['t_err'] = te
