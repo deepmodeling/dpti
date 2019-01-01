@@ -31,6 +31,15 @@ def _main ():
                              help='folder of the job')
     parser_comp.add_argument('-e', '--Eo', type=float, default = 0,
                              help='free energy of starting point')
+
+    parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
+    parser_comp.add_argument('-i', '--input', type=str,
+                             help='input job')
+    parser_comp.add_argument('-o', '--output', type=str,
+                             help='output job')
+    parser_comp.add_argument('-e', '--error', type=float,
+                             help='the error required')
+
     args = parser.parse_args()
 
     if args.command is None :
