@@ -17,48 +17,91 @@ from lib.lammps import get_thermo
 
 def _ff_angle_on(lamb,
                  model, 
-                 bond_k, bond_l,
-                 angle_k, angle_t) :
+                 bparam,
+                 sparam) :
+    bond_k = bparam['bond_k']
+    bond_l = bparam['bond_l']
+    angle_k = bparam['angle_k']
+    angle_t = bparam['angle_t']
+    nn = sparam['n']
+    alpha_lj = sparam['alpha_lj']
+    rcut = sparam['rcut']
+    epsilon = sparam['epsilon']
+    sigma = sparam['sigma']
+    activation = sparam['activation']
     ret = ''
-    ret += 'pair_style      zero 3.0\n'
-    ret += 'pair_coeff      * *\n'
+    ret += 'variable        EPSILON equal %f\n' % epsilon
+    ret += 'pair_style      lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
+    ret += 'pair_coeff      1 1 ${EPSILON} %f %f\n' % (sigma, activation)
+    ret += 'pair_coeff      1*2 2 0 %f 0\n' % (sigma)
     ret += 'bond_style      harmonic\n'
     ret += 'bond_coeff      1 %f %f\n' % (bond_k, bond_l)
     ret += 'variable        ANGLE_K equal ${LAMBDA}*%.16e\n' % angle_k
     ret += 'angle_style     harmonic\n'
     ret += 'angle_coeff     1 ${ANGLE_K} %f\n' % (angle_t)    
-    ret += 'compute         e_deep all pe pair\n'
+    ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon 1 1 v_LAMBDA scale yes\n'
+    ret += 'compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon 1 1 v_EPSILON\n'    
     return ret
 
 def _ff_deep_on(lamb,
                  model, 
-                 bond_k, bond_l,
-                 angle_k, angle_t) :
+                 bparam,
+                 sparam) :
+    bond_k = bparam['bond_k']
+    bond_l = bparam['bond_l']
+    angle_k = bparam['angle_k']
+    angle_t = bparam['angle_t']
+    nn = sparam['n']
+    alpha_lj = sparam['alpha_lj']
+    rcut = sparam['rcut']
+    epsilon = sparam['epsilon']
+    sigma = sparam['sigma']
+    activation = sparam['activation']
     ret = ''
-    ret += 'pair_style      deepmd %s \n' % model
-    ret += 'pair_coeff      \n'
+    ret += 'variable        EPSILON equal %f\n' % epsilon
+    ret += 'variable        ONE equal 1\n'
+    ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
+    ret += 'pair_coeff      * * deepmd\n'
+    ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
+    ret += 'pair_coeff      1*2 2 lj/cut/soft 0 %f 0\n' % (sigma)
     ret += 'bond_style      harmonic\n'
     ret += 'bond_coeff      1 %f %f\n' % (bond_k, bond_l)
     ret += 'angle_style     harmonic\n'
     ret += 'angle_coeff     1 %f %f\n' % (angle_k, angle_t)    
-    ret += 'fix             l_deep all adapt 1 pair deepmd scale * * v_LAMBDA\n'
-    ret += 'compute         e_deep all pe pair\n'
+    ret += 'fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA\n'
+    ret += 'compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE\n'
     return ret
 
 def _ff_bond_angle_off(lamb,
                        model, 
-                       bond_k, bond_l,
-                       angle_k, angle_t) :
+                       bparam,
+                       sparam) :
+    bond_k = bparam['bond_k']
+    bond_l = bparam['bond_l']
+    angle_k = bparam['angle_k']
+    angle_t = bparam['angle_t']
+    nn = sparam['n']
+    alpha_lj = sparam['alpha_lj']
+    rcut = sparam['rcut']
+    epsilon = sparam['epsilon']
+    sigma = sparam['sigma']
+    activation = sparam['activation']
     ret = ''
-    ret += 'pair_style      deepmd %s \n' % model
-    ret += 'pair_coeff      \n'
+    ret += 'variable        INV_LAMBDA equal 1-${LAMBDA}\n'
+    ret += 'variable        EPSILON equal %f\n' % epsilon
+    ret += 'variable        INV_EPSILON equal -${EPSILON}\n'
+    ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
+    ret += 'pair_coeff      * * deepmd\n'
+    ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
+    ret += 'pair_coeff      1*2 2 lj/cut/soft 0 %f 0\n' % (sigma)
     ret += 'variable        BOND_K equal %.16e\n' % (bond_k * (1-lamb))
     ret += 'bond_style      harmonic\n'
     ret += 'bond_coeff      1 ${BOND_K} %f\n' % (bond_l)
     ret += 'variable        ANGLE_K equal %.16e\n' % (angle_k * (1-lamb))
     ret += 'angle_style     harmonic\n'
     ret += 'angle_coeff     1 ${ANGLE_K} %f\n' % (angle_t)    
-    ret += 'compute         e_deep all pe pair\n'
+    ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon 1 1 v_INV_LAMBDA scale yes\n'
+    ret += 'compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon 1 1 v_INV_EPSILON\n'    
     return ret
 
 
@@ -67,10 +110,8 @@ def _gen_lammps_input (step,
                        mass_map,
                        lamb,
                        model,
-                       bond_k,
-                       bond_l,
-                       angle_k,
-                       angle_t,
+                       bparam,
+                       sparam,
                        nsteps,
                        dt,
                        ens,
@@ -105,17 +146,17 @@ def _gen_lammps_input (step,
         ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
     if step == 'angle_on' :
-        ret += _ff_angle_on(lamb, model, bond_k, bond_l, angle_k, angle_t)
+        ret += _ff_angle_on(lamb, model, bparam, sparam)
     elif step == 'deep_on':
-        ret += _ff_deep_on(lamb, model, bond_k, bond_l, angle_k, angle_t)
+        ret += _ff_deep_on(lamb, model, bparam, sparam)
     elif step == 'bond_angle_off':
-        ret += _ff_bond_angle_off(lamb, model, bond_k, bond_l, angle_k, angle_t)
+        ret += _ff_bond_angle_off(lamb, model, bparam, sparam)
     ret += 'special_bonds   lj/coul 1 1 1 angle no\n'
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % dt
     ret += 'thermo          ${THERMO_FREQ}\n'
-    ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol ebond eangle c_e_deep\n'
+    ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol ebond eangle c_e_diff[1]\n'
     ret += 'thermo_modify   format 9 %.16e\n'
     ret += 'thermo_modify   format 10 %.16e\n'
     ret += 'thermo_modify   format 11 %.16e\n'
@@ -158,10 +199,8 @@ def _make_tasks(iter_name, jdata, step) :
     model_mass_map = jdata['model_mass_map']
     nsteps = jdata['nsteps']
     dt = jdata['dt']
-    bond_k = jdata['bond_k']
-    bond_l = jdata['bond_l']
-    angle_k = jdata['angle_k']
-    angle_t = jdata['angle_t']
+    bparam = jdata['bond_param']
+    sparam = jdata['soft_param']
     stat_freq = jdata['stat_freq']
     ens = jdata['ens']
     temp = jdata['temp']
@@ -193,8 +232,8 @@ def _make_tasks(iter_name, jdata, step) :
                                 model_mass_map, 
                                 all_lambda[idx],
                                 'graph.pb',
-                                bond_k, bond_l, 
-                                angle_k, angle_t, 
+                                bparam,
+                                sparam,
                                 nsteps, 
                                 dt, 
                                 ens, 
@@ -219,7 +258,7 @@ def make_tasks(iter_name, jdata) :
     shutil.copyfile(equi_conf, copied_conf)
     jdata['equi_conf'] = copied_conf
     linked_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
-    os.symlink(model, linked_model)
+    shutil.copyfile(model, linked_model)
     jdata['model'] = linked_model
 
     cwd = os.getcwd()
