@@ -346,8 +346,8 @@ def _post_tasks(iter_name, step, natoms) :
         de = all_ag_a / all_lambda
         all_err = np.sqrt(np.square(all_ag_e / all_lambda))
     elif step == 'deep_on' :
-        de = all_dp_a / all_lambda
-        all_err = np.sqrt(np.square(all_dp_e / all_lambda))
+        de = all_dp_a
+        all_err = all_dp_e
     elif step == 'bond_angle_off' :
         de = - (all_bd_a + all_ag_a) / (1 - all_lambda)
         all_err = np.sqrt(np.square(all_bd_e / (1 - all_lambda)) + np.square(all_ag_e / (1 - all_lambda)))
@@ -388,8 +388,8 @@ def compute_ideal_mol(iter_name) :
     conf_lines = open(os.path.join(iter_name, 'orig.lmp')).read().split('\n')
     data_sys = lmp.system_data(conf_lines)
     vol = np.linalg.det(data_sys['cell'])
-    temp = jdata['temp']
-    kk = jdata['bond_k']
+    temp = jdata['temp']    
+    kk = jdata['bond_param']['bond_k']
     if 'copies' in jdata :
         ncopies = np.prod(jdata['copies'])
     else :
