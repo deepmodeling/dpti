@@ -27,6 +27,8 @@
 \newcommand{\bluec}[1]{{\color{blue} #1}}
 \newcommand{\greenc}[1]{{\color{green} #1}}
 
+\newcommand{\com}[0]{{\textrm{CM}}}
+
 \begin{document}
 
 \title{
@@ -34,6 +36,88 @@ Write down
 }
 
 \maketitle
+
+\section{Ideal Einstein crystal with COM constrained}
+
+The partition function for the free Einstein crystal is
+\begin{align*}
+  Q & =
+      \frac{1}{h^{3N}}
+      \frac{1}{N!} N!
+      \int e^{-\beta\sum_i\frac{p_i^2}{2m_i}} dp
+      \int e^{-\beta\sum_i \frac 12k(r_i - r_{i0})^2} dr \\
+    &= 
+      P \int e^{-\beta\sum_i \frac 12k(r_i - r_{i0})^2} dr \\
+    &=
+      P \Big( \frac{2\pi k_BT}{k} \Big)^{\frac{3N}2}
+\end{align*}
+where $r_{i0}$ is the equilibrium position of atom $i$, and $P$ is the momentum part of the partition function.
+We let $\epsilon = \frac1N \sum_i r_i - r_{i0}$,
+\begin{align*}
+  Q & =
+      P \int e^{-\beta\sum_i \frac 12k(r_i - r_{i0})^2} dr \\
+    & =
+      P \int e^{-\beta\sum_i \frac 12k(r_i - r_{i0})^2} \delta\big( \epsilon - \frac1N \sum_i (r_i - r_{i0}) \big) dr d\epsilon 
+\end{align*}
+Now consider $\hat r_i = r_i - \epsilon$, we have
+\begin{align}\label{eqn:1}
+  Q & =
+      P \int e^{-\beta\sum_i \frac 12k(\hat r_i - r_{i0} + \epsilon)^2} \delta\big( \frac1N \sum_i (\hat r_i - r_{i0}) \big) d\hat r d\epsilon 
+\end{align}
+We have the observation that $ \frac 1N \sum (\hat r_i  - r_{i0}) = \frac 1N \sum ( r_i  - r_{i0}) - \epsilon = 0$, then
+\begin{align*}
+  \sum_i (\hat r_i - r_{i0} + \epsilon)^2
+  &=
+    \sum_i (\hat r_i - r_{i0})^2 + 2\epsilon\sum_i (\hat r_i - r_{i0}) + N\epsilon^2 \\
+  &=
+    \sum_i (\hat r_i - r_{i0})^2 + N\epsilon^2 
+\end{align*}
+Inserting this relation to \eqref{eqn:1}, we have
+\begin{align}\nonumber
+  Q
+  & =
+    P \int e^{-\beta\sum_i \frac 12k(\hat r_i - r_{i0})^2} e^{-\beta \frac12 kN \epsilon^2} \delta\big( \frac1N \sum_i (\hat r_i - r_{i0}) \big) d\hat r d\epsilon \\
+  &=
+    P \Big( \frac{2\pi k_BT}k  \Big)^{\frac32} N^{-\frac32}
+    \int e^{-\beta\sum_i \frac 12k(\hat r_i - r_{i0})^2} \delta\big( \frac1N \sum_i (\hat r_i - r_{i0}) \big) d\hat r
+\end{align}
+% and consider the transformation $\hat r_i = r_i - \epsilon$.
+Now consider the constrain of the COM, we have the modified partition function
+\begin{align*}
+  Q_\com
+  &= 
+    {P_\com}
+    \int e^{-\beta\sum_i \frac 12k(r_i - r_{i0})^2} \delta\big(\frac1N\sum_i (r_i -  r_{i0})\big) dr 
+\end{align*}
+where $P_\com$ is the integration of the COM-constrained momentum part.
+% We let $\epsilon = \frac1N \sum_i r_i - r_{i0}$, and consider the transformation $\hat r_i = r_i - \epsilon$.
+% It is easily shown that $\sum_i \hat r_i - r_{i0} = 0$.
+% We have, 
+% \begin{align*}
+%   Q_\com
+%   &= 
+%     {P_\com}
+%     \int e^{-\beta\sum_i \frac 12k(r_i - r_{i0})^2}
+%     \delta\big(\frac1N\sum_i r_i - \frac1N\sum_i r_{i0}\big)
+%     dr \\
+%   &= 
+%     {P_\com}
+%     \int e^{-\beta\sum_i \frac 12k(\hat r_i - r_{i0} + \epsilon)^2}
+%     \delta\big(\frac1N\sum_i \hat r_i - \frac1N\sum_i r_{i0} + \epsilon\big)
+%     J \: d\hat r 
+% \end{align*}
+% where $J$ is the Jacobian of the transformation.
+% We notice that
+% \begin{align*}
+%   \sum_i (\hat r_i - r_{i0} - \epsilon)^2
+%   &=
+%   \sum_i (\hat r_i - r_{i0})^2 + 2\epsilon \sum_i (\hat r_i - r_{i0}) + N \epsilon^2 \\
+%   &=
+% \end{align*}
+Then we have
+\begin{align}
+  \frac{Q}{Q_\com} = \frac{P}{P_\com}\Big( \frac{2\pi k_BT}k  \Big)^{\frac32} N^{-\frac32}
+\end{align}
 
 \section{Ideal Einstein molecules}
 Consider the lattice that is defined by the first atom in the system, saying the oxygen of the first water molecule.
