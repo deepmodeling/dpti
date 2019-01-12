@@ -58,7 +58,7 @@ def _main ():
             natoms *= np.prod(jdata['copies'])
         nmols = natoms // 3
         e0 = float(args.Eo)
-        ti.post_tasks(job, jdata, e0, natoms = nmols)
+        ti.post_tasks_mbar(job, jdata, e0, natoms = nmols)
     elif args.command == 'refine' :
         ti.refine_task(args.input, args.output, args.error)
 

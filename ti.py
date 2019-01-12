@@ -3,6 +3,7 @@
 import os, sys, json, argparse, glob, shutil
 import numpy as np
 import scipy.constants as pc
+import pymbar
 
 from lib.utils import create_path
 from lib.utils import copy_file_list
@@ -338,6 +339,126 @@ def post_tasks(iter_name, jdata, Eo, natoms = None) :
             e1 = Eo + diff_e        
             all_temps.append(jdata['temps'])
             all_press.append(all_t[ii])
+        all_fe.append(e1)
+        all_fe_err.append(err)
+        all_fe_sys_err.append(sys_err)
+
+    if 'nvt' == ens :
+        print('#%8s  %15s  %9s  %9s' % ('T(ctrl)', 'F', 'stat_err', 'inte_err'))
+        for ii in range(len(all_temps)) :
+            print ('%9.2f  %20.12f  %9.2e  %9.2e' 
+                   % (all_temps[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii]))
+    elif 'npt' in ens :
+        print('#%8s  %15s  %15s  %9s  %9s' % ('T(ctrl)', 'P(ctrl)', 'F', 'stat_err', 'inte_err'))
+        for ii in range(len(all_temps)) :
+            print ('%9.2f  %15.8e  %20.12f  %9.2e  %9.2e' 
+                   % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii]))
+
+
+def post_tasks_mbar(iter_name, jdata, Eo, natoms = None) :
+    equi_conf = jdata['equi_conf']
+    if natoms == None :        
+        natoms = get_natoms(equi_conf)
+        if 'copies' in jdata :
+            natoms *= np.prod(jdata['copies'])
+    stat_skip = jdata['stat_skip']
+    stat_bsize = jdata['stat_bsize']
+    ens = jdata['ens']
+    path = jdata['path']
+
+    all_tasks = glob.glob(os.path.join(iter_name, 'task*'))
+    all_tasks.sort()
+    ntasks = len(all_tasks)
+
+    if 'nvt' in ens and path == 't' :
+        # TotEng
+        stat_col = 3
+        print('# TI in NVT along T path')
+    elif 'npt' in ens and (path == 't' or path == 't-ginv') :
+        # Enthalpy
+        stat_col = 4
+        print('# TI in NPT along T path')
+    elif 'npt' in ens and path == 'p' :
+        # volume
+        stat_col = 7
+        print('# TI in NPT along P path')
+    else:
+        raise RuntimeError('invalid ens or path setting' )
+    print('# natoms: %d' % natoms)
+
+    all_t = []
+    for ii in all_tasks :
+        thermo_name = os.path.join(ii, 'thermo.out')
+        tt = float(open(thermo_name).read())
+        all_t.append(tt)
+    all_t = np.array(all_t)
+    nt = all_t.size
+    
+    ukn = None
+    nk = []    
+    for ii in all_tasks :
+        log_name = os.path.join(ii, 'log.lammps')
+        data = get_thermo(log_name)
+        np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
+        block_u = []
+        if path == 't' or path == 't-ginv':
+            this_e = data[stat_skip::1, stat_col]
+            nk.append(this_e.size)
+            for tt in all_t :
+                kt_in_ev = pc.Boltzmann * tt / pc.electron_volt
+                block_u.append(this_e / kt_in_ev)
+        elif path == 'p' :
+            this_e = data[stat_skip::1, 3]
+            this_v = data[stat_skip::1, 7]
+            nk.append(this_e.size)            
+            # # cvt from barA^3 to eV
+            unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
+            temp = jdata['temps']
+            kt_in_ev = temp * pc.Boltzmann / pc.electron_volt
+            for tt in all_t :
+                block_u.append((this_e + tt * this_v * unit_cvt) / kt_in_ev)
+        else:
+            raise RuntimeError('invalid path setting' )
+        block_u = np.reshape(block_u, [nt, -1])
+        if ukn is None :
+            ukn = block_u 
+        else :
+            ukn = np.concatenate((ukn, block_u), axis = 1)
+    nk = np.array(nk)
+
+    info0 = _compute_thermo(os.path.join(all_tasks[ 0], 'log.lammps'), natoms, stat_skip, stat_bsize)
+    info1 = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), natoms, stat_skip, stat_bsize)
+    _print_thermo_info(info0, 'at start point')
+    _print_thermo_info(info1, 'at end point')
+
+    mbar = pymbar.MBAR(ukn, nk)
+    Deltaf_ij, dDeltaf_ij, Theta_ij = mbar.getFreeEnergyDifferences()
+    Deltaf_ij = Deltaf_ij / natoms
+    dDeltaf_ij = dDeltaf_ij / np.sqrt(natoms)
+
+    all_temps = []
+    all_press = []
+    all_fe = []
+    all_fe_err = []
+    all_fe_sys_err = []
+    for ii in range(0, nt) :
+        if path == 't' or path == 't-ginv':
+            kt_in_ev = all_t[ii] * pc.Boltzmann / pc.electron_volt
+            e1 = (Eo / (all_t[0])) * all_t[ii] + Deltaf_ij[0,ii] * kt_in_ev
+            err = dDeltaf_ij[0,ii] * kt_in_ev
+            sys_err = 0
+            all_temps.append(all_t[ii])
+            if 'npt' in ens :
+                all_press.append(jdata['press'])
+        elif path == 'p':
+            kt_in_ev = jdata['temps'] * pc.Boltzmann / pc.electron_volt
+            e1 = Eo + Deltaf_ij[0,ii] * kt_in_ev
+            err = dDeltaf_ij[0,ii] * kt_in_ev
+            sys_err = 0
+            all_temps.append(jdata['temps'])
+            all_press.append(all_t[ii])            
+        else :
+            pass
         all_fe.append(e1)
         all_fe_err.append(err)
         all_fe_sys_err.append(sys_err)

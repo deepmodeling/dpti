@@ -3,6 +3,7 @@
 import os, sys, json, argparse, glob, shutil
 import numpy as np
 import scipy.constants as pc
+import pymbar
 
 import einstein
 from lib.utils import create_path
@@ -343,6 +344,66 @@ def post_tasks(iter_name, jdata, natoms = None) :
                                   stat_skip, stat_bsize)
 
     return diff_e, [err,sys_err], thermo_info
+
+def post_tasks_mbar(iter_name, jdata, natoms = None) :
+    stat_skip = jdata['stat_skip']
+    stat_bsize = jdata['stat_bsize']
+    all_tasks = glob.glob(os.path.join(iter_name, 'task*'))
+    all_tasks.sort()
+    ntasks = len(all_tasks)
+    equi_conf = jdata['equi_conf']
+    temp = jdata['temp']
+    if natoms == None :
+        natoms = get_natoms(equi_conf)
+        if 'copies' in jdata :
+            natoms *= np.prod(jdata['copies'])
+    print('# natoms: %d' % natoms)
+    
+    all_lambda = []
+    for ii in all_tasks :
+        lmda_name = os.path.join(ii, 'lambda.out')
+        ll = float(open(lmda_name).read())
+        all_lambda.append(ll)
+    all_lambda = np.array(all_lambda)
+    nlambda = all_lambda.size
+
+    ukn = np.array([])
+    nk = []
+    kt_in_ev = pc.Boltzmann * temp / pc.electron_volt
+    for idx,ii in enumerate(all_tasks) :
+        log_name = os.path.join(ii, 'log.lammps')
+        data = get_thermo(log_name)
+        np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
+        this_ed = data[:,9] / kt_in_ev
+        this_es = data[:,8] / kt_in_ev
+        this_ed = this_ed[stat_skip:]
+        this_es = this_es[stat_skip:]
+        nk.append(this_ed.size)
+        ed = this_ed / all_lambda[idx]
+        es = this_es / (1 - all_lambda[idx])
+        block_u = []
+        for ll in all_lambda :
+            block_u.append(ed * ll + es * (1-ll))
+        block_u = np.reshape(block_u, [nlambda, -1])
+        if ukn.size == 0 :
+            ukn = block_u 
+        else :
+            ukn = np.concatenate((ukn, block_u), axis = 1)
+    nk = np.array(nk)
+
+    mbar = pymbar.MBAR(ukn, nk)
+    Deltaf_ij, dDeltaf_ij, Theta_ij = mbar.getFreeEnergyDifferences()
+    Deltaf_ij = Deltaf_ij / natoms
+    dDeltaf_ij = dDeltaf_ij / np.sqrt(natoms)
+
+    diff_e = Deltaf_ij[0,-1] * kt_in_ev
+    err = dDeltaf_ij[0,-1] * kt_in_ev
+
+    thermo_info = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), 
+                                  natoms,
+                                  stat_skip, stat_bsize)
+
+    return diff_e, [err,0], thermo_info
 
 
 def print_thermo_info(info) :

@@ -43,7 +43,7 @@ def _main ():
         if 'copies' in jdata :
             natoms *= np.prod(jdata['copies'])
         nmols = natoms // 3
-        de, de_err, thermo_info = hti.post_tasks(job, jdata, natoms = nmols)
+        de, de_err, thermo_info = hti.post_tasks_mbar(job, jdata, natoms = nmols)
         hti.print_thermo_info(thermo_info)
         if 'reference' not in jdata :
             jdata['reference'] = 'einstein'
