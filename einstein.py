@@ -39,7 +39,6 @@ def ideal_gas_fe(jdata) :
     return fe
 
 def free_energy (job) :
-    print(job)
     jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))    
     equi_conf = jdata['equi_conf']
     cwd = os.getcwd()
