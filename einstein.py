@@ -38,8 +38,15 @@ def ideal_gas_fe(jdata) :
     fe /= np.sum(natoms)
     return fe
 
-def free_energy (jdata) :
+def free_energy (job) :
+    print(job)
+    jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))    
     equi_conf = jdata['equi_conf']
+    cwd = os.getcwd()
+    os.chdir(job)
+    assert(os.path.isfile(equi_conf))
+    equi_conf = os.path.abspath(equi_conf)
+    os.chdir(cwd)
     spring_k = jdata['spring_k']
     temp = jdata['temp']
     mass_map = jdata['model_mass_map']

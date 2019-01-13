@@ -49,7 +49,7 @@ def _main ():
             jdata['reference'] = 'einstein'
         if jdata['reference'] == 'einstein' :
             # e0 normalized by natoms, *3 to nmols
-            e0 = einstein.free_energy(jdata) * 3
+            e0 = einstein.free_energy(job) * 3
             print('# free ener of Einstein Mole: %20.8f' % e0)
         else :
             raise RuntimeError("hti_ice should be used with reference einstein")

@@ -203,10 +203,10 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
     create_path(iter_name)
     copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
     shutil.copyfile(equi_conf, copied_conf)
-    jdata['equi_conf'] = copied_conf
+    jdata['equi_conf'] = 'conf.lmp'
     linked_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
-    os.symlink(model, linked_model)
-    jdata['model'] = linked_model
+    shutil.copyfile(model, linked_model)
+    jdata['model'] = 'graph.pb'
 
     cwd = os.getcwd()
     os.chdir(iter_name)
@@ -352,6 +352,11 @@ def post_tasks_mbar(iter_name, jdata, natoms = None) :
     all_tasks.sort()
     ntasks = len(all_tasks)
     equi_conf = jdata['equi_conf']
+    cwd = os.getcwd()
+    os.chdir(iter_name)
+    assert(os.path.isfile(equi_conf))
+    equi_conf = os.path.abspath(equi_conf)
+    os.chdir(cwd)
     temp = jdata['temp']
     if natoms == None :
         natoms = get_natoms(equi_conf)
@@ -456,7 +461,7 @@ def _main ():
         if 'reference' not in jdata :
             jdata['reference'] = 'einstein'
         if jdata['reference'] == 'einstein' :
-            e0 = einstein.free_energy(jdata)
+            e0 = einstein.free_energy(job)
             print('# free ener of Einstein Mole: %20.8f' % e0)
         else :
             e0 = einstein.ideal_gas_fe(jdata)
