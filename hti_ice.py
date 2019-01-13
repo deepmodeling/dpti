@@ -33,7 +33,7 @@ def _main ():
     if args.command == 'gen' :
         output = args.output
         jdata = json.load(open(args.PARAM, 'r'))
-        hti.make_tasks(output, jdata, 'einstein', 'all')
+        hti.make_tasks(output, jdata, 'einstein', 'both')
     elif args.command == 'compute' :
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
