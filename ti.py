@@ -565,6 +565,9 @@ def _main ():
     parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
     parser_comp.add_argument('JOB', type=str ,
                              help='folder of the job')
+    parser_comp.add_argument('-m','--inte-method', type=str, default = 'inte', 
+                             choices=['inte', 'mbar'], 
+                             help='the method of thermodynamic integration')
     parser_comp.add_argument('-e', '--Eo', type=float, default = 0,
                              help='free energy of starting point')
 
@@ -588,7 +591,12 @@ def _main ():
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
         e0 = float(args.Eo)
-        post_tasks(job, jdata, e0)
+        if args.inte_method == 'inte' :
+            post_tasks(job, jdata, e0)
+        elif args.inte_method == 'mbar' :
+            post_tasks_mbar(job, jdata, e0)
+        else :
+            raise RuntimeError('unknow integration method')
     elif args.command == 'refine' :
         refine_task(args.input, args.output, args.error)
 
