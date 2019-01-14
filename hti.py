@@ -283,6 +283,11 @@ def post_tasks(iter_name, jdata, natoms = None) :
     all_tasks.sort()
     ntasks = len(all_tasks)
     equi_conf = jdata['equi_conf']
+    cwd = os.getcwd()
+    os.chdir(iter_name)
+    assert(os.path.isfile(equi_conf))
+    equi_conf = os.path.abspath(equi_conf)
+    os.chdir(cwd)
     if natoms == None :
         natoms = get_natoms(equi_conf)
         if 'copies' in jdata :
