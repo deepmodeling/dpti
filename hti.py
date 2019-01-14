@@ -444,6 +444,9 @@ def _main ():
     parser_comp.add_argument('-t','--type', type=str, default = 'helmholtz', 
                              choices=['helmholtz', 'gibbs'], 
                              help='the type of free energy')
+    parser_comp.add_argument('-m','--inte-method', type=str, default = 'inte', 
+                             choices=['inte', 'mbar'], 
+                             help='the method of thermodynamic integration')
     args = parser.parse_args()
 
     if args.command is None :
@@ -456,17 +459,27 @@ def _main ():
     elif args.command == 'compute' :
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
-        de, de_err, thermo_info = post_tasks(job, jdata)
-        print_thermo_info(thermo_info)
         if 'reference' not in jdata :
             jdata['reference'] = 'einstein'
         if jdata['reference'] == 'einstein' :
             e0 = einstein.free_energy(job)
-            print('# free ener of Einstein Mole: %20.8f' % e0)
         else :
             e0 = einstein.ideal_gas_fe(jdata)
-            print('# free ener of ideal gas: %20.8f' % e0)
+        if args.inte_method == 'inte' :
+            de, de_err, thermo_info = post_tasks(job, jdata)
+        elif args.inte_method == 'mbar':
+            de, de_err, thermo_info = post_tasks_mbar(job, jdata)
+        else :
+            raise RuntimeError('unknow method for integration')
+        # printing
         print_format = '%20.12f  %10.3e  %10.3e'
+        print_thermo_info(thermo_info)
+        if jdata['reference'] == 'einstein' :
+            print('# free ener of Einstein Mole: %20.8f' % e0)
+        else :
+            print('# free ener of ideal gas: %20.8f' % e0)            
+        print(('# fe contrib due to integration ' + print_format) \
+              % (de, de_err[0], de_err[1]))
         if args.type == 'helmholtz' :
             print('# Helmholtz free ener per atom (stat_err inte_err) [eV]:')
             print(print_format % (e0 + de, de_err[0], de_err[1]))

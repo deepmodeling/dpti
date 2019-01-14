@@ -25,6 +25,9 @@ def _main ():
     parser_comp.add_argument('-t','--type', type=str, default = 'helmholtz', 
                              choices=['helmholtz', 'gibbs'], 
                              help='the type of free energy')
+    parser_comp.add_argument('-m','--inte-method', type=str, default = 'inte', 
+                             choices=['inte', 'mbar'], 
+                             help='the method of thermodynamic integration')
     args = parser.parse_args()
 
     if args.command is None :
@@ -43,17 +46,25 @@ def _main ():
         if 'copies' in jdata :
             natoms *= np.prod(jdata['copies'])
         nmols = natoms // 3
-        de, de_err, thermo_info = hti.post_tasks_mbar(job, jdata, natoms = nmols)
-        hti.print_thermo_info(thermo_info)
         if 'reference' not in jdata :
             jdata['reference'] = 'einstein'
         if jdata['reference'] == 'einstein' :
             # e0 normalized by natoms, *3 to nmols
             e0 = einstein.free_energy(job) * 3
-            print('# free ener of Einstein Mole: %20.8f' % e0)
         else :
             raise RuntimeError("hti_ice should be used with reference einstein")
+        if args.inte_method == 'inte' :
+            de, de_err, thermo_info = hti.post_tasks(job, jdata, natoms = nmols)
+        elif args.inte_method == 'mbar':
+            de, de_err, thermo_info = hti.post_tasks_mbar(job, jdata, natoms = nmols)
+        else :
+            raise RuntimeError('unknow method for integration')        
+        # printing
         print_format = '%20.12f  %10.3e  %10.3e'
+        hti.print_thermo_info(thermo_info)
+        print('# free ener of Einstein Mole: %20.8f' % e0)
+        print(('# fe contrib due to integration ' + print_format) \
+              % (de, de_err[0], de_err[1]))        
         if args.type == 'helmholtz' :
             print('# Helmholtz free ener per mol (stat_err inte_err) [eV]:')
             print(print_format % (e0 + de, de_err[0], de_err[1]))

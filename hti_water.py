@@ -7,6 +7,7 @@ import scipy.constants as pc
 import einstein
 import lib.lmp as lmp
 import lib.water as water
+import pymbar
 from lib.utils import create_path
 from lib.utils import copy_file_list
 from lib.utils import block_avg
@@ -372,6 +373,72 @@ def _post_tasks(iter_name, step, natoms) :
 
     return diff_e, [err, sys_err], thermo_info
 
+
+def _post_tasks_mbar(iter_name, step, natoms) :
+    jdata = json.load(open(os.path.join(iter_name, 'in.json')))
+    stat_skip = jdata['stat_skip']
+    stat_bsize = jdata['stat_bsize']
+    temp = jdata['temp']
+    all_tasks = glob.glob(os.path.join(iter_name, 'task*'))
+    all_tasks.sort()
+    ntasks = len(all_tasks)
+
+    all_lambda = []
+    for ii in all_tasks :
+        lmda_name = os.path.join(ii, 'lambda.out')
+        ll = float(open(lmda_name).read())
+        all_lambda.append(ll)
+    all_lambda = np.array(all_lambda)
+    nlambda = all_lambda.size
+
+    ukn = np.array([])
+    nk = []
+    kt_in_ev = pc.Boltzmann * temp / pc.electron_volt
+    for idx,ii in enumerate(all_tasks) :
+        log_name = os.path.join(ii, 'log.lammps')
+        data = get_thermo(log_name)
+        np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
+        bd_e = data[stat_skip:, 8]/kt_in_ev
+        ag_e = data[stat_skip:, 9]/kt_in_ev
+        dp_e = data[stat_skip:,10]/kt_in_ev
+        if step == 'angle_on' :        
+            de = ag_e / all_lambda[idx]
+        elif step == 'deep_on' :
+            de = dp_e
+        elif step == 'bond_angle_off' :
+            de = -(bd_e + ag_e) / (1 - all_lambda[idx])
+        else :
+            raise RuntimeError("unknow step")
+        nk.append(de.size)
+        block_u = []
+        for ll in all_lambda :
+            if step == 'angle_on' or 'deep_on':
+                block_u.append(de * ll)
+            else :
+                block_u.append(-de * (1-ll))
+        block_u = np.reshape(block_u, [nlambda, -1])
+        if ukn.size == 0 :
+            ukn = block_u 
+        else :
+            ukn = np.concatenate((ukn, block_u), axis = 1)
+
+    nk = np.array(nk)
+    mbar = pymbar.MBAR(ukn, nk)
+    Deltaf_ij, dDeltaf_ij, Theta_ij = mbar.getFreeEnergyDifferences()
+    Deltaf_ij = Deltaf_ij / natoms
+    dDeltaf_ij = dDeltaf_ij / np.sqrt(natoms)
+
+    diff_e = Deltaf_ij[0,-1] * kt_in_ev
+    err = dDeltaf_ij[0,-1] * kt_in_ev
+    sys_err = 0
+
+    thermo_info = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), 
+                                  natoms,
+                                  stat_skip, stat_bsize)
+
+    return diff_e, [err, sys_err], thermo_info
+
+
 def _print_thermo_info(info) :
     ptr = '# thermodynamics (normalized by nmols)\n'
     ptr += '# E (err)  [eV]:  %20.8f %20.8f\n' % (info['e'], info['e_err'])
@@ -418,18 +485,31 @@ def compute_ideal_mol(iter_name) :
     fe *= pc.Boltzmann * temp / pc.electron_volt
     return fe / natoms_o
 
-def post_tasks(iter_name, natoms) :
+def post_tasks(iter_name, natoms, method = 'inte') :
     subtask_name = os.path.join(iter_name, '00.angle_on')
     fe = compute_ideal_mol(subtask_name)
-    e0, err0, tinfo0 = _post_tasks(subtask_name, 'angle_on', natoms)
+    print('# fe of ideal mol: %20.12f' % fe)
+    if method == 'inte' :
+        e0, err0, tinfo0 = _post_tasks(subtask_name, 'angle_on', natoms)
+    elif method == 'mbar' :
+        e0, err0, tinfo0 = _post_tasks_mbar(subtask_name, 'angle_on', natoms)
+    print('# fe of angle_on : %20.12f  %10.3e %10.3e' % (e0, err0[0], err0[1]))
     # _print_thermo_info(tinfo)
     # print(e, err)
     subtask_name = os.path.join(iter_name, '01.deep_on')
-    e1, err1, tinfo1 = _post_tasks(subtask_name, 'deep_on', natoms)
+    if method == 'inte' :
+        e1, err1, tinfo1 = _post_tasks(subtask_name, 'deep_on', natoms)
+    elif method == 'mbar' :
+        e1, err1, tinfo1 = _post_tasks_mbar(subtask_name, 'deep_on', natoms)
+    print('# fe of deep_on  : %20.12f  %10.3e %10.3e' % (e1, err1[0], err1[1]))
     # _print_thermo_info(tinfo)
     # print(e, err)
     subtask_name = os.path.join(iter_name, '02.bond_angle_off')
-    e2, err2, tinfo2 = _post_tasks(subtask_name, 'bond_angle_off', natoms)
+    if method == 'inte' :
+        e2, err2, tinfo2 = _post_tasks(subtask_name, 'bond_angle_off', natoms)
+    elif method == 'mbar' :
+        e2, err2, tinfo2 = _post_tasks_mbar(subtask_name, 'bond_angle_off', natoms)
+    print('# fe of bond_off : %20.12f  %10.3e %10.3e' % (e2, err2[0], err2[1]))
     # _print_thermo_info(tinfo)
     # print(e, err)
     fe = fe + e0 + e1 + e2
@@ -455,6 +535,9 @@ def _main ():
     parser_comp.add_argument('-t','--type', type=str, default = 'helmholtz', 
                              choices=['helmholtz', 'gibbs'], 
                              help='the type of free energy')
+    parser_comp.add_argument('-m','--inte-method', type=str, default = 'inte', 
+                             choices=['inte', 'mbar'], 
+                             help='the method of thermodynamic integration')
     args = parser.parse_args()
 
     if args.command is None :
@@ -472,7 +555,7 @@ def _main ():
         if 'copies' in jdata :
             natoms *= np.prod(jdata['copies'])
         nmols = natoms // 3
-        fe, fe_err, thermo_info = post_tasks(args.JOB, nmols)
+        fe, fe_err, thermo_info = post_tasks(args.JOB, nmols, method = args.inte_method)
         _print_thermo_info(thermo_info)
         print ('# numb atoms: %d' % natoms)
         print ('# numb  mols: %d' % nmols)        
