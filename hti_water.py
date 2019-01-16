@@ -449,6 +449,11 @@ def _print_thermo_info(info) :
     ptr += '# PV(err)  [eV]:  %20.8f %20.8f' % (info['pv'], info['pv_err'])
     print(ptr)
 
+def spring_inte(temp, kk, r0) :
+    kto2k = pc.Boltzmann * temp / (2. * kk * pc.electron_volt / (pc.angstrom * pc.angstrom))
+    # print(r0, (r0 * pc.angstrom), np.sqrt(kto2k), np.sqrt(2 * np.pi * kto2k))
+    return 4 * np.pi * np.sqrt(2 * np.pi * kto2k) * ((r0 * pc.angstrom) ** 2 + kto2k)
+
 def compute_ideal_mol(iter_name) :
     jdata = json.load(open(os.path.join(iter_name, 'in.json')))
     mass_map = jdata['model_mass_map']
@@ -457,6 +462,7 @@ def compute_ideal_mol(iter_name) :
     vol = np.linalg.det(data_sys['cell'])
     temp = jdata['temp']    
     kk = jdata['bond_param']['bond_k']
+    ll = jdata['bond_param']['bond_l']
     if 'copies' in jdata :
         ncopies = np.prod(jdata['copies'])
     else :
@@ -476,8 +482,11 @@ def compute_ideal_mol(iter_name) :
     assert(natoms == sum(natom_vec))
     # spring contribution
     lambda_s = einstein.compute_spring(temp, kk * 2.0)
+    lambda_s1 = spring_inte(temp, kk, ll)
     fe -= natoms_o * np.log((vol * (pc.angstrom**3)))
-    fe += 3 * natoms_h * np.log(lambda_s)
+    # print((1/lambda_s))
+    # fe += 3 * natoms_h * np.log(lambda_s)
+    fe += natoms_h * np.log(lambda_s1)
     # N!
     fe += natoms_o * np.log(natoms_o) - natoms_o + 0.5 * np.log(2. * np.pi * natoms_o) 
     fe += natoms_h * np.log(np.sqrt(2))
@@ -489,6 +498,7 @@ def post_tasks(iter_name, natoms, method = 'inte') :
     subtask_name = os.path.join(iter_name, '00.angle_on')
     fe = compute_ideal_mol(subtask_name)
     print('# fe of ideal mol: %20.12f' % fe)
+    print('# fe of ideal gas: %20.12f' % (einstein.ideal_gas_fe(subtask_name) * 3))
     if method == 'inte' :
         e0, err0, tinfo0 = _post_tasks(subtask_name, 'angle_on', natoms)
     elif method == 'mbar' :
