@@ -13,8 +13,14 @@ def compute_spring(temp, spring_k) :
     ret = (0.5 * spring_k * pc.electron_volt / (pc.angstrom * pc.angstrom)) / (pc.Boltzmann * temp * np.pi) 
     return np.sqrt(ret)
 
-def ideal_gas_fe(jdata) :
+def ideal_gas_fe(job) :
+    jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))    
     equi_conf = jdata['equi_conf']
+    cwd = os.getcwd()
+    os.chdir(job)
+    assert(os.path.isfile(equi_conf))
+    equi_conf = os.path.abspath(equi_conf)
+    os.chdir(cwd)
     temp = jdata['temp']
     mass_map = jdata['model_mass_map']
     if 'copies' in jdata :

@@ -304,8 +304,7 @@ def _post_tasks(iter_name, step, natoms) :
 
 
 def post_tasks(iter_name, natoms) :
-    jdata = json.load(open(os.path.join(iter_name, 'in.json'), 'r'))
-    fe = einstein.ideal_gas_fe(jdata)
+    fe = einstein.ideal_gas_fe(iter_name)
     subtask_name = os.path.join(iter_name, '00.soft_on')
     e0, err0, tinfo0 = _post_tasks(subtask_name, 'soft_on', natoms)
     subtask_name = os.path.join(iter_name, '01.deep_on')
