@@ -344,14 +344,17 @@ def _post_tasks(iter_name, step, natoms) :
     all_dp_a = np.array(all_dp_a)
     all_dp_e = np.array(all_dp_e)
     if step == 'angle_on' :        
-        de = all_ag_a / all_lambda
-        all_err = np.sqrt(np.square(all_ag_e / all_lambda))
+        de = all_ag_a / all_lambda + all_dp_a
+        all_err = np.sqrt(np.square(all_ag_e / all_lambda) +
+                          np.square(all_dp_e))
     elif step == 'deep_on' :
         de = all_dp_a
         all_err = all_dp_e
     elif step == 'bond_angle_off' :
-        de = - (all_bd_a + all_ag_a) / (1 - all_lambda)
-        all_err = np.sqrt(np.square(all_bd_e / (1 - all_lambda)) + np.square(all_ag_e / (1 - all_lambda)))
+        de = - (all_bd_a + all_ag_a) / (1 - all_lambda) + all_dp_a
+        all_err = np.sqrt(np.square(all_bd_e / (1 - all_lambda)) + 
+                          np.square(all_ag_e / (1 - all_lambda)) + 
+                          np.square(all_dp_e))
 
     all_print = []
     # all_print.append(np.arange(len(all_lambda)))
@@ -498,7 +501,7 @@ def post_tasks(iter_name, natoms, method = 'inte') :
     subtask_name = os.path.join(iter_name, '00.angle_on')
     fe = compute_ideal_mol(subtask_name)
     print('# fe of ideal mol: %20.12f' % fe)
-    print('# fe of ideal gas: %20.12f' % (einstein.ideal_gas_fe(subtask_name) * 3))
+#    print('# fe of ideal gas: %20.12f' % (einstein.ideal_gas_fe(subtask_name) * 3))
     if method == 'inte' :
         e0, err0, tinfo0 = _post_tasks(subtask_name, 'angle_on', natoms)
     elif method == 'mbar' :
