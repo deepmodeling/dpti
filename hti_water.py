@@ -405,11 +405,11 @@ def _post_tasks_mbar(iter_name, step, natoms) :
         ag_e = data[stat_skip:, 9]/kt_in_ev
         dp_e = data[stat_skip:,10]/kt_in_ev
         if step == 'angle_on' :        
-            de = ag_e / all_lambda[idx]
+            de = ag_e / all_lambda[idx] + dp_e
         elif step == 'deep_on' :
             de = dp_e
         elif step == 'bond_angle_off' :
-            de = -(bd_e + ag_e) / (1 - all_lambda[idx])
+            de = -(bd_e + ag_e) / (1 - all_lambda[idx]) + dp_e
         else :
             raise RuntimeError("unknow step")
         nk.append(de.size)
