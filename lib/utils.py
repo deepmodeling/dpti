@@ -7,6 +7,7 @@ import subprocess as sp
 iter_format = "%06d"
 task_format = "%02d"
 log_iter_head = "iter " + iter_format + " task " + task_format + ": "
+float_protect = 1e-14
 
 def make_iter_name (iter_index) :
     return "iter." + (iter_format % iter_index)
@@ -77,8 +78,9 @@ def _parse_one_str(in_s) :
         return np.array([float(fmt_s[0])])
     else :
         assert(len(fmt_s)) == 3 
+        print(float(fmt_s[0]), float(fmt_s[1]), float(fmt_s[2]))
         return np.arange(float(fmt_s[0]),
-                         float(fmt_s[1]), 
+                         float(fmt_s[1]) - float_protect, 
                          float(fmt_s[2]))
 
 def parse_seq(in_s) :
