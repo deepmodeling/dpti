@@ -57,10 +57,10 @@ def _main ():
             raise RuntimeError("hti_ice should be used with reference einstein")
         if args.disorder_corr :
             temp = jdata['temp']
-            paulin_corr = -pc.Boltzmann * temp / pc.electron_volt * np.log(1.5)            
-            e0 += paulin_corr
+            pauling_corr = -pc.Boltzmann * temp / pc.electron_volt * np.log(1.5)            
+            e0 += pauling_corr
         else :
-            paulin_corr = 0
+            pauling_corr = 0
         if args.inte_method == 'inte' :
             de, de_err, thermo_info = hti.post_tasks(job, jdata, natoms = nmols)
         elif args.inte_method == 'mbar':
@@ -71,7 +71,7 @@ def _main ():
         print_format = '%20.12f  %10.3e  %10.3e'
         hti.print_thermo_info(thermo_info)
         print('# free ener of Einstein Mole: %20.8f' % (e0))
-        print('# Paulin corr:                %20.8f' % (paulin_corr))
+        print('# Pauling corr:               %20.8f' % (pauling_corr))
         print(('# fe integration              ' + print_format) \
               % (de, de_err[0], de_err[1]))        
         if args.type == 'helmholtz' :
