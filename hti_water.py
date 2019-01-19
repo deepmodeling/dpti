@@ -454,7 +454,7 @@ def _print_thermo_info(info) :
 
 def spring_inte(temp, kk, r0) :
     kto2k = pc.Boltzmann * temp / (2. * kk * pc.electron_volt / (pc.angstrom * pc.angstrom))
-    # print(r0, (r0 * pc.angstrom), np.sqrt(kto2k), np.sqrt(2 * np.pi * kto2k))
+    # print((r0 * pc.angstrom), np.sqrt(kto2k))
     return 4 * np.pi * np.sqrt(2 * np.pi * kto2k) * ((r0 * pc.angstrom) ** 2 + kto2k)
 
 def compute_ideal_mol(iter_name) :
@@ -489,7 +489,7 @@ def compute_ideal_mol(iter_name) :
     fe -= natoms_o * np.log((vol * (pc.angstrom**3)))
     # print((1/lambda_s))
     # fe += 3 * natoms_h * np.log(lambda_s)
-    fe += natoms_h * np.log(lambda_s1)
+    fe -= natoms_h * np.log(lambda_s1)
     # N!
     fe += natoms_o * np.log(natoms_o) - natoms_o + 0.5 * np.log(2. * np.pi * natoms_o) 
     fe += natoms_h * np.log(np.sqrt(2))
