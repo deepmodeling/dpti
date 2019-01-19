@@ -28,6 +28,8 @@ def _main ():
     parser_comp.add_argument('-m','--inte-method', type=str, default = 'inte', 
                              choices=['inte', 'mbar'], 
                              help='the method of thermodynamic integration')
+    parser_comp.add_argument('-d','--disorder-corr', action = 'store_true',
+                             help='apply disorder correction for ice')
     args = parser.parse_args()
 
     if args.command is None :
@@ -53,6 +55,12 @@ def _main ():
             e0 = einstein.free_energy(job) * 3
         else :
             raise RuntimeError("hti_ice should be used with reference einstein")
+        if args.disorder_corr :
+            temp = jdata['temp']
+            paulin_corr = -pc.Boltzmann * temp / pc.electron_volt * np.log(1.5)            
+            e0 += paulin_corr
+        else :
+            paulin_corr = 0
         if args.inte_method == 'inte' :
             de, de_err, thermo_info = hti.post_tasks(job, jdata, natoms = nmols)
         elif args.inte_method == 'mbar':
@@ -62,8 +70,9 @@ def _main ():
         # printing
         print_format = '%20.12f  %10.3e  %10.3e'
         hti.print_thermo_info(thermo_info)
-        print('# free ener of Einstein Mole: %20.8f' % e0)
-        print(('# fe contrib due to integration ' + print_format) \
+        print('# free ener of Einstein Mole: %20.8f' % (e0))
+        print('# Paulin corr:                %20.8f' % (paulin_corr))
+        print(('# fe integration              ' + print_format) \
               % (de, de_err[0], de_err[1]))        
         if args.type == 'helmholtz' :
             print('# Helmholtz free ener per mol (stat_err inte_err) [eV]:')
