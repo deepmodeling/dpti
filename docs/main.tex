@@ -162,17 +162,36 @@ Consider the partition function
     \frac{1}{h^{3N}}\frac{1}{N_O! N_H!}
     \frac{N_H!}{2^{N_O}}
     \int e^{-\beta\sum_i\frac{p_i^2}{2m_i}} dp
-    \int e^{-\beta \sum_i [k(r^O_i-r^{H_1}_i)^2 + k(r^O_i-r^{H_1}_i)^2]} dr^{H_1}dr^{H_2} dr^O\\
+    \int e^{-\beta \sum_i [\,k(\vert r^O_i-r^{H_1}_i\vert - r_0)^2 + k(\vert r^O_i-r^{H_1}_i\vert - r_0)^2]} dr^{H_1}dr^{H_2} dr^O\\
   &=
     \frac{1}{h^{3N}}\frac{1}{N_O! 2^{N_O}}
     (2\pi m k_BT)^{\frac{3N}{2}}
     V^{N_O}
-    \Big(\frac{\pi k_BT}{k}\Big)^{\frac{3N_H}2} \\
+    % \Big(\frac{\pi k_BT}{k}\Big)^{\frac{3N_H}2} 
+    \Big(\int e^{-\beta k(r - r_0)^2 } d\bm r\Big)^{N_H} \\
   &=
     \frac{1}{N_O! 2^{N_O}}
     \Lambda_p^{-3N}
     V^{N_O}
-    \Lambda_k^{3N_H}
+    % \Lambda_k^{3N_H}
+    (V_H)^{N_H}
+\end{align*}
+To compute
+\begin{align*}
+  V_H = \int e^{-\beta k(r - r_0)^2 } d\bm r
+  &= 
+    \int_0^\pi\int_0^{2\pi}\int_0^\infty e^{-\beta k(r - r_0)^2 } r^2\sin\phi dr d\theta d\phi\\
+  &=
+    4\pi\int e^{-\beta k(r - r_0)^2 } r^2 dr\\
+  & =
+    4\pi\int r^2 e^{-\frac{(r - r_0)^2}{2 (\sqrt{k_BT/2k})^2}}dr\\
+  & =
+    4\pi \Big(\frac{\pi k_B T}{k}\Big)^\frac12
+    \int r^2
+    \Big(\frac{k}{\pi k_B T}\Big)^\frac12
+    e^{-\frac{(r - r_0)^2}{2 (\sqrt{k_BT/2k})^2}}dr\\
+  &=
+    4\pi \Big(\frac{\pi k_B T}{k}\Big)^\frac12 (r_0^2 + \frac{k_BT}{2k})
 \end{align*}
 Then
 \begin{align*}
@@ -182,13 +201,13 @@ Then
   &=
     Nk_BT\ln \Lambda_p^3
     -N_Ok_BT\ln V
-    -N_Hk_BT\ln\Lambda_k^3 
+    -N_Hk_BT\ln V_H
     + k_BT(N_O\ln N_O - N_O + \frac12\ln 2\pi N_O)
     + N_H k_BT\ln \sqrt2 \\
   &=
     Nk_BT\ln \Lambda_p^3
     + N_Ok_BT\ln\rho_O
-    + N_Hk_BT\ln(\sqrt2/\Lambda_k^3)
+    + N_Hk_BT\ln(\sqrt2/V_H)
     + k_BT( - N_O + \frac12\ln 2\pi N_O)
 \end{align*}
 
