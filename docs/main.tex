@@ -211,6 +211,45 @@ Then
     + k_BT( - N_O + \frac12\ln 2\pi N_O)
 \end{align*}
 
+The pressure of the system is computed by (Tuckerman 4.6.55 and 4.6.63)
+\begin{align*}
+  P
+  = \frac{Nk_BT}{V} +
+  \frac{1}{3V}
+  \Big\langle
+  \sum_i \bm r_i\cdot\bm F_i  
+  \Big\rangle
+  = \frac{Nk_BT}{V} +
+  \frac{1}{6V}
+  \Big\langle
+  \sum_{i\neq j} \bm r_{ij}\cdot\bm F_{ij}
+  \Big\rangle
+\end{align*}
+The spring force is given by
+\begin{align*}
+  \bm F_{ij}
+  &=
+    -\nabla_{\bm r_{ij}} [k (r_{ij} - r_0)^2] \\
+  &=
+    -2k(r_{ij} - r_0) \frac{\bm r_{ij}}{r_{ij}}
+\end{align*}
+thus
+\begin{align*}
+  \langle \bm r_{ij}\cdot\bm F_{ij} \rangle
+  =
+  \langle -2k(r_{ij} - r_0)r_{ij} \rangle
+  =
+  -2k(\sigma^2 + r_0^2 - r_0^2)
+  =
+  -2k\sigma^2
+  =
+  -2k \times \frac{k_BT}{2k}
+  = -k_BT
+\end{align*}
+so
+\begin{align*}
+  P = \frac{N_O k_BT}{V} + \frac{5N_H k_BT}{6V}
+\end{align*}
 
 \bibliography{ref}{}
 \bibliographystyle{unsrt}
