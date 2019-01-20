@@ -459,6 +459,7 @@ def spring_inte(temp, kk, r0) :
 
 def compute_ideal_mol(iter_name) :
     jdata = json.load(open(os.path.join(iter_name, 'in.json')))
+    ens = jdata['ens']
     mass_map = jdata['model_mass_map']
     conf_lines = open(os.path.join(iter_name, 'orig.lmp')).read().split('\n')
     data_sys = lmp.system_data(conf_lines)
@@ -493,6 +494,9 @@ def compute_ideal_mol(iter_name) :
     # N!
     fe += natoms_o * np.log(natoms_o) - natoms_o + 0.5 * np.log(2. * np.pi * natoms_o) 
     fe += natoms_h * np.log(np.sqrt(2))
+    # plus PV
+    if 'npt' in ens :
+        fe += natoms_o + 5./6. * natoms_h
     # to kbT log Z
     fe *= pc.Boltzmann * temp / pc.electron_volt
     return fe / natoms_o
