@@ -80,6 +80,7 @@ def _gen_lammps_input (conf_file,
     ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(0, 2**16))
     ret += '# --------------------- RUN ------------------------------\n'    
     ret += 'run             ${NSTEPS}\n'
+    ret += 'write_data      out.lmp\n'
     
     return ret
 
