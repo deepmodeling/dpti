@@ -161,7 +161,7 @@ def _gen_lammps_input (step,
     ret += 'thermo_modify   format 9 %.16e\n'
     ret += 'thermo_modify   format 10 %.16e\n'
     ret += 'thermo_modify   format 11 %.16e\n'
-    # ret += 'dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
+    ret += '# dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z\n'
     if ens == 'nvt' :
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
     elif ens == 'npt-iso' or ens == 'npt':
@@ -170,10 +170,14 @@ def _gen_lammps_input (step,
         ret += 'fix             1 all nve\n'
     else :
         raise RuntimeError('unknow ensemble %s\n' % ens)        
+    ret += 'fix             mzero all momentum 10 linear 1 1 1\n'
     ret += '# --------------------- INITIALIZE -----------------------\n'    
     ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(0, 2**16))
+    ret += 'velocity        all zero linear\n'
     ret += '# --------------------- RUN ------------------------------\n'    
     ret += 'run             ${NSTEPS}\n'    
+    ret += 'write_data      out.lmp\n'
+
     return ret
 
 

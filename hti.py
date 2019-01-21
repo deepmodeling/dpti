@@ -108,6 +108,7 @@ def _gen_lammps_input (conf_file,
         raise RuntimeError('unknow norm_style ' + norm_style)
     ret += '# --------------------- RUN ------------------------------\n'    
     ret += 'run             ${NSTEPS}\n'
+    ret += 'write_data      out.lmp\n'
     
     return ret
 
@@ -169,10 +170,13 @@ def _gen_lammps_input_ideal (conf_file,
         ret += 'fix             1 all nve\n'
     else :
         raise RuntimeError('unknow ensemble %s\n' % ens)        
+    ret += 'fix             mzero all momentum 10 linear 1 1 1\n'
     ret += '# --------------------- INITIALIZE -----------------------\n'    
     ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(0, 2**16))
+    ret += 'velocity        all zero linear\n'
     ret += '# --------------------- RUN ------------------------------\n'    
     ret += 'run             ${NSTEPS}\n'
+    ret += 'write_data      out.lmp\n'
     
     return ret
 
