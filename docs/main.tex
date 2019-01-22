@@ -118,6 +118,40 @@ Then we have
 \begin{align}
   \frac{Q}{Q_\com} = \frac{P}{P_\com}\Big( \frac{2\pi k_BT}k  \Big)^{\frac32} N^{-\frac32}
 \end{align}
+so
+\begin{align}
+  A - A_\com = -k_BT \ln(P/P_\com) - k_BT \ln \Lambda_k^3 + k_BT \ln N^{3/2}
+\end{align}
+
+\section{Translational invariant system with CM constrained}
+The partition function for translational invariant system
+\begin{align*}
+  Q = P \int e^{-\beta U(\bm r)}d \bm r
+\end{align*}
+where $U(\bm r) = U(\bm r - \bm r_0)$ for any $\bm r_0$.
+\begin{align*}
+  Q
+  &=
+    P \int e^{-\beta U(\bm r)} \delta(\sum_i c_i (\bm r_i - \bm r_0)) d\bm r d\bm r_0 \\
+  &=
+    P\int d\bm r_0 \int e^{-\beta U(\bm r)} \delta(\sum_i c_i \bm r_i) d\bm r\\
+  &=
+    P\frac{V}{N} \int e^{-\beta U(\bm r)} \delta(\sum_i c_i \bm r_i) d\bm r
+\end{align*}
+The last equation holds because the volume ``accessible to the CM'' is $V/N$, see [Vega, et.al.~JPCM].
+\begin{align*}
+  Q_\com
+  &=
+    P_\com\int e^{-\beta U(\bm r)} \delta(\sum_i c_i \bm r_i) d\bm r
+\end{align*}
+Therefore
+\begin{align*}
+  \frac{Q}{Q_\com} = \frac{P}{P_\com}\frac{V}{N}
+\end{align*}
+and
+\begin{align}
+  A - A_\com = -k_BT\ln(P / P_\com) + k_BT\ln \rho
+\end{align}
 
 \section{Ideal Einstein molecules}
 Consider the lattice that is defined by the first atom in the system, saying the oxygen of the first water molecule.
@@ -236,19 +270,29 @@ The spring force is given by
 thus
 \begin{align*}
   \langle \bm r_{ij}\cdot\bm F_{ij} \rangle
-  =
-  \langle -2k(r_{ij} - r_0)r_{ij} \rangle
-  =
-  -2k(\sigma^2 + r_0^2 - r_0^2)
-  =
-  -2k\sigma^2
-  =
-  -2k \times \frac{k_BT}{2k}
-  = -k_BT
+  &=
+    \langle -2k(r_{ij} - r_0)r_{ij} \rangle \\
+  &=
+    -2k \int r(r - r_0) \frac{1}{V_H} e^{-\beta k(r - r_0)^2} d\bm r \\
+  &=
+    -2k \frac{4\pi}{V_H} \sqrt{2\pi\sigma^2} \int r^3(r - r_0)\frac{1}{\sqrt{2\pi\sigma^2}} e^{-\beta k(r - r_0)^2} dr\\
+  &=
+    -2k \frac{4\pi}{V_H} \sqrt{2\pi\sigma^2} (r_0^4 + 6 r_0^2\sigma^2 + 3 \sigma^4 - r_0^4 - 3r_0^2\sigma^2 )\\
+  &=
+    -2k \frac{12\pi}{V_H} \sqrt{2\pi\sigma^2} \, ( r_0^2 + \sigma^2)\sigma^2
+  % -2k\sigma^2
+  % =
+  % -2k \times \frac{k_BT}{2k}
+  % = -k_BT
+\end{align*}
+Notice that $V_H = 4\pi\sqrt{2\pi\sigma^2} (r_0^2 + \sigma^2)$
+\begin{align*}
+  \langle \bm r_{ij}\cdot\bm F_{ij} \rangle
+  &= -6k \sigma^2 = -3 k_BT
 \end{align*}
 so
 \begin{align*}
-  P = \frac{N_O k_BT}{V} + \frac{5N_H k_BT}{6V}
+  P = \frac{N_O k_BT}{V} + \frac{N_H k_BT}{2V}
 \end{align*}
 
 \bibliography{ref}{}
