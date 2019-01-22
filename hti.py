@@ -46,6 +46,7 @@ def _gen_lammps_input (conf_file,
     ret += 'variable        TAU_T           equal %f\n' % tau_t
     ret += 'variable        TAU_P           equal %f\n' % tau_p
     ret += 'variable        LAMBDA          equal %.10e\n' % lamb
+    ret += 'variable        INV_LAMBDA      equal %.10e\n' % (1-lamb)
     ret += '# ---------------------- INITIALIZAITION ------------------\n'
     ret += 'units           metal\n'
     ret += 'boundary        p p p\n'
@@ -62,8 +63,9 @@ def _gen_lammps_input (conf_file,
     ret += 'pair_style      deepmd %s\n' % model
     ret += 'pair_coeff\n'
     if switch_style == 'both' :
-        ret += 'fix             l_spring all spring/self %.10e\n' % (spring_k * (1 - lamb))
-        ret += 'fix_modify      l_spring energy yes\n'
+        if 1 - lamb != 0 :
+            ret += 'fix             l_spring all spring/self %.10e\n' % (spring_k * (1 - lamb))
+            ret += 'fix_modify      l_spring energy yes\n'
         ret += 'fix             l_deep all adapt 1 pair deepmd scale * * v_LAMBDA\n'
         ret += 'compute         e_deep all pe pair\n'
     elif switch_style == 'deep_on' :
@@ -81,7 +83,10 @@ def _gen_lammps_input (conf_file,
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % dt
     ret += 'thermo          ${THERMO_FREQ}\n'
-    ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring c_e_deep\n'
+    if 1 - lamb != 0 :
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring c_e_deep\n'
+    else :
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_deep c_e_deep\n'
     ret += 'thermo_modify   format 9 %.16e\n'
     ret += 'thermo_modify   format 10 %.16e\n'
     ret += '# dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
@@ -217,8 +222,15 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
     with open('in.json', 'w') as fp:
         json.dump(jdata, fp, indent=4)
     os.chdir(cwd)
+    # append 1
+    all_lambda = np.append(all_lambda, 1)
+    print(all_lambda)
     for idx,ii in enumerate(all_lambda) :
-        work_path = os.path.join(iter_name, 'task.%06d' % idx)
+        if ii != 1:
+            work_path = os.path.join(iter_name, 'task.%06d' % idx)
+        else :
+            assert(idx == len(all_lambda)-1)
+            work_path = os.path.join(iter_name, 'task.endpnt')
         create_path(work_path)
         os.chdir(work_path)
         os.symlink(os.path.relpath(copied_conf), 'conf.lmp')
@@ -257,6 +269,7 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
             fp.write(str(ii))
         os.chdir(cwd)
 
+
 def _compute_thermo(fname, natoms, stat_skip, stat_bsize) :
     data = get_thermo(fname)
     ea, ee = block_avg(data[:, 3], skip = stat_skip, block_size = stat_bsize)
@@ -283,7 +296,7 @@ def _compute_thermo(fname, natoms, stat_skip, stat_bsize) :
 def post_tasks(iter_name, jdata, natoms = None) :
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
-    all_tasks = glob.glob(os.path.join(iter_name, 'task*'))
+    all_tasks = glob.glob(os.path.join(iter_name, 'task.[0-9]*'))
     all_tasks.sort()
     ntasks = len(all_tasks)
     equi_conf = jdata['equi_conf']
@@ -357,7 +370,7 @@ def post_tasks(iter_name, jdata, natoms = None) :
 def post_tasks_mbar(iter_name, jdata, natoms = None) :
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
-    all_tasks = glob.glob(os.path.join(iter_name, 'task*'))
+    all_tasks = glob.glob(os.path.join(iter_name, 'task.[0-9]*'))
     all_tasks.sort()
     ntasks = len(all_tasks)
     equi_conf = jdata['equi_conf']

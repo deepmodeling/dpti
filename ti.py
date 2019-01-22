@@ -257,7 +257,7 @@ def post_tasks(iter_name, jdata, Eo, natoms = None) :
     ens = jdata['ens']
     path = jdata['path']
 
-    all_tasks = glob.glob(os.path.join(iter_name, 'task*'))
+    all_tasks = glob.glob(os.path.join(iter_name, 'task.[0-9]*'))
     all_tasks.sort()
     ntasks = len(all_tasks)
     
@@ -369,7 +369,7 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms = None) :
     ens = jdata['ens']
     path = jdata['path']
 
-    all_tasks = glob.glob(os.path.join(iter_name, 'task*'))
+    all_tasks = glob.glob(os.path.join(iter_name, 'task.[0-9]*'))
     all_tasks.sort()
     ntasks = len(all_tasks)
 
@@ -535,9 +535,9 @@ def refine_task (from_task, to_task, err) :
 
     make_tasks(to_task, to_jdata)
     
-    from_task_list = glob.glob(os.path.join(from_task, 'task.*'))
+    from_task_list = glob.glob(os.path.join(from_task, 'task.[0-9]*'))
     from_task_list.sort()
-    to_task_list = glob.glob(os.path.join(to_task, 'task.*'))
+    to_task_list = glob.glob(os.path.join(to_task, 'task.[0-9]*'))
     to_task_list.sort()
     assert(len(from_task_list) == ntask)
     assert(len(to_task_list) == len(refined_t))

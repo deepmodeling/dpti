@@ -258,7 +258,7 @@ def _post_tasks(iter_name, step, natoms) :
     jdata = json.load(open(os.path.join(iter_name, 'in.json')))
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
-    all_tasks = glob.glob(os.path.join(iter_name, 'task*'))
+    all_tasks = glob.glob(os.path.join(iter_name, 'task.[0-9]*'))
     all_tasks.sort()
     ntasks = len(all_tasks)
     
