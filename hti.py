@@ -224,7 +224,6 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
     os.chdir(cwd)
     # append 1
     all_lambda = np.append(all_lambda, 1)
-    print(all_lambda)
     for idx,ii in enumerate(all_lambda) :
         if ii != 1:
             work_path = os.path.join(iter_name, 'task.%06d' % idx)
@@ -361,9 +360,17 @@ def post_tasks(iter_name, jdata, natoms = None) :
     diff_e, err = integrate(all_lambda, de, all_err)
     sys_err = integrate_sys_err(all_lambda, de)
 
-    thermo_info = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), 
-                                  natoms,
-                                  stat_skip, stat_bsize)
+    path_endpnt = os.path.join(iter_name, 'task.endpnt')
+    if os.path.isdir(path_endpnt) :
+        print('# Found end point, compute thermo info from it')
+        thermo_info = _compute_thermo(os.path.join(path_endpnt, 'log.lammps'),
+                                      natoms,
+                                      stat_skip, stat_bsize)
+    else :
+        print('# Not found end point, compute thermo info from the last lambda')
+        thermo_info = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'),
+                                      natoms,
+                                      stat_skip, stat_bsize)
 
     return diff_e, [err,sys_err], thermo_info
 
