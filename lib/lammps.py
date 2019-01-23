@@ -11,7 +11,36 @@ def get_natoms(filename) :
             return natoms
     raise RuntimeError("cannot find key word \'atoms\' in "+conf)
 
+def _is_n_number(inputs, nn) :
+    words = inputs.split()
+    if len(words) != nn :
+        return False, None
+    res = []
+    for ii in words :
+        try :
+            res.append(float(ii))
+        except ValueError:
+            return False, None
+    return True, res
+
 def get_thermo(filename) :
+    with open(filename, 'r') as fp :
+        fc = fp.read().split('\n')
+    for sl in range(len(fc)) :
+        if 'Step KinEng PotEng TotEng' in fc[sl] :
+            break
+    nwords = len(fc[sl+1].split())
+    data = []
+    for el in range(sl+1,len(fc)) :
+        flag, res = _is_n_number(fc[el], nwords) 
+        if not flag:
+            break
+        else :
+            data.append(res)
+    data = np.array(data)
+    return data
+
+def get_thermo_old(filename) :
     with open(filename, 'r') as fp :
         fc = fp.read().split('\n')
     for sl in range(len(fc)) :
