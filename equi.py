@@ -61,7 +61,8 @@ def _gen_lammps_input (conf_file,
     else :
         raise RuntimeError('unknow ensemble %s\n' % ens)                
     if dump_ave_posi: 
-        ret += 'fix             ap all ave/atom ${DUMP_FREQ} ${NREPEAT} ${NSTEPS} x y z\n'
+        ret += 'compute         ru all property/atom xu yu zu\n'
+        ret += 'fix             ap all ave/atom ${DUMP_FREQ} ${NREPEAT} ${NSTEPS} c_ru[1] c_ru[2] c_ru[3]\n'
         ret += 'dump            fp all custom ${NSTEPS} dump.avgposi id type f_ap[1] f_ap[2] f_ap[3]\n'
     ret += 'dump            1 all custom ${DUMP_FREQ} dump.equi id type x y z vx vy vz\n'
     if ens == 'nvt' :
@@ -115,8 +116,23 @@ def npt_equi_conf(npt_name) :
     return conf_lmp
 
 def extract(job_dir, output) :
-    dump_file = os.path.join(job_dir, 'dump.equi')
+    dump_file = os.path.join(job_dir, 'dump.avgposi')
+    if os.path.isfile(dump_file) :
+        print('# found dump.avgposi, use it')
+    else :
+        dump_file = os.path.join(job_dir, 'dump.equi')
+        assert(os.path.isfile(dump_file))
+        print('# found dump.equi, use it')        
     last_dump = lib.lammps.get_last_dump(dump_file).split('\n')
+    for idx in range(len(last_dump)) :
+        ii = last_dump[idx]
+        if 'ITEM: ATOMS' in ii :
+            ii = ii.replace('f_ap[1]', 'x')
+            ii = ii.replace('f_ap[2]', 'y')
+            ii = ii.replace('f_ap[3]', 'z')
+        last_dump[idx] = ii
+    for ii in last_dump :
+        print(ii)
     sys_data = lib.dump.system_data(last_dump)
     conf_lmp = lib.lmp.from_system_data(sys_data)
     open(output, 'w').write(conf_lmp)
