@@ -11,6 +11,7 @@ from lib.utils import block_avg
 from lib.utils import integrate
 from lib.utils import integrate_sys_err
 from lib.utils import interval_sys_err
+from lib.utils import compute_nrefine
 from lib.utils import parse_seq
 from lib.lammps import get_thermo
 from lib.lammps import get_natoms
@@ -490,23 +491,7 @@ def refine_task (from_task, to_task, err) :
     integrand = tmp_array[:,1]
     ntask = all_t.size
 
-    interval_err = []
-    interval_err.append(interval_sys_err(all_t[0:3], integrand[0:3], 'left'))
-    for ii in range(1, ntask-2) :
-        interval_err.append(
-            interval_sys_err(all_t[ii-1:ii+3], integrand[ii-1:ii+3], 'middle'))
-    interval_err.append(interval_sys_err(all_t[-3:], integrand[-3:], 'right'))
-    for ii in range(0, ntask-1) :
-        interval_err[ii] *= all_t[ii+1]
-    
-    interval_nrefine = []
-    # for ii in interval_err :
-    #     interval_nrefine.append(max(1, int(np.ceil(np.sqrt(ii / err)))))
-    for ii in range(ntask-1) :
-        err_dist = err * (all_t[ii+1] - all_t[ii]) / (all_t[-1] - all_t[0])
-        interval_nrefine.append(max(1, int(np.ceil(np.sqrt(interval_err[ii] / err_dist)))))
-    print(interval_nrefine)
-    assert(len(interval_nrefine) == len(interval_err))
+    interval_nrefine = compute_nrefine(all_t, integrand, err, all_t)
 
     refined_t = []
     back_map = []

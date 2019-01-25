@@ -131,8 +131,6 @@ def extract(job_dir, output) :
             ii = ii.replace('f_ap[2]', 'y')
             ii = ii.replace('f_ap[3]', 'z')
         last_dump[idx] = ii
-    for ii in last_dump :
-        print(ii)
     sys_data = lib.dump.system_data(last_dump)
     conf_lmp = lib.lmp.from_system_data(sys_data)
     open(output, 'w').write(conf_lmp)

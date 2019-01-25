@@ -13,6 +13,7 @@ from lib.utils import copy_file_list
 from lib.utils import block_avg
 from lib.utils import integrate
 from lib.utils import integrate_sys_err
+from lib.utils import compute_nrefine
 from lib.utils import parse_seq
 from lib.lammps import get_thermo
 
@@ -254,6 +255,72 @@ def _make_tasks(iter_name, jdata, step) :
             fp.write(str(all_lambda[idx]))
         os.chdir(cwd)
 
+def _refine_tasks(from_task, to_task, err, step) :
+    from_task = os.path.abspath(from_task)
+    to_task = os.path.abspath(to_task)
+
+    from_ti = os.path.join(from_task, 'hti.out')
+    if not os.path.isfile(from_ti) :
+        raise RuntimeError("cannot find file %s, task should be computed befor refined" % from_ti)
+    tmp_array = np.loadtxt(from_ti)
+    all_t = tmp_array[:,0]
+    integrand = tmp_array[:,1]
+    ntask = all_t.size
+    
+    print(all_t, integrand, err)
+    interval_nrefine = compute_nrefine(all_t, integrand, err)
+
+    refined_t = []
+    back_map = []
+    for ii in range(0, ntask-1) :
+        refined_t.append(all_t[ii])
+        back_map.append(ii)
+        hh = (all_t[ii+1] - all_t[ii]) / interval_nrefine[ii]
+        for jj in range(1, interval_nrefine[ii]) :
+            refined_t.append(all_t[ii] + jj * hh)
+            back_map.append(-1)
+    refined_t.append(all_t[-1])
+    back_map.append(ntask-1)
+    
+    from_json = os.path.join(from_task, 'in.json')
+    to_json = os.path.join(to_task, 'in.json')
+    from_jdata = json.load(open(from_json))
+    to_jdata = from_jdata
+
+    to_jdata['orig_task'] = from_task
+    if step == 'angle_on' :
+        to_jdata['lambda_angle_on'] = refined_t
+        to_jdata['lambda_angle_on_back_map'] = back_map
+    elif step == 'deep_on' :
+        to_jdata['lambda_deep_on'] = refined_t
+        to_jdata['lambda_deep_on_back_map'] = back_map
+    elif step == 'bond_angle_off' :
+        to_jdata['lambda_bond_angle_off'] = refined_t
+        to_jdata['lambda_bond_angle_off_back_map'] = back_map
+    else :
+        raise RuntimeError('unknow step')
+
+    _make_tasks(to_task, to_jdata, step)
+
+    from_task_list = glob.glob(os.path.join(from_task, 'task.[0-9]*'))
+    from_task_list.sort()
+    to_task_list = glob.glob(os.path.join(to_task, 'task.[0-9]*'))
+    to_task_list.sort()
+    assert(len(from_task_list) == ntask)
+    assert(len(to_task_list) == len(refined_t))
+
+    for ii in range(len(to_task_list)) :
+        if back_map[ii] < 0 : 
+            continue
+        for jj in ['data', 'log.lammps'] :
+            shutil.copyfile(
+                os.path.join(from_task_list[back_map[ii]], jj), 
+                os.path.join(to_task_list[ii], jj), 
+            )
+        with open(os.path.join(to_task_list[ii], 'from.dir'), 'w') as fp:
+            fp.write(from_task_list[back_map[ii]])    
+
+
 def make_tasks(iter_name, jdata) :
     equi_conf = os.path.abspath(jdata['equi_conf'])
     model = os.path.abspath(jdata['model'])
@@ -277,6 +344,42 @@ def make_tasks(iter_name, jdata) :
     _make_tasks(subtask_name, jdata, 'deep_on')
     subtask_name = os.path.join(iter_name, '02.bond_angle_off')
     _make_tasks(subtask_name, jdata, 'bond_angle_off')
+
+
+def refine_tasks(from_task, to_task, err) :
+    jdata = json.load(open(os.path.join(from_task, 'in.json')))    
+    equi_conf = jdata['equi_conf']
+    model = jdata['model']
+    cwd = os.getcwd()
+    os.chdir(from_task) 
+    equi_conf = os.path.abspath(equi_conf)
+    model = os.path.abspath(model)
+    os.chdir(cwd)
+
+    create_path(to_task)
+    copied_conf = os.path.join(os.path.abspath(to_task), 'conf.lmp')
+    shutil.copyfile(equi_conf, copied_conf)
+    jdata['equi_conf'] = copied_conf
+    linked_model = os.path.join(os.path.abspath(to_task), 'graph.pb')
+    shutil.copyfile(model, linked_model)
+    jdata['model'] = linked_model
+
+    cwd = os.getcwd()
+    os.chdir(to_task)
+    with open('in.json', 'w') as fp:
+        json.dump(jdata, fp, indent=4)
+    os.chdir(cwd)
+
+    from_name = os.path.join(from_task, '00.angle_on')
+    to_name = os.path.join(to_task, '00.angle_on')
+    _refine_tasks(from_name, to_name, err, 'angle_on')
+    from_name = os.path.join(from_task, '01.deep_on')
+    to_name = os.path.join(to_task, '01.deep_on')
+    _refine_tasks(from_name, to_name, err, 'deep_on')
+    from_name = os.path.join(from_task, '02.bond_angle_off')
+    to_name = os.path.join(to_task, '02.bond_angle_off')
+    _refine_tasks(from_name, to_name, err, 'bond_angle_off')
+
 
 def _compute_thermo(fname, natoms, stat_skip, stat_bsize) :
     data = get_thermo(fname)
@@ -559,6 +662,14 @@ def _main ():
     parser_comp.add_argument('-m','--inte-method', type=str, default = 'inte', 
                              choices=['inte', 'mbar'], 
                              help='the method of thermodynamic integration')
+    parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
+    parser_comp.add_argument('-i', '--input', type=str,
+                             help='input job')
+    parser_comp.add_argument('-o', '--output', type=str,
+                             help='output job')
+    parser_comp.add_argument('-e', '--error', type=float,
+                             help='the error required')
+
     args = parser.parse_args()
 
     if args.command is None :
@@ -568,6 +679,8 @@ def _main ():
         output = args.output
         jdata = json.load(open(args.PARAM, 'r'))
         make_tasks(output, jdata)
+    if args.command == 'refine' :
+        refine_tasks(args.input, args.output, args.error)
     elif args.command == 'compute' :
         fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
         sys_data = lmp.to_system_data(fp_conf.read().split('\n'))

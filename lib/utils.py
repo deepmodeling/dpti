@@ -156,3 +156,25 @@ def integrate_sys_err (xx, yy) :
     err += interval_sys_err(xx[-3:], yy[-3:], 'right')    
     # print('here1', interval_sys_err(xx[-3:], yy[-3:], 'right') )
     return err
+
+
+def compute_nrefine (all_t, integrand, err, error_scale = None) :
+    ntask = all_t.size
+    interval_err = []
+    interval_err.append(interval_sys_err(all_t[0:3], integrand[0:3], 'left'))
+    for ii in range(1, ntask-2) :
+        interval_err.append(
+            interval_sys_err(all_t[ii-1:ii+3], integrand[ii-1:ii+3], 'middle'))
+    interval_err.append(interval_sys_err(all_t[-3:], integrand[-3:], 'right'))
+    if error_scale is not None :
+        for ii in range(0, ntask-1) :
+            interval_err[ii] *= error_scale[ii+1]
+    
+    interval_nrefine = []
+    for ii in range(ntask-1) :
+        err_dist = err * (all_t[ii+1] - all_t[ii]) / (all_t[-1] - all_t[0])
+        interval_nrefine.append(max(1, int(np.ceil(np.sqrt(interval_err[ii] / err_dist)))))
+    print(interval_nrefine)
+    assert(len(interval_nrefine) == len(interval_err))
+
+    return interval_nrefine
