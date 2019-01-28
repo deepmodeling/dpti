@@ -36,11 +36,11 @@ def _main ():
                              help='free energy of starting point')
 
     parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
-    parser_comp.add_argument('-i', '--input', type=str,
+    parser_comp.add_argument('-i', '--input', type=str, required=True,
                              help='input job')
-    parser_comp.add_argument('-o', '--output', type=str,
+    parser_comp.add_argument('-o', '--output', type=str, required=True,
                              help='output job')
-    parser_comp.add_argument('-e', '--error', type=float,
+    parser_comp.add_argument('-e', '--error', type=float, required=True,
                              help='the error required')
 
     args = parser.parse_args()
