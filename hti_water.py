@@ -267,7 +267,6 @@ def _refine_tasks(from_task, to_task, err, step) :
     integrand = tmp_array[:,1]
     ntask = all_t.size
     
-    print(all_t, integrand, err)
     interval_nrefine = compute_nrefine(all_t, integrand, err)
 
     refined_t = []
@@ -288,6 +287,8 @@ def _refine_tasks(from_task, to_task, err, step) :
     to_jdata = from_jdata
 
     to_jdata['orig_task'] = from_task
+    to_jdata['back_map'] = back_map
+    to_jdata['refine_error'] = err
     if step == 'angle_on' :
         to_jdata['lambda_angle_on'] = refined_t
         to_jdata['lambda_angle_on_back_map'] = back_map

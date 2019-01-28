@@ -514,6 +514,7 @@ def refine_task (from_task, to_task, err) :
     to_jdata['temps'] = refined_t
     to_jdata['orig_task'] = from_task
     to_jdata['back_map'] = back_map
+    to_jdata['refine_error'] = err
     # create_path(to_task)
     # with open(to_json, 'w') as fp :
     #     json.dump(to_jdata, fp, indent=4)
