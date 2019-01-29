@@ -11,7 +11,9 @@ from lib.utils import copy_file_list
 from lib.utils import block_avg
 from lib.utils import integrate
 from lib.utils import integrate_sys_err
+from lib.utils import compute_nrefine
 from lib.utils import parse_seq
+from lib.utils import get_task_file_abspath
 from lib.lammps import get_thermo
 from lib.lammps import get_natoms
 
@@ -268,6 +270,65 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
             fp.write(str(ii))
         os.chdir(cwd)
 
+
+def refine_task (from_task, to_task, err) :
+    from_task = os.path.abspath(from_task)
+    to_task = os.path.abspath(to_task)
+    
+    from_ti = os.path.join(from_task, 'hti.out')
+    if not os.path.isfile(from_ti) :
+        raise RuntimeError("cannot find file %s, task should be computed befor refined" % from_ti)
+    tmp_array = np.loadtxt(from_ti)
+    all_t = tmp_array[:,0]
+    integrand = tmp_array[:,1]
+    ntask = all_t.size
+
+    interval_nrefine = compute_nrefine(all_t, integrand, err)
+
+    refined_t = []
+    back_map = []
+    for ii in range(0, ntask-1) :
+        refined_t.append(all_t[ii])
+        back_map.append(ii)
+        hh = (all_t[ii+1] - all_t[ii]) / interval_nrefine[ii]
+        for jj in range(1, interval_nrefine[ii]) :
+            refined_t.append(all_t[ii] + jj * hh)
+            back_map.append(-1)
+    refined_t.append(all_t[-1])
+    back_map.append(ntask-1)
+
+    from_json = os.path.join(from_task, 'in.json')
+    to_json = os.path.join(to_task, 'in.json')
+    from_jdata = json.load(open(from_json))
+    to_jdata = from_jdata
+
+    to_jdata['lambda'] = refined_t
+    to_jdata['orig_task'] = from_task
+    to_jdata['back_map'] = back_map
+    to_jdata['refine_error'] = err
+    to_jdata['equi_conf'] = get_task_file_abspath(from_task, from_jdata['equi_conf'])
+    to_jdata['model'] = get_task_file_abspath(from_task, from_jdata['model'])
+
+    make_tasks(to_task, to_jdata, to_jdata['reference'])
+
+    from_task_list = glob.glob(os.path.join(from_task, 'task.[0-9]*'))
+    from_task_list.sort()
+    to_task_list = glob.glob(os.path.join(to_task, 'task.[0-9]*'))
+    to_task_list.sort()
+    assert(len(from_task_list) == ntask)
+    assert(len(to_task_list) == len(refined_t))
+
+    for ii in range(len(to_task_list)) :
+        if back_map[ii] < 0 : 
+            continue
+        for jj in ['data', 'log.lammps'] :
+            shutil.copyfile(
+                os.path.join(from_task_list[back_map[ii]], jj), 
+                os.path.join(to_task_list[ii], jj), 
+            )
+        with open(os.path.join(to_task_list[ii], 'from.dir'), 'w') as fp:
+            fp.write(from_task_list[back_map[ii]])
+    
 
 def _compute_thermo(fname, natoms, stat_skip, stat_bsize) :
     data = get_thermo(fname)

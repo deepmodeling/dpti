@@ -30,6 +30,14 @@ def _main ():
                              help='the method of thermodynamic integration')
     parser_comp.add_argument('-d','--disorder-corr', action = 'store_true',
                              help='apply disorder correction for ice')
+
+    parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
+    parser_comp.add_argument('-i', '--input', type=str, required=True,
+                             help='input job')
+    parser_comp.add_argument('-o', '--output', type=str, required=True,
+                             help='output job')
+    parser_comp.add_argument('-e', '--error', type=float, required=True,
+                             help='the error required')
     args = parser.parse_args()
 
     if args.command is None :
@@ -39,6 +47,8 @@ def _main ():
         output = args.output
         jdata = json.load(open(args.PARAM, 'r'))
         hti.make_tasks(output, jdata, 'einstein', 'both')
+    elif args.command == 'refine' :
+        hti.refine_task(args.input, args.output, args.error)        
     elif args.command == 'compute' :
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))

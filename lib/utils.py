@@ -178,3 +178,13 @@ def compute_nrefine (all_t, integrand, err, error_scale = None) :
     assert(len(interval_nrefine) == len(interval_err))
 
     return interval_nrefine
+
+
+def get_task_file_abspath(task_name, file_name): 
+    equi_conf = file_name
+    cwd = os.getcwd()
+    os.chdir(task_name)
+    equi_conf = os.path.abspath(equi_conf)
+    os.chdir(cwd)
+    return equi_conf
+
