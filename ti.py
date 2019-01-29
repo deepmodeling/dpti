@@ -13,6 +13,7 @@ from lib.utils import integrate_sys_err
 from lib.utils import interval_sys_err
 from lib.utils import compute_nrefine
 from lib.utils import parse_seq
+from lib.utils import get_task_file_abspath
 from lib.lammps import get_thermo
 from lib.lammps import get_natoms
 
