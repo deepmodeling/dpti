@@ -145,10 +145,10 @@ def make_tasks(iter_name, jdata) :
     create_path(iter_name)
     copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
     shutil.copyfile(equi_conf, copied_conf)
-    jdata['equi_conf'] = copied_conf
+    jdata['equi_conf'] = 'conf.lmp'
     linked_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
-    os.symlink(model, linked_model)
-    jdata['model'] = linked_model
+    shutil.copyfile(model, linked_model)
+    jdata['model'] = 'graph.pb'
 
     cwd = os.getcwd()
     os.chdir(iter_name)
@@ -248,7 +248,7 @@ def _print_thermo_info(info, more_head = '') :
     print(ptr)
 
 def post_tasks(iter_name, jdata, Eo, natoms = None) :
-    equi_conf = jdata['equi_conf']
+    equi_conf = get_task_file_abspath(jdata['equi_conf'])
     if natoms == None :        
         natoms = get_natoms(equi_conf)
         if 'copies' in jdata :
@@ -515,6 +515,8 @@ def refine_task (from_task, to_task, err) :
     to_jdata['orig_task'] = from_task
     to_jdata['back_map'] = back_map
     to_jdata['refine_error'] = err
+    to_jdata['equi_conf'] = get_task_file_abspath(from_task, from_jdata['equi_conf'])
+    to_jdata['model'] = get_task_file_abspath(from_task, from_jdata['model'])
     # create_path(to_task)
     # with open(to_json, 'w') as fp :
     #     json.dump(to_jdata, fp, indent=4)
