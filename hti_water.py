@@ -15,6 +15,7 @@ from lib.utils import integrate
 from lib.utils import integrate_sys_err
 from lib.utils import compute_nrefine
 from lib.utils import parse_seq
+from lib.utils import get_task_file_abspath
 from lib.lammps import get_thermo
 
 def _ff_angle_on(lamb,
@@ -329,10 +330,10 @@ def make_tasks(iter_name, jdata) :
     create_path(iter_name)
     copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
     shutil.copyfile(equi_conf, copied_conf)
-    jdata['equi_conf'] = copied_conf
+    jdata['equi_conf'] = 'conf.lmp'
     linked_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
     shutil.copyfile(model, linked_model)
-    jdata['model'] = linked_model
+    jdata['model'] = 'graph.pb'
 
     cwd = os.getcwd()
     os.chdir(iter_name)    
@@ -349,21 +350,18 @@ def make_tasks(iter_name, jdata) :
 
 def refine_tasks(from_task, to_task, err) :
     jdata = json.load(open(os.path.join(from_task, 'in.json')))    
-    equi_conf = jdata['equi_conf']
-    model = jdata['model']
-    cwd = os.getcwd()
-    os.chdir(from_task) 
-    equi_conf = os.path.abspath(equi_conf)
-    model = os.path.abspath(model)
-    os.chdir(cwd)
+    equi_conf = get_task_file_abspath(from_task, jdata['equi_conf'])
+    model = get_task_file_abspath(from_task, jdata['model'])
 
     create_path(to_task)
     copied_conf = os.path.join(os.path.abspath(to_task), 'conf.lmp')
     shutil.copyfile(equi_conf, copied_conf)
-    jdata['equi_conf'] = copied_conf
+    jdata['equi_conf'] = 'conf.lmp'
     linked_model = os.path.join(os.path.abspath(to_task), 'graph.pb')
     shutil.copyfile(model, linked_model)
-    jdata['model'] = linked_model
+    jdata['model'] = 'graph.pb'
+    jdata['orig_task'] = from_task
+    jdata['refine_error'] = err
 
     cwd = os.getcwd()
     os.chdir(to_task)
