@@ -359,11 +359,8 @@ def post_tasks(iter_name, jdata, natoms = None) :
     all_tasks = glob.glob(os.path.join(iter_name, 'task.[0-9]*'))
     all_tasks.sort()
     ntasks = len(all_tasks)
-    equi_conf = jdata['equi_conf']
-    cwd = os.getcwd()
-    os.chdir(iter_name)
+    equi_conf = get_task_file_abspath(jdata['equi_conf'])
     assert(os.path.isfile(equi_conf))
-    equi_conf = os.path.abspath(equi_conf)
     os.chdir(cwd)
     if natoms == None :
         natoms = get_natoms(equi_conf)
