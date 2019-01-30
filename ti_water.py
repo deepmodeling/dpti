@@ -55,7 +55,7 @@ def _main ():
     elif args.command == 'compute' :
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
-        equi_conf = jdata['equi_conf']
+        equi_conf = get_task_file_abspath(job, jdata['equi_conf'])
         natoms = get_natoms(equi_conf)
         if 'copies' in jdata :
             natoms *= np.prod(jdata['copies'])
