@@ -35,6 +35,8 @@ def _main ():
                              help='the method of thermodynamic integration')
     parser_comp.add_argument('-e', '--Eo', type=float, default = 0,
                              help='free energy of starting point')
+    parser_comp.add_argument('-E', '--Eo-err', type=float, default = 0,
+                             help='The statistical error of the starting free energy')
 
     parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
     parser_comp.add_argument('-i', '--input', type=str, required=True,
@@ -61,11 +63,10 @@ def _main ():
         if 'copies' in jdata :
             natoms *= np.prod(jdata['copies'])
         nmols = natoms // 3
-        e0 = float(args.Eo)
         if args.inte_method == 'inte' :
-            ti.post_tasks(job, jdata, e0, natoms = nmols)
+            ti.post_tasks(job, jdata, args.Eo, Eo_err = args.Eo_err, natoms = nmols)
         elif args.inte_method == 'mbar' :
-            ti.post_tasks_mbar(job, jdata, e0, natoms = nmols)
+            ti.post_tasks_mbar(job, jdata, args.Eo, natoms = nmols)
         else :
             raise RuntimeError('unknow integration method')
     elif args.command == 'refine' :

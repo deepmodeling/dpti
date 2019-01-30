@@ -248,7 +248,7 @@ def _print_thermo_info(info, more_head = '') :
     ptr += '# PV(err)  [eV]:  %20.8f %20.8f' % (info['pv'], info['pv_err'])
     print(ptr)
 
-def post_tasks(iter_name, jdata, Eo, natoms = None) :
+def post_tasks(iter_name, jdata, Eo, Eo_err = 0, natoms = None) :
     equi_conf = get_task_file_abspath(iter_name, jdata['equi_conf'])
     if natoms == None :        
         natoms = get_natoms(equi_conf)
@@ -335,6 +335,7 @@ def post_tasks(iter_name, jdata, Eo, natoms = None) :
         sys_err = integrate_sys_err(all_t[0:ii+1], integrand[0:ii+1])
         if path == 't' or path == 't-ginv':
             e1 = (Eo / (all_t[0]) - diff_e) * all_t[ii]
+            err = np.sqrt(np.square(Eo_err / all_t[0]) + np.square(err))
             err *= all_t[ii]
             sys_err *= all_t[ii]
             all_temps.append(all_t[ii])
@@ -342,6 +343,7 @@ def post_tasks(iter_name, jdata, Eo, natoms = None) :
                 all_press.append(jdata['press'])
         elif path == 'p':
             e1 = Eo + diff_e        
+            err = np.sqrt(np.square(Eo_err) + np.square(err))
             all_temps.append(jdata['temps'])
             all_press.append(all_t[ii])
         all_fe.append(e1)
@@ -562,6 +564,8 @@ def _main ():
                              help='the method of thermodynamic integration')
     parser_comp.add_argument('-e', '--Eo', type=float, default = 0,
                              help='free energy of starting point')
+    parser_comp.add_argument('-E', '--Eo-err', type=float, default = 0,
+                             help='The statistical error of the starting free energy')
 
     parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
     parser_comp.add_argument('-i', '--input', type=str, required=True,
@@ -582,11 +586,10 @@ def _main ():
     elif args.command == 'compute' :
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
-        e0 = float(args.Eo)
         if args.inte_method == 'inte' :
-            post_tasks(job, jdata, e0)
+            post_tasks(job, jdata, args.Eo, Eo_err = args.Eo_err)
         elif args.inte_method == 'mbar' :
-            post_tasks_mbar(job, jdata, e0)
+            post_tasks_mbar(job, jdata, args.Eo)
         else :
             raise RuntimeError('unknow integration method')
     elif args.command == 'refine' :
