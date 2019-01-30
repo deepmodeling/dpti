@@ -236,7 +236,7 @@ def water_bond(iter_name, skip = 1) :
     return (np.average(all_rr)), (np.average(all_tt))
 
 
-def _compute_thermo (lmplog, stat_skip, stat_bsize) :
+def _compute_thermo (lmplog, natoms, stat_skip, stat_bsize) :
     data = lib.lammps.get_thermo(lmplog)
     ea, ee = block_avg(data[:, 3], skip = stat_skip, block_size = stat_bsize)
     ha, he = block_avg(data[:, 4], skip = stat_skip, block_size = stat_bsize)
@@ -258,17 +258,17 @@ def _compute_thermo (lmplog, stat_skip, stat_bsize) :
     thermo_info = {}
     thermo_info['p'] = pa
     thermo_info['p_err'] = pe
-    thermo_info['v'] = va
-    thermo_info['v_err'] = ve
-    thermo_info['e'] = ea
-    thermo_info['e_err'] = ee
+    thermo_info['v'] = va / natoms 
+    thermo_info['v_err'] = ve / np.sqrt(natoms)
+    thermo_info['e'] = ea / natoms 
+    thermo_info['e_err'] = ee / np.sqrt(natoms)
     thermo_info['t'] = ta
     thermo_info['t_err'] = te
-    thermo_info['h'] = ha
-    thermo_info['h_err'] = he
+    thermo_info['h'] = ha / natoms 
+    thermo_info['h_err'] = he / np.sqrt(natoms)
     unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
-    thermo_info['pv'] = pa * va * unit_cvt
-    thermo_info['pv_err'] = pe * va * unit_cvt
+    thermo_info['pv'] = pa * va * unit_cvt / natoms
+    thermo_info['pv_err'] = pe * va * unit_cvt / np.sqrt(natoms)
     thermo_info['lxx'] = lxx
     thermo_info['lxx_err'] = lxxe
     thermo_info['lyy'] = lyy
@@ -317,13 +317,20 @@ def _print_thermo_info(info, more_head = '') :
     ptr += '# Pyz     [bar]:  %20.8f %20.8f' % (info['pyz'], info['pyz_err'])
     print(ptr)
 
-def post_task(iter_name) :
+def post_task(iter_name, natoms = None, is_water = True) :
     j_file = os.path.join(iter_name, 'in.json')
     jdata = json.load(open(j_file))
+    if natoms == None :
+        equi_conf = get_task_file_abspath(iter_name, jdata['equi_conf'])
+        natoms = get_natoms(equi_conf)
+        if 'copies' in jdata :
+            natoms *= np.prod(jdata['copies'])
+    if is_water :
+        nmols = natoms // 3
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
     log_file = os.path.join(iter_name, 'log.lammps')
-    info = _compute_thermo(log_file, stat_skip, stat_bsize)
+    info = _compute_thermo(log_file, nmols, stat_skip, stat_bsize)
     _print_thermo_info(info)
 
 def _main ():
