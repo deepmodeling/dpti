@@ -120,7 +120,11 @@ Then we have
 \end{align}
 so
 \begin{align}
-  A - A_\com = -k_BT \ln(P/P_\com) - k_BT \ln \Lambda_k^3 + k_BT \ln N^{3/2}
+  A - A_\com = -k_BT \ln(P/P_\com) - k_BT \ln \Lambda_k^3 + k_BT \ln N^{3/2} 
+\end{align}
+and
+\begin{align}
+  A_\com = -k_BT \ln P_\com - (N-1) k_BT \ln \Lambda_k^3 - k_BT \ln N^{3/2}
 \end{align}
 
 \section{Translational invariant system with CM constrained}
@@ -152,6 +156,17 @@ and
 \begin{align}
   A - A_\com = -k_BT\ln(P / P_\com) + k_BT\ln \rho
 \end{align}
+
+We have ``effective'' reference free energy for ideal Einstein crystal:
+\begin{align} \nonumber
+  \tilde A_0
+  &=
+    A^0_\com + (A - A_\com) \\
+  &=
+    Nk_BT\ln \Lambda_p^3 - (N-1)k_BT\ln\Lambda_s^3 - k_BT\ln N^{3/2} + k_BT\ln \rho
+\end{align}
+
+
 
 \section{Ideal Einstein molecules}
 Consider the lattice that is defined by the first atom in the system, saying the oxygen of the first water molecule.
