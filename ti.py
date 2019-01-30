@@ -249,7 +249,7 @@ def _print_thermo_info(info, more_head = '') :
     print(ptr)
 
 def post_tasks(iter_name, jdata, Eo, natoms = None) :
-    equi_conf = get_task_file_abspath(jdata['equi_conf'])
+    equi_conf = get_task_file_abspath(iter_name, jdata['equi_conf'])
     if natoms == None :        
         natoms = get_natoms(equi_conf)
         if 'copies' in jdata :
