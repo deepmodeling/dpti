@@ -10,6 +10,7 @@ from lib.utils import block_avg
 from lib.utils import integrate
 from lib.utils import integrate_sys_err
 from lib.utils import parse_seq
+from lib.utils import get_task_file_abspath
 from lib.lammps import get_thermo
 from lib.lammps import get_natoms
 

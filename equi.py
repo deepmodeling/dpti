@@ -8,7 +8,7 @@ from lib.utils import create_path
 from lib.utils import block_avg
 from lib.water import compute_bonds
 from lib.water import posi_diff
-from lib.water import get_task_file_abspath
+from lib.utils import get_task_file_abspath
 import lib.lmp
 import lib.dump 
 import lib.lammps
@@ -323,7 +323,7 @@ def post_task(iter_name, natoms = None, is_water = True) :
     jdata = json.load(open(j_file))
     if natoms == None :
         equi_conf = get_task_file_abspath(iter_name, jdata['equi_conf'])
-        natoms = get_natoms(equi_conf)
+        natoms = lib.lammps.get_natoms(equi_conf)
         if 'copies' in jdata :
             natoms *= np.prod(jdata['copies'])
     if is_water :
