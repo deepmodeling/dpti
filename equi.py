@@ -8,6 +8,7 @@ from lib.utils import create_path
 from lib.utils import block_avg
 from lib.water import compute_bonds
 from lib.water import posi_diff
+from lib.water import get_task_file_abspath
 import lib.lmp
 import lib.dump 
 import lib.lammps
