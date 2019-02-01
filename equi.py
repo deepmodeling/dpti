@@ -316,6 +316,7 @@ def _print_thermo_info(info, more_head = '') :
     ptr += '# Pxy     [bar]:  %20.8f %20.8f\n' % (info['pxy'], info['pxy_err'])
     ptr += '# Pxz     [bar]:  %20.8f %20.8f\n' % (info['pxz'], info['pxz_err'])
     ptr += '# Pyz     [bar]:  %20.8f %20.8f' % (info['pyz'], info['pyz_err'])
+    prt += '# water density [kg/m^3] : %10.5f\n' % (18 * 1e-3 / (info['v'] * pc.Avogadro * pc.angstrom**3))
     print(ptr)
 
 def post_task(iter_name, natoms = None, is_water = True) :
