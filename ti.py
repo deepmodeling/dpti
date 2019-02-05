@@ -248,7 +248,36 @@ def _print_thermo_info(info, more_head = '') :
     ptr += '# PV(err)  [eV]:  %20.8f %20.8f' % (info['pv'], info['pv_err'])
     print(ptr)
 
-def post_tasks(iter_name, jdata, Eo, Eo_err = 0, natoms = None) :
+def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err) :
+    path = jdata['path']
+    ens = jdata['ens']
+    all_temps = []
+    all_press = []
+    all_fe = []
+    all_fe_err = []
+    all_fe_sys_err = []
+    for ii in range(0, len(all_t)) :
+        diff_e, err = integrate(all_t[0:ii+1], integrand[0:ii+1], integrand_err[0:ii+1])
+        sys_err = integrate_sys_err(all_t[0:ii+1], integrand[0:ii+1])
+        if path == 't' or path == 't-ginv':
+            e1 = (Eo / (all_t[0]) - diff_e) * all_t[ii]
+            err = np.sqrt(np.square(Eo_err / all_t[0]) + np.square(err))
+            err *= all_t[ii]
+            sys_err *= all_t[ii]
+            all_temps.append(all_t[ii])
+            if 'npt' in ens :
+                all_press.append(jdata['press'])
+        elif path == 'p':
+            e1 = Eo + diff_e        
+            err = np.sqrt(np.square(Eo_err) + np.square(err))
+            all_temps.append(jdata['temps'])
+            all_press.append(all_t[ii])
+        all_fe.append(e1)
+        all_fe_err.append(err)
+        all_fe_sys_err.append(sys_err)
+    return all_temps, all_press, all_fe, all_fe_err, all_fe_sys_err
+
+def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None) :
     equi_conf = get_task_file_abspath(iter_name, jdata['equi_conf'])
     if natoms == None :        
         natoms = get_natoms(equi_conf)
@@ -325,30 +354,39 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, natoms = None) :
     _print_thermo_info(info0, 'at start point')
     _print_thermo_info(info1, 'at end point')
 
-    all_temps = []
-    all_press = []
-    all_fe = []
-    all_fe_err = []
-    all_fe_sys_err = []
-    for ii in range(0, len(all_t)) :
-        diff_e, err = integrate(all_t[0:ii+1], integrand[0:ii+1], integrand_err[0:ii+1])
-        sys_err = integrate_sys_err(all_t[0:ii+1], integrand[0:ii+1])
-        if path == 't' or path == 't-ginv':
-            e1 = (Eo / (all_t[0]) - diff_e) * all_t[ii]
-            err = np.sqrt(np.square(Eo_err / all_t[0]) + np.square(err))
-            err *= all_t[ii]
-            sys_err *= all_t[ii]
-            all_temps.append(all_t[ii])
-            if 'npt' in ens :
-                all_press.append(jdata['press'])
-        elif path == 'p':
-            e1 = Eo + diff_e        
-            err = np.sqrt(np.square(Eo_err) + np.square(err))
-            all_temps.append(jdata['temps'])
-            all_press.append(all_t[ii])
-        all_fe.append(e1)
-        all_fe_err.append(err)
-        all_fe_sys_err.append(sys_err)
+    if To is not None :
+        index = all_t.index(To)
+        if index == None :
+            if 'nvt' == ens :
+                raise RuntimeError('cannot find %f in T', To)
+            elif 'npt' in ens :
+                raise RuntimeError('cannot find %f in P', To)
+        all_t_1 = all_t[0:index+1]
+        integrand_1 = integrand[0:index+1]
+        integrand_err_1 = integrand_err[0:index+1]
+        all_t_1 = np.flip(all_t_1, 0)
+        integrand_1 = np.flip(integrand_1, 0)
+        integrand_err_1 = np.flip(integrand_err_1, 0)
+        all_t_2 = all_t[index:]
+        integrand_2 = integrand[index:]
+        integrand_err_2 = integrand_err[index:]
+        all_temps_1, all_press_1, all_fe_1, all_fe_err_1, all_fe_sys_err_1 \
+            = _thermo_inte(jdata, Eo, Eo_err, all_t_1, integrand_1, integrand_err_1)
+        all_temps_2, all_press_2, all_fe_2, all_fe_err_2, all_fe_sys_err_2 \
+            = _thermo_inte(jdata, Eo, Eo_err, all_t_2, integrand_2, integrand_err_2)
+        all_temps_1 = np.flip(all_temps_1, 0)
+        all_press_1 = np.flip(all_press_1, 0)
+        all_fe_1 = np.flip(all_fe_1, 0)
+        all_fe_err_1 = np.flip(all_fe_err_1, 0)
+        all_fe_sys_err_1 = np.flip(all_fe_sys_err_1, 0)
+        all_temps = np.append(all_temps_1, all_temps_2[1:])
+        all_press = np.append(all_press_1, all_press_2[1:])
+        all_fe = np.append(all_fe_1, all_fe_2[1:])
+        all_fe_err = np.append(all_fe_err_1, all_fe_err_2[1:])
+        all_fe_sys_err = np.append(all_fe_sys_err_1, all_fe_sys_err_2[1:])
+    else :    
+        all_temps, all_press, all_fe, all_fe_err, all_fe_sys_err \
+            = _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err)
 
     if 'nvt' == ens :
         print('#%8s  %15s  %9s  %9s' % ('T(ctrl)', 'F', 'stat_err', 'inte_err'))
@@ -566,6 +604,8 @@ def _main ():
                              help='free energy of starting point')
     parser_comp.add_argument('-E', '--Eo-err', type=float, default = 0,
                              help='The statistical error of the starting free energy')
+    parser_comp.add_argument('-t', '--To', type=float, 
+                             help='the starting thermodynamic position')
 
     parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
     parser_comp.add_argument('-i', '--input', type=str, required=True,
@@ -587,7 +627,7 @@ def _main ():
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
         if args.inte_method == 'inte' :
-            post_tasks(job, jdata, args.Eo, Eo_err = args.Eo_err)
+            post_tasks(job, jdata, args.Eo, Eo_err = args.Eo_err, To = args.To)
         elif args.inte_method == 'mbar' :
             post_tasks_mbar(job, jdata, args.Eo)
         else :
