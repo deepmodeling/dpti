@@ -78,7 +78,7 @@ def _parse_one_str(in_s) :
         return np.array([float(fmt_s[0])])
     else :
         assert(len(fmt_s)) == 3 
-        print(float(fmt_s[0]), float(fmt_s[1]), float(fmt_s[2]))
+        # print(float(fmt_s[0]), float(fmt_s[1]), float(fmt_s[2]))
         return np.arange(float(fmt_s[0]),
                          float(fmt_s[1]) - float_protect, 
                          float(fmt_s[2]))

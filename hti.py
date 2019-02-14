@@ -188,7 +188,16 @@ def _gen_lammps_input_ideal (conf_file,
     return ret
 
 
-def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
+def make_tasks(iter_name, jdata, ref, switch_style = 'both', crystal = 'vega') :
+    if 'crystal' in jdata and jdata['crystal'] == crystal:
+        print('crystal = %s overrides the ens in json data' % crystal)
+    jdata['crystal'] = crystal
+    if jdata['crystal'] == 'vega' :
+        norm_style = 'first'
+    elif jdata['crystal'] == 'frenkel' :
+        norm_style = 'com'
+    else :
+        raise RuntimeError('ERROR: unknow crystal %s ' % str(crystal))
     all_lambda = parse_seq(jdata['lambda'])
     protect_eps = jdata['protect_eps']
     if all_lambda[0] == 0 and (switch_style == 'both' or switch_style == 'deep_on'):
@@ -249,7 +258,8 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
                                     temp,
                                     prt_freq = stat_freq, 
                                     copies = copies,
-                                    switch_style = switch_style)
+                                    switch_style = switch_style, 
+                                    norm_style = norm_style)
         elif ref == 'ideal' :
             lmp_str \
                 = _gen_lammps_input_ideal('conf.lmp',
@@ -517,9 +527,8 @@ def _main ():
                             help='json parameter file')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
-    parser_gen.add_argument('-r','--reference', type=str, default = 'einstein', 
-                            choices=['einstein', 'ideal'], 
-                            help='the reference state, einstein crystal or ideal gas')
+    parser_gen.add_argument('-f','--frenkel', action = 'store_true',
+                            help='use Frenkel\'s Einstein crystal approach: remove COM')
     parser_gen.add_argument('-s','--switch', type=str, default = 'both', 
                             choices=['both', 'deep_on', 'spring_off'], 
                             help='the reference state, einstein crystal or ideal gas')
@@ -541,16 +550,16 @@ def _main ():
     if args.command == 'gen' :
         output = args.output
         jdata = json.load(open(args.PARAM, 'r'))
-        make_tasks(output, jdata, args.reference, args.switch)
+        if args.frenkel :
+            make_tasks(output, jdata, 'einstein', args.switch, crystal = 'frenkel')
+        else :
+            make_tasks(output, jdata, 'einstein', args.switch, crystal = 'vega')
     elif args.command == 'compute' :
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
         if 'reference' not in jdata :
             jdata['reference'] = 'einstein'
-        if jdata['reference'] == 'einstein' :
-            e0 = einstein.free_energy(job)
-        else :
-            e0 = einstein.ideal_gas_fe(jdata)
+        e0 = einstein.free_energy(job)
         if args.inte_method == 'inte' :
             de, de_err, thermo_info = post_tasks(job, jdata)
         elif args.inte_method == 'mbar':
