@@ -65,19 +65,22 @@ def _main ():
         if 'copies' in jdata :
             natoms *= np.prod(jdata['copies'])
         nmols = natoms // 3
-        if 'reference' not in jdata :
-            jdata['reference'] = 'einstein'
-        if jdata['reference'] == 'einstein' :
-            # e0 normalized by natoms, *3 to nmols
+        # compute e0
+        if 'crystal' not in jdata :
+            jdata['crystal'] = 'vega'
+        crystal = jdata['crystal']
+        if crystal == 'vega' :
             e0 = einstein.free_energy(job) * 3
         else :
-            raise RuntimeError("hti_ice should be used with reference einstein")
+            e0 = einstein.frenkel(job) * 3
+        # compute Paulin estimate for disordered entropy
         if args.disorder_corr :
             temp = jdata['temp']
             pauling_corr = -pc.Boltzmann * temp / pc.electron_volt * np.log(1.5)            
             e0 += pauling_corr
         else :
             pauling_corr = 0
+        # compute integration
         if args.inte_method == 'inte' :
             de, de_err, thermo_info = hti.post_tasks(job, jdata, natoms = nmols)
         elif args.inte_method == 'mbar':

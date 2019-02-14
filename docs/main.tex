@@ -39,6 +39,10 @@ Write down
 
 \section{Ideal Einstein crystal with COM constrained}
 
+In this note, we let
+\begin{align*}
+  \Lambda_p = \Big(\frac{h^2}{2\pi m k_BT}\Big)^{\frac12}, \quad \Lambda_k = \Big(\frac{2\pi k_BT}{k}\Big)^{\frac12}
+\end{align*}
 The partition function for the free Einstein crystal is
 \begin{align*}
   Q & =
@@ -52,6 +56,10 @@ The partition function for the free Einstein crystal is
       P \Big( \frac{2\pi k_BT}{k} \Big)^{\frac{3N}2}
 \end{align*}
 where $r_{i0}$ is the equilibrium position of atom $i$, and $P$ is the momentum part of the partition function.
+The free energy is
+\begin{align*}
+  A = -k_BT\ln Q = -k_BT\ln P - Nk_BT\ln\Lambda_k^3
+\end{align*}
 We let $\epsilon = \frac1N \sum_i r_i - r_{i0}$,
 \begin{align*}
   Q & =
@@ -123,9 +131,91 @@ so
   A - A_\com = -k_BT \ln(P/P_\com) - k_BT \ln \Lambda_k^3 + k_BT \ln N^{3/2} 
 \end{align}
 and
-\begin{align}
+\begin{align}\label{eqn:5}
   A_\com = -k_BT \ln P_\com - (N-1) k_BT \ln \Lambda_k^3 - k_BT \ln N^{3/2}
 \end{align}
+
+
+\subsection{Extension to the case of water}
+Consider the Einstein crystal with spring constant $k$ weighted by the mass of the atom.
+The partition function is
+\begin{align*}
+  Q & =
+      \frac{1}{h^{3N}}
+      \frac{1}{N_O!N_H!} N_O!N_H!
+      \int e^{-\beta\sum_i\frac{p_i^2}{2m_i}} dp
+      \int e^{-\beta\sum_i \frac 12km_i(r_i - r_{i0})^2} dr \\
+    &= 
+      P \int e^{-\beta\sum_i \frac 12km_i(r_i - r_{i0})^2} dr \\
+    &=
+      P
+      \Big( \frac{2\pi k_BT}{km_O} \Big)^{\frac{3N_O}2}
+      \Big( \frac{2\pi k_BT}{km_H} \Big)^{\frac{3N_H}2}
+\end{align*}
+so
+\begin{align*}
+  A = -k_BT \ln Q = -k_BT \ln P
+  - N_Ok_BT\ln\Lambda_{k,O}^3
+  - N_Hk_BT\ln\Lambda_{k,H}^3
+\end{align*}
+We let $\epsilon = \frac1M \sum_i m_i(r_i - r_{i0})$, where $M = \sum m_i$. $\epsilon$ is the COM of the system,
+\begin{align*}
+  Q & =
+      P \int e^{-\beta\sum_i \frac 12km_i(r_i - r_{i0})^2} dr \\
+    & =
+      P \int e^{-\beta\sum_i \frac 12km_i(r_i - r_{i0})^2}
+      \delta\big( \epsilon - \frac1M \sum_i m_i (r_i - r_{i0}) \big) dr d\epsilon 
+\end{align*}
+Now consider the change of variables $\hat r_i = r_i - \epsilon$, we have
+\begin{align}\label{eqn:8}
+  Q & =
+      P \int e^{-\beta\sum_i \frac 12km_i(\hat r_i - r_{i0} + \epsilon)^2}
+      \delta\big( \frac1M \sum_im_i(\hat r_i - r_{i0}) \big) d\hat r d\epsilon 
+\end{align}
+We have the observation that $ \frac 1M \sum m_i(\hat r_i  - r_{i0}) = \frac 1M \sum m_i( r_i  - r_{i0}) - \epsilon = 0$, then
+\begin{align*}
+  \sum_i m_i(\hat r_i - r_{i0} + \epsilon)^2
+  &=
+    \sum_i m_i(\hat r_i - r_{i0})^2 + 2\epsilon\sum_im_i (\hat r_i - r_{i0}) + M\epsilon^2 \\
+  &=
+    \sum_i m_i(\hat r_i - r_{i0})^2 + M\epsilon^2 
+\end{align*}
+Inserting this relation to \eqref{eqn:8}, we have
+\begin{align}\nonumber
+  Q
+  & =
+    P \int e^{-\beta\sum_i \frac 12km_i(\hat r_i - r_{i0})^2} e^{-\beta \frac12 kM \epsilon^2}
+    \delta\big( \frac1M \sum_i m_i(\hat r_i - r_{i0}) \big) d\hat r d\epsilon \\
+  &=
+    P \Big( \frac{2\pi k_BT}k  \Big)^{\frac32} M^{-\frac32}
+    \int e^{-\beta\sum_i \frac 12km_i(\hat r_i - r_{i0})^2}
+    \delta\big( \frac1M \sum_im_i(\hat r_i - r_{i0}) \big) d\hat r
+\end{align}
+Now consider the constrain of the COM, we have the modified partition function
+\begin{align*}
+  Q_\com
+  &= 
+    {P_\com}
+    \int e^{-\beta\sum_i \frac 12km_i(r_i - r_{i0})^2} \delta\big(\frac1M\sum_i m_i(r_i -  r_{i0})\big) dr 
+\end{align*}
+Then we have
+\begin{align}
+  \frac{Q}{Q_\com} = \frac{P}{P_\com}\Big( \frac{2\pi k_BT}k  \Big)^{\frac32} M^{-\frac32}
+\end{align}
+so
+\begin{align}
+  A - A_\com = -k_BT \ln(P/P_\com) - k_BT \ln \Lambda_k^3 + k_BT \ln M^{3/2} 
+\end{align}
+and
+\begin{align}\label{eqn:10}
+  A_\com =
+  -k_BT \ln P_\com
+  - N_O k_BT \ln \Lambda_{k,O}^3
+  - N_H k_BT \ln \Lambda_{k,H}^3
+  + k_BT\ln \Lambda_k^3 - k_BT \ln M^{3/2}
+\end{align}
+
+
 
 \section{Translational invariant system with CM constrained}
 The partition function for translational invariant system
@@ -136,17 +226,19 @@ where $U(\bm r) = U(\bm r - \bm r_0)$ for any $\bm r_0$.
 \begin{align*}
   Q
   &=
-    P \int e^{-\beta U(\bm r)} \delta(\sum_i c_i (\bm r_i - \bm r_0)) d\bm r d\bm r_0 \\
+    P \int e^{-\beta U(\bm r)} \delta(\bm r_0 - \frac1M\sum_i m_i \bm r_i) d\bm r_0 d\bm r \\
   &=
-    P\int d\bm r_0 \int e^{-\beta U(\bm r)} \delta(\sum_i c_i \bm r_i) d\bm r\\
+    P \int e^{-\beta U(\bm r)} \delta(\frac1M\sum_i m_i (\bm r_i - \bm r_0)) d\bm r d\bm r_0 \\
   &=
-    P\frac{V}{N} \int e^{-\beta U(\bm r)} \delta(\sum_i c_i \bm r_i) d\bm r
+    P\int d\bm r_0 \int e^{-\beta U(\bm r)} \delta(\frac1M\sum_i m_i \bm r_i) d\bm r\\
+  &=
+    P\frac{V}{N} \int e^{-\beta U(\bm r)} \delta(\frac1M\sum_i m_i \bm r_i) d\bm r
 \end{align*}
 The last equation holds because the volume ``accessible to the CM'' is $V/N$, see [Vega, et.al.~JPCM].
 \begin{align*}
   Q_\com
   &=
-    P_\com\int e^{-\beta U(\bm r)} \delta(\sum_i c_i \bm r_i) d\bm r
+    P_\com\int e^{-\beta U(\bm r)} \delta(\frac1M\sum_i m_i \bm r_i) d\bm r
 \end{align*}
 Therefore
 \begin{align*}
@@ -157,14 +249,30 @@ and
   A - A_\com = -k_BT\ln(P / P_\com) + k_BT\ln \rho
 \end{align}
 
-We have ``effective'' reference free energy for ideal Einstein crystal:
+Using Eq.~\eqref{eqn:5}, we  have ``effective'' reference free energy for ideal Einstein crystal:
 \begin{align} \nonumber
   \tilde A_0
   &=
     A^0_\com + (A - A_\com) \\
   &=
-    Nk_BT\ln \Lambda_p^3 - (N-1)k_BT\ln\Lambda_s^3 - k_BT\ln N^{3/2} + k_BT\ln \rho
+    Nk_BT\ln \Lambda_p^3 - (N-1)k_BT\ln\Lambda_k^3 - k_BT\ln N^{3/2} + k_BT\ln \rho
 \end{align}
+
+Using Eq.~\eqref{eqn:10}, we  have ``effective'' reference free energy for water ideal Einstein crystal:
+\begin{align} \nonumber
+  \tilde A_0
+  &=
+    A^0_\com + (A - A_\com) \\
+  &=
+    Nk_BT\ln \Lambda_p^3 
+    -N_Ok_BT\ln\Lambda_{k,O}^3
+    -N_Hk_BT\ln\Lambda_{k,H}^3
+    + k_BT\ln\Lambda_k^3
+    - k_BT\ln M^{3/2} + k_BT\ln \rho
+\end{align}
+
+
+
 
 
 
@@ -187,10 +295,6 @@ The partition function is written as
       \Big( \frac{2\pi m k_BT}{h^2} \Big)^{\frac{3N}{2}}
       \Big( \frac{2\pi k_BT}{k} \Big)^{\frac{3N-3}{2}}
 \end{align*}
-We let
-\begin{align*}
-  \Lambda_p = \Big(\frac{h^2}{2\pi m k_BT}\Big)^{\frac12}, \quad \Lambda_k = \Big(\frac{2\pi k_BT}{k}\Big)^{\frac12}
-\end{align*}
 Then
 \begin{align*}
   A
@@ -201,6 +305,7 @@ Then
   &=
     k_BT \ln {\rho_O} + Nk_BT \ln \Lambda_p^3 - (N-1) k_BT \ln \Lambda_s^3
 \end{align*}
+
 
 
 \section{Ideal gas with springs}

@@ -24,7 +24,7 @@ def _gen_lammps_input (conf_file,
                        mass_map,
                        lamb,
                        model,
-                       spring_k_,
+                       spring_k,
                        nsteps,
                        dt,
                        ens,
@@ -34,9 +34,10 @@ def _gen_lammps_input (conf_file,
                        tau_p = 0.5,
                        prt_freq = 100, 
                        copies = None,
-                       norm_style = 'first', 
+                       crystal = 'vega', 
                        switch_style = 'both') :
-    spring_k = spring_k_[0]
+    if crystal == 'frenkel' :
+        assert(type(spring_k) == list)
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -66,8 +67,20 @@ def _gen_lammps_input (conf_file,
     ret += 'pair_coeff\n'
     if switch_style == 'both' :
         if 1 - lamb != 0 :
-            ret += 'fix             l_spring all spring/self %.10e\n' % (spring_k * (1 - lamb))
-            ret += 'fix_modify      l_spring energy yes\n'
+            if type(spring_k) is not list :
+                ret += 'fix             l_spring all spring/self %.10e\n' % (spring_k * (1 - lamb))
+                ret += 'fix_modify      l_spring energy yes\n'
+            else :
+                ntypes = len(spring_k)
+                for ii in range(ntypes) :
+                    ret += 'group           type_%s type %s\n' % (ii+1, ii+1)
+                for ii in range(ntypes) :
+                    ret += 'fix             l_spring_%s type_%s spring/self %.10e\n' % (ii+1, ii+1, spring_k[ii] * (1 - lamb))
+                    ret += 'fix_modify      l_spring_%s energy yes\n' % (ii+1)
+                sum_str = 'f_l_spring_1'
+                for ii in range(1,ntypes) :
+                    sum_str += '+f_l_spring_%s' % (ii+1)
+                ret += 'variable        l_spring equal %s\n' % (sum_str)
         ret += 'fix             l_deep all adapt 1 pair deepmd scale * * v_LAMBDA\n'
         ret += 'compute         e_deep all pe pair\n'
     elif switch_style == 'deep_on' :
@@ -86,7 +99,10 @@ def _gen_lammps_input (conf_file,
     ret += 'timestep        %s\n' % dt
     ret += 'thermo          ${THERMO_FREQ}\n'
     if 1 - lamb != 0 :
-        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring c_e_deep\n'
+        if type(spring_k) is not list :        
+            ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring c_e_deep\n'
+        else :
+            ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol v_l_spring c_e_deep\n'
     else :
         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_deep c_e_deep\n'
     ret += 'thermo_modify   format 9 %.16e\n'
@@ -102,17 +118,17 @@ def _gen_lammps_input (conf_file,
         raise RuntimeError('unknow ensemble %s\n' % ens)        
     ret += '# --------------------- INITIALIZE -----------------------\n'    
     ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(0, 2**16))
-    if norm_style == 'com' :
+    if crystal == 'frenkel' :
         ret += 'fix             fc all recenter INIT INIT INIT\n'
         ret += 'fix             fm all momentum 1 linear 1 1 1\n'
         ret += 'velocity        all zero linear\n'
-    elif norm_style == 'first' :
+    elif crystal == 'vega' :
         ret += 'group           first id 1\n'
         ret += 'fix             fc first recenter INIT INIT INIT\n'
         ret += 'fix             fm first momentum 1 linear 1 1 1\n'
         ret += 'velocity        first zero linear\n'
     else :
-        raise RuntimeError('unknow norm_style ' + norm_style)
+        raise RuntimeError('unknow crystal ' + crystal)
     ret += '# --------------------- RUN ------------------------------\n'    
     ret += 'run             ${NSTEPS}\n'
     ret += 'write_data      out.lmp\n'
@@ -189,15 +205,9 @@ def _gen_lammps_input_ideal (conf_file,
 
 
 def make_tasks(iter_name, jdata, ref, switch_style = 'both', crystal = 'vega') :
-    if 'crystal' in jdata and jdata['crystal'] == crystal:
+    if 'crystal' in jdata and jdata['crystal'] != crystal:
         print('crystal = %s overrides the ens in json data' % crystal)
     jdata['crystal'] = crystal
-    if jdata['crystal'] == 'vega' :
-        norm_style = 'first'
-    elif jdata['crystal'] == 'frenkel' :
-        norm_style = 'com'
-    else :
-        raise RuntimeError('ERROR: unknow crystal %s ' % str(crystal))
     all_lambda = parse_seq(jdata['lambda'])
     protect_eps = jdata['protect_eps']
     if all_lambda[0] == 0 and (switch_style == 'both' or switch_style == 'deep_on'):
@@ -212,6 +222,11 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both', crystal = 'vega') :
     nsteps = jdata['nsteps']
     dt = jdata['dt']
     spring_k = jdata['spring_k']
+    if crystal == 'frenkel' :
+        spring_k_1 = []
+        for ii in model_mass_map :
+            spring_k_1.append(spring_k * ii)
+        spring_k = spring_k_1
     stat_freq = jdata['stat_freq']
     copies = None
     if 'copies' in jdata :
@@ -259,7 +274,7 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both', crystal = 'vega') :
                                     prt_freq = stat_freq, 
                                     copies = copies,
                                     switch_style = switch_style, 
-                                    norm_style = norm_style)
+                                    crystal = crystal)
         elif ref == 'ideal' :
             lmp_str \
                 = _gen_lammps_input_ideal('conf.lmp',
