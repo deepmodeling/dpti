@@ -410,9 +410,14 @@ Notice that $V_H = 4\pi\sqrt{2\pi\sigma^2} (r_0^2 + \sigma^2)$
   \langle \bm r_{ij}\cdot\bm F_{ij} \rangle
   &= -6k \sigma^2 = -3 k_BT
 \end{align*}
-so
+The summation $\sum_{i\neq j}$ has $2N_H$ terms, because each O-H pair is counted twice.
+In sum, we have
 \begin{align*}
-  P = \frac{N_O k_BT}{V} + \frac{N_H k_BT}{2V}
+  P = \frac{N_O k_BT}{V}
+\end{align*}
+which is in consistent with
+\begin{align*}
+  P = -\frac{\partial A}{\partial V}
 \end{align*}
 
 \bibliography{ref}{}
