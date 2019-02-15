@@ -314,19 +314,31 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None) :
     print('# natoms: %d' % natoms)
 
     for ii in all_tasks :
+        # get T or P
+        thermo_name = os.path.join(ii, 'thermo.out')
+        tt = float(open(thermo_name).read())
+        all_t.append(tt)
+        # get energy stat
         log_name = os.path.join(ii, 'log.lammps')
         data = get_thermo(log_name)
         np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
         ea, ee = block_avg(data[:, stat_col], 
                            skip = stat_skip, 
                            block_size = stat_bsize)
+        # COM corr
+        if path == 't' or path == 't-ginv' :
+            ea += 1.5 * pc.Boltzmann * tt / pc.electron_volt
+        elif path == 'p' :
+            temp = jdata['temps']
+            ea += 1.5 * pc.Boltzmann * temp / pc.electron_volt
+        else :
+            raise RuntimeError('invalid path setting' )
+        # normalized by number of atoms
         ea /= natoms
         ee /= np.sqrt(natoms)
         all_e.append(ea)
         all_e_err.append(ee)
-        thermo_name = os.path.join(ii, 'thermo.out')
-        tt = float(open(thermo_name).read())
-        all_t.append(tt)
+        # gen integrand
         if path == 't' or path == 't-ginv':
             integrand.append(ea / (tt * tt))
             integrand_err.append(ee / (tt * tt))
