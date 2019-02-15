@@ -204,10 +204,11 @@ def _gen_lammps_input_ideal (conf_file,
     return ret
 
 
-def make_tasks(iter_name, jdata, ref, switch_style = 'both', crystal = 'vega') :
-    if 'crystal' in jdata and jdata['crystal'] != crystal:
-        print('crystal = %s overrides the ens in json data' % crystal)
-    jdata['crystal'] = crystal
+def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
+    if 'crystal' not in jdata:
+        print('do not find crystal in jdata, assume vega')
+        jdata['crystal'] = 'vega'
+    crystal = jdata['crystal']
     all_lambda = parse_seq(jdata['lambda'])
     protect_eps = jdata['protect_eps']
     if all_lambda[0] == 0 and (switch_style == 'both' or switch_style == 'deep_on'):
@@ -542,8 +543,6 @@ def _main ():
                             help='json parameter file')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
-    parser_gen.add_argument('-f','--frenkel', action = 'store_true',
-                            help='use Frenkel\'s Einstein crystal approach: remove COM')
     parser_gen.add_argument('-s','--switch', type=str, default = 'both', 
                             choices=['both', 'deep_on', 'spring_off'], 
                             help='the reference state, einstein crystal or ideal gas')
@@ -565,10 +564,11 @@ def _main ():
     if args.command == 'gen' :
         output = args.output
         jdata = json.load(open(args.PARAM, 'r'))
-        if args.frenkel :
-            make_tasks(output, jdata, 'einstein', args.switch, crystal = 'frenkel')
+        if 'crystal' in jdata and jdata['crystal'] == 'frenkel' :
+            print('# gen task with Frenkel\'s Einstein crystal')
         else :
-            make_tasks(output, jdata, 'einstein', args.switch, crystal = 'vega')
+            print('# gen task with Vega\'s Einstein molecule')
+        make_tasks(output, jdata, 'einstein', args.switch)
     elif args.command == 'compute' :
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))

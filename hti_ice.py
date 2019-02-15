@@ -16,8 +16,6 @@ def _main ():
     parser_gen = subparsers.add_parser('gen', help='Generate a job')
     parser_gen.add_argument('PARAM', type=str ,
                             help='json parameter file')
-    parser_gen.add_argument('-f','--frenkel', action = 'store_true',
-                            help='use Frenkel\'s Einstein crystal approach: remove COM')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
 
@@ -48,12 +46,11 @@ def _main ():
     if args.command == 'gen' :
         output = args.output
         jdata = json.load(open(args.PARAM, 'r'))
-        if args.frenkel :
+        if 'crystal' in jdata and jdata['crystal'] == 'frenkel' :
             print('# gen task with Frenkel\'s Einstein crystal')
-            hti.make_tasks(output, jdata, 'einstein', 'both', crystal = 'frenkel')
         else :
             print('# gen task with Vega\'s Einstein molecule')
-            hti.make_tasks(output, jdata, 'einstein', 'both', crystal = 'vega')
+        hti.make_tasks(output, jdata, 'einstein', 'both')
     elif args.command == 'refine' :
         hti.refine_task(args.input, args.output, args.error)        
     elif args.command == 'compute' :
