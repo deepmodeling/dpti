@@ -535,6 +535,11 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms = None) :
 def refine_task (from_task, to_task, err) :
     from_task = os.path.abspath(from_task)
     to_task = os.path.abspath(to_task)
+    from_json = os.path.join(from_task, 'in.json')
+    to_json = os.path.join(to_task, 'in.json')
+    from_jdata = json.load(open(from_json))
+    to_jdata = from_jdata
+    path = from_jdata['path']
 
     from_ti = os.path.join(from_task, 'ti.out')
     if not os.path.isfile(from_ti) :
@@ -544,7 +549,12 @@ def refine_task (from_task, to_task, err) :
     integrand = tmp_array[:,1]
     ntask = all_t.size
 
-    interval_nrefine = compute_nrefine(all_t, integrand, err, all_t)
+    if path == 't' or path == 't-ginv':
+        interval_nrefine = compute_nrefine(all_t, integrand, err, all_t)
+    elif path == 'p' :
+        interval_nrefine = compute_nrefine(all_t, integrand, err)
+    else :
+        raise RuntimeError('unknow path ' + path)
 
     refined_t = []
     back_map = []
@@ -558,13 +568,14 @@ def refine_task (from_task, to_task, err) :
     refined_t.append(all_t[-1])
     back_map.append(ntask-1)
     
-    from_json = os.path.join(from_task, 'in.json')
-    to_json = os.path.join(to_task, 'in.json')
-    from_jdata = json.load(open(from_json))
-    to_jdata = from_jdata
     if to_jdata['path'] == 't-ginv' :
-        to_jdata['path'] = 't'
-    to_jdata['temps'] = refined_t
+        to_jdata['path'] = 't'        
+    if to_jdata['path'] == 't' :
+        to_jdata['temps'] = refined_t
+    elif to_jdata['path'] == 'p' :
+        to_jdata['press'] = refined_t
+    else :
+        raise RuntimeError('unknow path ' + path)
     to_jdata['orig_task'] = from_task
     to_jdata['back_map'] = back_map
     to_jdata['refine_error'] = err
