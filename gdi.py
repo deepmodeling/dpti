@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
-import os, sys, json, argparse, glob, shutil
+import os, sys, json, argparse, glob, shutil, time
 import numpy as np
 import scipy.constants as pc
-import lib.ti as ti
+import ti
 
 from lib.utils import create_path
 from lib.utils import block_avg
+from lib.RemoteJob import SSHSession, JobStatus, SlurmJob
 
 def _group_slurm_jobs(ssh_sess,
                       resources,
@@ -70,17 +71,17 @@ def _make_tasks_onephase(temp,
     
     # input for NPT MD
     lmp_str \
-        = ti.gen_lammps_input('conf.lmp',
-                              model_mass_map, 
-                              'graph.pb',
-                              nsteps, 
-                              dt,
-                              ens,
-                              temp,
-                              pres,
-                              tau_t = tau_t,
-                              tau_p = tau_p,
-                              prt_freq = stat_freq)
+        = ti._gen_lammps_input('conf.lmp',
+                               model_mass_map, 
+                               'graph.pb',
+                               nsteps, 
+                               dt,
+                               'npt',
+                               temp,
+                               pres,
+                               tau_t = tau_t,
+                               tau_p = tau_p,
+                               prt_freq = stat_freq)
     with open('thermo.out', 'w') as fp :
         fp.write('%.16e %.16e' % (temp, pres))
     with open('in.lammps', 'w') as fp :
@@ -116,29 +117,47 @@ def _setup_dpdt (task_path, jdata) :
         json.dump(jdata, fp, indent=4)
     
 
-def make_dpdt (temp, pres, task_path, mdata, ssh_sess) :
+def make_dpdt (temp,
+               pres,
+               task_path,
+               mdata,
+               ssh_sess,
+               natoms = None,
+               verbose = False) :
     assert(os.path.isdir(task_path))    
 
     cwd = os.getcwd()
-    os.chddir(task_path)
+    os.chdir(task_path)
 
     # check if we need new MD simulations
-    new_task = False
-    if not os.path.isdir('database') :
+    new_task = True
+    if (not os.path.isdir('database')) or \
+       (not os.path.isfile('database/dpdt.out')):
+        if verbose :
+            print('# dpdt: cannot find any MD record, start from scrtach')
         new_task = True
         counter = 0
     else :
-        data = np.loadtxt('database/dpdt.out') 
+        if verbose :
+            print('# dpdt: found MD records, search if any record matches')
+        data = np.loadtxt('database/dpdt.out')
+        data = np.reshape(data, [-1,4])
         counter = data.shape[0]
-        for ii in data :
-            if np.linalg.norm(temp - ii[0]) < 1e4 and \
-               np.linalg.norm(pres - ii[1]) < 1e2 :
+        for ii in range(data.shape[0]) :
+            if (np.linalg.norm(temp - data[ii][0]) < 1e-4) and \
+               (np.linalg.norm(pres - data[ii][1]) < 1e-2) :
+                if verbose :
+                    print('# dpdt: found matched record at %f %f ' % (temp, pres))
                 new_task = False
+                dv = data[ii][2]
+                dh = data[ii][3]
                 break
 
     # new MD simulations are needed
     if new_task :
-        jdata = json.load(open('in.json', 'r'))
+        if verbose :
+            print('# dpdt: do not find any matched record, run new task from %d ' % counter)
+        jdata = json.load(open('in.json', 'r'))        
         # make new task
         work_path = os.path.join('database', 'task.%06d' % counter)
         _make_tasks_onephase(temp, pres, 
@@ -155,7 +174,7 @@ def make_dpdt (temp, pres, task_path, mdata, ssh_sess) :
         resources = mdata['resources']
         lmp_exec = mdata['lmp_command']
         command = lmp_exec + " -i in.lammps > /dev/null"
-        forward_files = ['conf.lmp', 'in.lammps']
+        forward_files = ['conf.lmp', 'in.lammps', 'graph.pb']
         backward_files = ['log.lammps']
         run_tasks = ['0', '1']        
         _group_slurm_jobs(ssh_sess,
@@ -164,9 +183,73 @@ def make_dpdt (temp, pres, task_path, mdata, ssh_sess) :
                           work_path,
                           run_tasks,
                           1,
-                          ['graph.pb'],
+                          [],
                           forward_files,
                           backward_files)
-        
+        # collect resutls
+        log_0 = os.path.join(work_path, '0', 'log.lammps')
+        log_1 = os.path.join(work_path, '1', 'log.lammps')
+        if natoms == None :
+            natoms = [get_natoms('conf.0.lmp'), get_natoms('conf.1.lmp')]
+        stat_skip = jdata['stat_skip']
+        stat_bsize = jdata['stat_bsize']
+        t0 = ti._compute_thermo(log_0, natoms[0], stat_skip, stat_bsize)
+        t1 = ti._compute_thermo(log_1, natoms[1], stat_skip, stat_bsize)
+        dv = t1['v'] - t0['v']
+        dh = t1['h'] - t0['h']
+        with open(os.path.join('database', 'dpdt.out'), 'a') as fp:
+            fp.write('%.16e %.16e %.16e %.16e\n' % \
+                     (temp, pres, dv, dh))            
     os.chdir(cwd)
+    return [dv, dh]
+
+
+class GibbsDuhemFunc (object):
+    def __init__ (self,
+                  jdata,
+                  mdata,
+                  task_path,
+                  inte_dir,
+                  pref = 1.0,
+                  natoms = None,
+                  verbose = False):
+        self.jdata = jdata
+        self.mdata = mdata
+        self.task_path = task_path
+        self.inte_dir = inte_dir
+        self.natoms = natoms
+        self.verbose =  verbose
+        self.pref = pref
         
+        self.ssh_sess = SSHSession(mdata['machine'])
+        if os.path.isdir(task_path) :
+            print('find path ' + task_path + ' use it. The user should guarantee the consistency between the jdata and the found work path ')
+        else :
+            _setup_dpdt(task_path, jdata)
+
+        self.ev2bar = pc.electron_volt / (pc.angstrom ** 3) * 1e-5
+
+    def __call__ (self, x, y) :
+        if self.inte_dir == 't' :
+            # x: temp, y: pres
+            [dv, dh] = make_dpdt(x, y,
+                                 self.task_path, self.mdata, self.ssh_sess, self.natoms, self.verbose)
+            return dh / (x * dv) * self.ev2bar * self.pref
+        elif self.inte_dir == 'p' :
+            # x: pres, y: temp
+            [dv, dh] = make_dpdt(y, x,
+                                 self.task_path, self.mdata, self.ssh_sess, self.natoms, self.verbose)
+            return (y * dv) / dh / self.ev2bar * (1/self.pref)
+
+mdata = json.load(open('machine.json'))
+jdata = json.load(open('in.json'))
+# ssh_sess = SSHSession(mdata['machine'])
+# if not os.path.isdir('gdi_test') :
+#     _setup_dpdt('gdi_test', jdata)
+# make_dpdt(100, 1,  'gdi_test', mdata, ssh_sess, natoms = [96, 128])
+# make_dpdt(100, 20, 'gdi_test', mdata, ssh_sess, natoms = [96, 128])
+
+gdf = GibbsDuhemFunc(jdata, mdata, 'gdi_test', 't', natoms = [96, 128], verbose = True)
+print(gdf(100, 1))
+print(gdf(100, 1))
+print(gdf(200, 20))
