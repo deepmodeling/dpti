@@ -5,8 +5,10 @@ import numpy as np
 import scipy.constants as pc
 import ti
 
+from scipy.integrate import solve_ivp
 from lib.utils import create_path
 from lib.utils import block_avg
+from lib.lammps import get_natoms
 from lib.RemoteJob import SSHSession, JobStatus, SlurmJob
 
 def _group_slurm_jobs(ssh_sess,
@@ -234,22 +236,91 @@ class GibbsDuhemFunc (object):
             # x: temp, y: pres
             [dv, dh] = make_dpdt(x, y,
                                  self.task_path, self.mdata, self.ssh_sess, self.natoms, self.verbose)
-            return dh / (x * dv) * self.ev2bar * self.pref
+            return [dh / (x * dv) * self.ev2bar * self.pref]
         elif self.inte_dir == 'p' :
             # x: pres, y: temp
             [dv, dh] = make_dpdt(y, x,
                                  self.task_path, self.mdata, self.ssh_sess, self.natoms, self.verbose)
-            return (y * dv) / dh / self.ev2bar * (1/self.pref)
+            return [(y * dv) / dh / self.ev2bar * (1/self.pref)]
 
-mdata = json.load(open('machine.json'))
-jdata = json.load(open('in.json'))
-# ssh_sess = SSHSession(mdata['machine'])
-# if not os.path.isdir('gdi_test') :
-#     _setup_dpdt('gdi_test', jdata)
-# make_dpdt(100, 1,  'gdi_test', mdata, ssh_sess, natoms = [96, 128])
-# make_dpdt(100, 20, 'gdi_test', mdata, ssh_sess, natoms = [96, 128])
 
-gdf = GibbsDuhemFunc(jdata, mdata, 'gdi_test', 't', natoms = [96, 128], verbose = True)
-print(gdf(100, 1))
-print(gdf(100, 1))
-print(gdf(200, 20))
+def _main () :
+    parser = argparse.ArgumentParser(
+        description="Compute the phase boundary via Gibbs-Duhem integration")
+    parser.add_argument('PARAM', type=str ,
+                        help='json parameter file')
+    parser.add_argument('MACHINE', type=str ,
+                        help='json machine file')
+    parser.add_argument('-b','--begin', type=float ,
+                        help='start of the integration')
+    parser.add_argument('-e','--end', type=float ,
+                        help='end of the integration')
+    parser.add_argument('-d','--direction', type=str, choices=['t','p'],
+                        help='direction of the integration, along T or P')
+    parser.add_argument('-i','--initial-value', type=float,
+                        help='the initial value of T (direction=p) or P (direction=t)')
+    parser.add_argument('-a','--abs-tol', type=float, default = 10,
+                        help='the absolute tolerance of the integration')
+    parser.add_argument('-r','--rel-tol', type=float, default = 1e-2,
+                        help='the relative tolerance of the integration')
+    parser.add_argument('-w','--water', action = 'store_true',
+                        help='assumes water molecules: nmols = natoms//3')
+    parser.add_argument('-o','--output', type=str, default = 'new_job',
+                        help='the output folder for the job')
+    parser.add_argument('-v','--verbose', action = 'store_true',
+                        help='print detailed infomation')
+    args = parser.parse_args()
+    
+    jdata = json.load(open(args.PARAM))
+    mdata = json.load(open(args.MACHINE))
+    natoms = None
+    if args.water :
+        conf_0 = jdata['phase_i']['equi_conf']
+        conf_1 = jdata['phase_ii']['equi_conf']
+        natoms = [get_natoms(conf_0), get_natoms(conf_1)]
+        natoms = [ii // 3  for ii in natoms]
+    print (natoms)
+        
+    gdf = GibbsDuhemFunc(jdata,
+                         mdata,
+                         args.output,
+                         args.direction,
+                         natoms = natoms,
+                         verbose = args.verbose)
+    sol = solve_ivp(gdf,
+                    [args.begin, args.end],
+                    [args.initial_value],
+                    method = 'RK23',
+                    atol=args.abs_tol,
+                    rtol=args.rel_tol)
+
+    if args.path == 't' :
+        tmp = np.concatenate([sol.t, sol.y[0]])
+    else :
+        tmp = np.concatenate([sol.y[0], sol.t])        
+
+    tmp = np.reshape(tmp, [2,-1])
+    np.savetxt(os.path.join(args.output, 'pb.out'), tmp.T)
+
+
+if __name__ == '__main__' :
+    _main()        
+    
+# mdata = json.load(open('machine.json'))
+# jdata = json.load(open('in.json'))
+# # ssh_sess = SSHSession(mdata['machine'])
+# # if not os.path.isdir('gdi_test') :
+# #     _setup_dpdt('gdi_test', jdata)
+# # make_dpdt(100, 1,  'gdi_test', mdata, ssh_sess, natoms = [96, 128])
+# # make_dpdt(100, 20, 'gdi_test', mdata, ssh_sess, natoms = [96, 128])
+
+# gdf = GibbsDuhemFunc(jdata, mdata, 'gdi_test', 'p', natoms = [96, 128], verbose = True)
+
+# sol = solve_ivp(gdf, [1, 20000], [363], method = 'RK23', atol=10, rtol=1e-2)
+# print(sol.t)
+# print(sol.y)
+# np.savetxt('t.out', sol.t)
+# np.savetxt('p.out', sol.y)
+# # print(gdf(100, 1))
+# # print(gdf(100, 1))
+# # print(gdf(200, 20))
