@@ -117,10 +117,11 @@ def _setup_dpdt (task_path, jdata) :
 
     with open(os.path.join(os.path.abspath(task_path), 'in.json'), 'w') as fp:
         json.dump(jdata, fp, indent=4)
-    
+
 
 def make_dpdt (temp,
                pres,
+               inte_dir,
                task_path,
                mdata,
                ssh_sess,
@@ -155,6 +156,33 @@ def make_dpdt (temp,
                 dh = data[ii][3]
                 break
 
+    # try to find nearest simulation
+    if new_task and os.path.isfile('database/dpdt.out'):
+        data = np.loadtxt('database/dpdt.out')
+        data = np.reshape(data, [-1,4])
+        min_idx = -1
+        min_val = 1e10
+        if inte_dir == 't' :
+            for ii in range(data.shape[0]) :
+                dist = np.abs(data[ii][0] - temp)
+                if dist < min_val :
+                    min_val = dist
+                    min_idx = ii
+        elif inte_dir == 'p' :
+            for ii in range(data.shape[0]) :
+                dist = np.abs(data[ii][1] - pres)
+                if dist < min_val :
+                    min_val = dist
+                    min_idx = ii
+        else :
+            raise RuntimeError("invalid inte_dir " + inte_dir)
+        assert(min_idx >= 0)
+        conf_0 = os.path.join('database', 'task.%06d' % min_idx, '0', 'out.lmp')
+        conf_1 = os.path.join('database', 'task.%06d' % min_idx, '1', 'out.lmp')
+    else :
+        conf_0 = 'conf.0.lmp'
+        conf_1 = 'conf.1.lmp'
+
     # new MD simulations are needed
     if new_task :
         if verbose :
@@ -165,19 +193,19 @@ def make_dpdt (temp,
         _make_tasks_onephase(temp, pres, 
                              os.path.join(work_path, '0'),
                              jdata, 
-                             conf_file = 'conf.0.lmp', 
+                             conf_file = conf_0,
                              graph_file = 'graph.pb')
         _make_tasks_onephase(temp, pres, 
                              os.path.join(work_path, '1'),
                              jdata, 
-                             conf_file = 'conf.1.lmp', 
+                             conf_file = conf_1,
                              graph_file = 'graph.pb')
         # submit new task
         resources = mdata['resources']
         lmp_exec = mdata['lmp_command']
         command = lmp_exec + " -i in.lammps > /dev/null"
         forward_files = ['conf.lmp', 'in.lammps', 'graph.pb']
-        backward_files = ['log.lammps']
+        backward_files = ['log.lammps', 'out.lmp']
         run_tasks = ['0', '1']        
         _group_slurm_jobs(ssh_sess,
                           resources,
@@ -235,11 +263,13 @@ class GibbsDuhemFunc (object):
         if self.inte_dir == 't' :
             # x: temp, y: pres
             [dv, dh] = make_dpdt(x, y,
+                                 self.inte_dir,
                                  self.task_path, self.mdata, self.ssh_sess, self.natoms, self.verbose)
             return [dh / (x * dv) * self.ev2bar * self.pref]
         elif self.inte_dir == 'p' :
             # x: pres, y: temp
             [dv, dh] = make_dpdt(y, x,
+                                 self.inte_dir,
                                  self.task_path, self.mdata, self.ssh_sess, self.natoms, self.verbose)
             return [(y * dv) / dh / self.ev2bar * (1/self.pref)]
 
@@ -259,6 +289,8 @@ def _main () :
                         help='direction of the integration, along T or P')
     parser.add_argument('-i','--initial-value', type=float,
                         help='the initial value of T (direction=p) or P (direction=t)')
+    parser.add_argument('-s','--step-value', type=float, nargs = '+',
+                        help='the T (direction=t) or P (direction=p) values must be evaluated')
     parser.add_argument('-a','--abs-tol', type=float, default = 10,
                         help='the absolute tolerance of the integration')
     parser.add_argument('-r','--rel-tol', type=float, default = 1e-2,
@@ -290,11 +322,12 @@ def _main () :
     sol = solve_ivp(gdf,
                     [args.begin, args.end],
                     [args.initial_value],
+                    t_eval = args.step_value,
                     method = 'RK23',
                     atol=args.abs_tol,
                     rtol=args.rel_tol)
 
-    if args.path == 't' :
+    if args.direction == 't' :
         tmp = np.concatenate([sol.t, sol.y[0]])
     else :
         tmp = np.concatenate([sol.y[0], sol.t])        
