@@ -22,11 +22,14 @@ def _get_block (lines, key) :
 def get_atype(lines) :
     blk, head = _get_block(lines, 'ATOMS')
     keys = head.split()
+    id_idx = keys.index('id') - 2
     tidx = keys.index('type') - 2
     atype = []
     for ii in blk :
-        atype.append(int(ii.split()[tidx]))
-    return np.array(atype, dtype = int)
+        atype.append([int(ii.split()[id_idx]), int(ii.split()[tidx])])
+    atype.sort()
+    atype = np.array(atype, dtype = int)
+    return atype[:,1]
 
 def get_natoms(lines) :
     blk, head = _get_block(lines, 'NUMBER OF ATOMS')
@@ -48,6 +51,7 @@ def get_natoms_vec(lines) :
 def get_posi(lines) :
     blk, head = _get_block(lines, 'ATOMS')
     keys = head.split()
+    id_idx = keys.index('id') - 2
     xidx = keys.index('x') - 2
     yidx = keys.index('y') - 2
     zidx = keys.index('z') - 2
@@ -55,8 +59,10 @@ def get_posi(lines) :
     posis = []
     for ii in blk :
         words = ii.split()
-        posis.append([float(words[xidx]), float(words[yidx]), float(words[zidx])])
-    return np.array(posis)
+        posis.append([float(words[id_idx]), float(words[xidx]), float(words[yidx]), float(words[zidx])])
+    posis.sort()
+    posis = np.array(posis)     
+    return posis[:,1:4]
 
 def get_dumpbox(lines) :
     blk, h = _get_block(lines, 'BOX BOUNDS')
@@ -110,6 +116,27 @@ def system_data(lines) :
     system['atom_types'] = get_atype(lines)
     system['coordinates'] = get_posi(lines)
     return system
+
+
+def split_traj(dump_lines) :
+    marks = []
+    for idx,ii in enumerate(dump_lines) :
+        if 'ITEM: TIMESTEP' in ii :
+            marks.append(idx) 
+    if len(marks) == 0 :
+        return None
+    elif len(marks) == 1 :
+        return [dump_lines]
+    else :
+        block_size = marks[1] - marks[0]
+        ret = []
+        for ii in marks :
+            ret.append(dump_lines[ii:ii+block_size])
+        # for ii in range(len(marks)-1): 
+        #     assert(marks[ii+1] - marks[ii] == block_size)
+        return ret    
+    return None
+
 
 if __name__ == '__main__' :
     fname = 'dump.hti'
