@@ -153,11 +153,114 @@ def add_bonds (lines_, max_roh = 1.3) :
     return lines
 
 
+def min_oo (box, atype, posis) :
+    natoms = len(posis)
+    min_dist = 1e10 * np.ones([natoms])
+    for ii in range(natoms) :
+        for jj in range(ii+1,natoms) :
+            if atype[ii] == 1 and atype[jj] == 1 :
+                dij = np.linalg.norm(posi_diff(box, posis[ii], posis[jj]))
+                if dij < min_dist[ii] :
+                    min_dist[ii] = dij
+                if dij < min_dist[jj] :
+                    min_dist[jj] = dij
+    _min_dist = []
+    for ii in min_dist :
+        if ii != 1e10 :
+            _min_dist.append(ii)
+    return _min_dist
+
+
+def min_ho (box, atype, posis) :
+    natoms = len(posis)
+    min_dist = 1e10 * np.ones([natoms])
+    for ii in range(natoms) :
+        for jj in range(natoms) :
+            if atype[ii] == 2 and atype[jj] == 1 :
+                dij = np.linalg.norm(posi_diff(box, posis[ii], posis[jj]))
+                if dij < min_dist[ii] :
+                    min_dist[ii] = dij
+    _min_dist = []
+    for ii in min_dist :
+        if ii != 1e10 :
+            _min_dist.append(ii)
+    return _min_dist        
+
+
+def min_oho (box, atype, posis) :
+    natoms = len(posis)
+    dist_oh = []
+    dist_oh2 = []
+    dist_oo = []
+    for ii in range(natoms) :
+        if atype[ii] == 1 :
+            continue
+        all_dist = []
+        for jj in range(natoms) :
+            if atype[jj] != 1 :
+                continue
+            dij = np.linalg.norm(posi_diff(box, posis[ii], posis[jj]))
+            all_dist.append([dij, jj])
+        all_dist.sort()
+        doo = np.linalg.norm(posi_diff(box, 
+                                       posis[all_dist[0][1]], 
+                                       posis[all_dist[1][1]]
+        ))
+        dist_oh.append(all_dist[0][0])
+        dist_oh2.append(all_dist[1][0])
+        dist_oo.append(doo)
+    # assume O-H..O
+    # dist O-H, dist H..O, dist O-O
+    return dist_oh, dist_oh2, dist_oo
+
+
+def min_oh_list(box, atype, posis) :
+    natoms = len(posis)
+    list_oh = []
+    for ii in range(natoms) :
+        if atype[ii] == 1 :
+            continue
+        all_dist = []
+        for jj in range(natoms) :
+            if atype[jj] != 1 :
+                continue
+            dij = np.linalg.norm(posi_diff(box, posis[ii], posis[jj]))
+            all_dist.append([dij, jj])
+        all_dist.sort()
+        doo = np.linalg.norm(posi_diff(box, 
+                                       posis[all_dist[0][1]], 
+                                       posis[all_dist[1][1]]
+        ))
+        list_oh.append([all_dist[0][1], ii])
+    # assume O-H..O
+    # dist O-H, dist H..O, dist O-O
+    return list_oh
+
+
+def dist_via_oh_list(box, posis, list_oh) :
+    dist = []
+    for ii in list_oh :
+        dij = np.linalg.norm(posi_diff(box, posis[ii[0]], posis[ii[1]]))
+        dist.append(dij)
+    return dist
+
+
 if __name__ == '__main__' :
-    fname = 'ice0c.1e0.lmp'
+    fname = 'conf.lmp'
     lines = open(fname).read().split('\n')
-    lines = add_bonds(lines)
+    # lines = add_bonds(lines)
     # print('\n'.join(ret_bd))
     # print('\n'.join(ret_ang))
 
-    open('tmp.lmp', 'w').write('\n'.join(lines))
+    atype = lmp.get_atype(lines)
+    posis = lmp.get_posi(lines)
+    bounds, tilt = lmp.get_lmpbox(lines)
+    orig, box = lmp.lmpbox2box(bounds, tilt)
+
+    # md_oo = min_oo(box, atype, posis)
+    # md_ho = min_ho(box, atype, posis)
+    # print(np.average(md_oo), np.average(md_ho), np.min(md_ho), np.max(md_ho))
+
+    moh, moh2, moo = min_oho(box, atype, posis)
+    print(np.average(moh), np.average(moh2), np.average(moo))
+
