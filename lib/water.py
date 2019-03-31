@@ -36,7 +36,9 @@ def posi_shift(box, r0, r1) :
             shift[dd] += 1
     return shift
 
-def compute_bonds(box, atype, posis, max_roh = 1.3):
+def compute_bonds(box, atype, posis, 
+                  max_roh = 1.3, 
+                  uniq_hbond = True):
     natoms = len(posis)
     bonds = []
     for ii in range(natoms) :
@@ -49,6 +51,25 @@ def compute_bonds(box, atype, posis, max_roh = 1.3):
                     if np.linalg.norm(dr) < max_roh :
                         bonds[ii].append(jj)
                         bonds[jj].append(ii)
+    if uniq_hbond :
+        for jj in range(natoms) :
+            if atype[jj] == 2 :
+                if len(bonds[jj]) > 1 :
+                    orig_bonds = bonds[jj]
+                    min_bd = 1e10
+                    min_idx = -1
+                    for ii in bonds[jj] :
+                        dr = posi_diff(box, posis[ii], posis[jj])
+                        drr = np.linalg.norm(dr)
+                        # print(ii,jj, posis[ii], posis[jj], drr)
+                        if drr < min_bd :
+                            min_idx = ii
+                            min_bd = drr
+                    bonds[jj] = [min_idx]
+                    orig_bonds.remove(min_idx)
+                    # print(min_idx, orig_bonds, bonds[jj])
+                    for ii in orig_bonds :
+                        bonds[ii].remove(jj)
     return bonds
 
 
@@ -262,5 +283,5 @@ if __name__ == '__main__' :
     # print(np.average(md_oo), np.average(md_ho), np.min(md_ho), np.max(md_ho))
 
     moh, moh2, moo = min_oho(box, atype, posis)
-    print(np.average(moh), np.average(moh2), np.average(moo))
+    print(np.max(moh), np.average(moh2), np.average(moo))
 
