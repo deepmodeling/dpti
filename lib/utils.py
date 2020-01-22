@@ -101,15 +101,15 @@ def parse_seq(in_s) :
         raise RuntimeError("the type of seq should be one of: string, list_of_strings, list_of_floats")
     return np.array(all_l)
 
-def integrate(xx, yy) :
-    diff_e = 0
-    ntasks = len(xx) - 1
-    assert (len(yy) - 1 == ntasks)
-    for ii in range(ntasks) :
-        diff_e += 0.5 * (xx[ii+1] - xx[ii]) * (yy[ii+1] + yy[ii])
-    return (diff_e)
+# def integrate(xx, yy) :
+#     diff_e = 0
+#     ntasks = len(xx) - 1
+#     assert (len(yy) - 1 == ntasks)
+#     for ii in range(ntasks) :
+#         diff_e += 0.5 * (xx[ii+1] - xx[ii]) * (yy[ii+1] + yy[ii])
+#     return (diff_e)
     
-def integrate(xx, yy, ye) :
+def integrate_trapezoidal(xx, yy, ye) :
     diff_e = 0
     err = 0
     ntasks = len(xx) - 1
@@ -119,7 +119,59 @@ def integrate(xx, yy, ye) :
         err += np.square(0.5 * (xx[ii+1] - xx[ii]) * ye[ii+1])
         err += np.square(0.5 * (xx[ii+1] - xx[ii]) * ye[ii])
     return diff_e, np.sqrt(err)
-    
+
+def integrate_simpson(xx, yy, ye):
+    if len(xx) % 2 == 0:
+        diff_e, err = integrate_simpson(xx[:-1], yy[:-1], ye[:-1])
+        diff_e1, err1 = integrate_trapezoidal(xx[-2:], yy[-2:], ye[-2:])
+        return diff_e+diff_e1, np.linalg.norm([err, err1])
+    else:
+        diff_e = 0
+        err = 0
+        for ii in range(0, len(xx)-2, 2):
+            two_h = (xx[ii+2] - xx[ii])
+            diff_e += 1./6. * two_h * (yy[ii] + 4.*yy[ii+1] + yy[ii+2])
+            err += np.square(1./6. * two_h * 1. * ye[ii])
+            err += np.square(1./6. * two_h * 4. * ye[ii+1])
+            err += np.square(1./6. * two_h * 1. * ye[ii+2])
+        return diff_e, np.sqrt(err)
+
+def integrate_simpson_nonuniform(x, f, fe):
+    N = len(x) - 1
+    h = np.diff(x)
+    result = 0.0
+    error = 0.0
+    for i in range(1, N, 2):
+        hph = h[i] + h[i-1]
+        pref1 = ( h[i]**3 + h[i-1]**3 + 3. * h[i] * h[i-1] * hph ) / ( 6 * h[i] * h[i-1] )
+        pref0 = ( 2. * h[i-1]**3 - h[i]**3 + 3. * h[i] * h[i-1]**2) / ( 6 * h[i-1] * hph)
+        pref2 = ( 2. * h[i]**3 - h[i-1]**3 + 3. * h[i-1] * h[i]**2) / ( 6 * h[i] * hph )
+        result += f[i  ] * pref1
+        result += f[i-1] * pref0
+        result += f[i+1] * pref2
+        error += np.square(fe[i  ] * pref1)
+        error += np.square(fe[i-1] * pref0)
+        error += np.square(fe[i+1] * pref2)
+    if (N + 1) % 2 == 0:
+        pref1 = ( 2 * h[N-1]**2 + 3. * h[N-2] * h[N-1]) / ( 6 * ( h[N-2] + h[N-1] ) )
+        pref0 = ( h[N-1]**2 + 3*h[N-1]* h[N-2] ) / ( 6 * h[N-2] )
+        pref2 = h[N-1]**3 / ( 6 * h[N-2] * ( h[N-2] + h[N-1] ) )
+        result += f[N  ] * pref1
+        result += f[N-1] * pref0
+        result -= f[N-2] * pref2
+        error += np.square(fe[N  ] * pref1)
+        error += np.square(fe[N-1] * pref0)
+        error += np.square(fe[N-2] * pref2)
+    return result, np.sqrt(error)
+
+def integrate(xx, yy, ye, scheme_ = 's'):
+    scheme = (scheme_.lower()[0])
+    if scheme == 't':
+        return integrate_trapezoidal(xx, yy, ye)
+    elif scheme == 's':
+        return integrate_simpson_nonuniform(xx, yy, ye)
+    else:
+        raise RuntimeError('unknow integration scheme', scheme_)
 
 def _interval_deriv2 (xx, yy) :
     mat = np.ones([3, 3])
@@ -174,7 +226,7 @@ def compute_nrefine (all_t, integrand, err, error_scale = None) :
     for ii in range(ntask-1) :
         err_dist = err * (all_t[ii+1] - all_t[ii]) / (all_t[-1] - all_t[0])
         interval_nrefine.append(max(1, int(np.ceil(np.sqrt(interval_err[ii] / err_dist)))))
-    print(interval_nrefine)
+    #print(interval_nrefine)
     assert(len(interval_nrefine) == len(interval_err))
 
     return interval_nrefine
@@ -188,3 +240,16 @@ def get_task_file_abspath(task_name, file_name):
     os.chdir(cwd)
     return equi_conf
 
+
+if __name__ == '__main__':
+    ninter = 7
+    error = 1e-2
+    xx = np.arange(0, 1+1e-10, 1./ninter)
+    yy = np.exp(xx)
+    ye = np.random.random([ninter+1]) * error
+    diff0, err0 = integrate_simpson(xx, yy, ye)
+    diff1, err1 = integrate_simpson_nonuniform(xx, yy, ye)
+    real_err0 = np.abs(np.exp(1) - np.exp(0) - diff0)
+    real_err1 = np.abs(np.exp(1) - np.exp(0) - diff1)
+    print('real_error %.2e\nstat_error %.2e' % (real_err0, err0))
+    print('real_error %.2e\nstat_error %.2e' % (real_err1, err1))
