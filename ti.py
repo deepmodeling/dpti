@@ -77,7 +77,7 @@ def _gen_lammps_input (conf_file,
         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol\n'
     else :
         raise RuntimeError('unknow ensemble %s\n' % ens)                
-    # ret += 'dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
+    ret += '# dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z\n'
     if ens == 'nvt' :
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
     elif ens == 'npt-iso' or ens == 'npt':

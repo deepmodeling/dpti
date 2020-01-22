@@ -297,7 +297,7 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
         os.chdir(cwd)
 
 
-def refine_task (from_task, to_task, err) :
+def refine_task (from_task, to_task, err, print_ref=False) :
     from_task = os.path.abspath(from_task)
     to_task = os.path.abspath(to_task)
     
@@ -310,6 +310,9 @@ def refine_task (from_task, to_task, err) :
     ntask = all_t.size
 
     interval_nrefine = compute_nrefine(all_t, integrand, err)
+    if print_ref:
+        print(interval_nrefine)
+        return
 
     refined_t = []
     back_map = []

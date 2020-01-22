@@ -38,6 +38,8 @@ def _main ():
                              help='output job')
     parser_comp.add_argument('-e', '--error', type=float, required=True,
                              help='the error required')
+    parser_comp.add_argument('-p', '--print', action = 'store_true',
+                             help='print the refinement and exit')
     args = parser.parse_args()
 
     if args.command is None :
@@ -52,7 +54,7 @@ def _main ():
             print('# gen task with Vega\'s Einstein molecule')
         hti.make_tasks(output, jdata, 'einstein', 'both')
     elif args.command == 'refine' :
-        hti.refine_task(args.input, args.output, args.error)        
+        hti.refine_task(args.input, args.output, args.error, args.print)        
     elif args.command == 'compute' :
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))

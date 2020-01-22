@@ -44,7 +44,7 @@ def _group_slurm_jobs(ssh_sess,
                     rjob.download(task_chunks[idx], backward_task_files)
                     rjob.clean()
                     job_fin[idx] = True
-        time.sleep(10)
+        time.sleep(30)
 
 def _make_tasks_onephase(temp, 
                          pres, 
