@@ -9,8 +9,8 @@ import einstein
 from lib.utils import create_path
 from lib.utils import copy_file_list
 from lib.utils import block_avg
-from lib.utils import integrate
-from lib.utils import integrate_sys_err
+from lib.utils import integrate_range
+# from lib.utils import integrate_sys_err
 from lib.utils import compute_nrefine
 from lib.utils import parse_seq
 from lib.utils import get_task_file_abspath
@@ -382,7 +382,7 @@ def _compute_thermo(fname, natoms, stat_skip, stat_bsize) :
     thermo_info['pv_err'] = pe * va * unit_cvt  / np.sqrt(natoms)
     return thermo_info
 
-def post_tasks(iter_name, jdata, natoms = None) :
+def post_tasks(iter_name, jdata, natoms = None, scheme = 's') :
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
     all_tasks = glob.glob(os.path.join(iter_name, 'task.[0-9]*'))
@@ -443,8 +443,22 @@ def post_tasks(iter_name, jdata, natoms = None) :
                fmt = '%.8e', 
                header = 'lmbda dU dU_err Ud Us Ud_err Us_err')
 
-    diff_e, err = integrate(all_lambda, de, all_err)
-    sys_err = integrate_sys_err(all_lambda, de)
+    new_lambda, i, i_e, s_e = integrate_range(all_lambda, de, all_err, scheme = scheme)
+    if new_lambda[-1] != all_lambda[-1] :
+        if new_lambda[-1] == all_lambda[-2]:
+            _, i1, i_e1, s_e1 = integrate_range(all_lambda[-2:], de[-2:], all_err[-2:], scheme='t')
+            diff_e = i[-1] + i1[-1]
+            err = np.linalg.norm([s_e[-1], s_e1[-1]])
+            sys_err = i_e[-1] + i_e1[-1]
+        else :
+            raise RuntimeError("lambda does not match!")
+    else:
+        diff_e = i[-1]
+        err = s_e[-1]
+        sys_err = i_e[-1]
+    
+    # diff_e, err = integrate(all_lambda, de, all_err)
+    # sys_err = integrate_sys_err(all_lambda, de)
 
     path_endpnt = os.path.join(iter_name, 'task.endpnt')
     if os.path.isdir(path_endpnt) :
@@ -559,6 +573,8 @@ def _main ():
     parser_comp.add_argument('-m','--inte-method', type=str, default = 'inte', 
                              choices=['inte', 'mbar'], 
                              help='the method of thermodynamic integration')
+    parser_comp.add_argument('-s','--scheme', type=str, default = 'simpson', 
+                             help='the numeric integration scheme')
     args = parser.parse_args()
 
     if args.command is None :
@@ -579,7 +595,7 @@ def _main ():
             jdata['reference'] = 'einstein'
         e0 = einstein.free_energy(job)
         if args.inte_method == 'inte' :
-            de, de_err, thermo_info = post_tasks(job, jdata)
+            de, de_err, thermo_info = post_tasks(job, jdata, scheme = args.scheme)
         elif args.inte_method == 'mbar':
             de, de_err, thermo_info = post_tasks_mbar(job, jdata)
         else :

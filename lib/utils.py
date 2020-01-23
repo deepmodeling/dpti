@@ -242,7 +242,7 @@ def integrate_range_trapezoidal(xx, yy, ye):
     inte = np.zeros([nn])
     stat_err = np.zeros([nn])
     inte_err = np.zeros([nn])
-    stat_err[0] = ye[0]
+    # stat_err[0] = ye[0]
     for ii in range(1, nn):
         inter_i, inter_se = integrate_trapezoidal(xx[ii-1:ii+1], yy[ii-1:ii+1], ye[ii-1:ii+1])
         inte[ii] = inte[ii-1] + inter_i
@@ -260,7 +260,8 @@ def _integrate_range_simpson_inner(xx, yy, ye):
     nn = xx.size
     new_xx = [xx[0]]
     inte = [0]
-    stat_err = [ye[0]]
+    # stat_err = [ye[0]]
+    stat_err = [0]
     inte_err = [0]
     for ii in range(2, nn, 2):
         inter_i, inter_se = integrate_simpson_nonuniform(xx[ii-2:ii+1], yy[ii-2:ii+1], ye[ii-2:ii+1])
@@ -294,15 +295,15 @@ def integrate_range_simpson(xx, yy, ye):
             inte_err0[ii] = diff3[ii//2]    
     return xx0, inte0, inte_err0, stat_err0
 
-def integrate_range (xx, yy, ye, scheme_ = 's') :
-    scheme = (scheme_.lower()[0])
-    if scheme == 't':
+def integrate_range (xx, yy, ye, scheme = 's') :
+    scheme_ = (scheme.lower()[0])
+    if scheme_ == 't':
         return integrate_range_trapezoidal(xx, yy, ye)
-    elif scheme == 's':
+    elif scheme_ == 's':
         return integrate_range_simpson(xx, yy, ye)
         pass
     else:
-        raise RuntimeError('unknow integration scheme', scheme_)
+        raise RuntimeError('unknow integration scheme', scheme)
 
 
 def compute_nrefine (all_t, integrand, err, error_scale = None) :
@@ -337,11 +338,13 @@ def get_task_file_abspath(task_name, file_name):
 
 
 if __name__ == '__main__':
-    ninter = 4
-    error = 1e-10
+    ninter = 20
+    error = 1e-1
     xx = np.arange(0, 1+1e-10, 1./ninter)
     yy = np.exp(xx)
-    ye = np.random.random([ninter+1]) * error
+    ye = np.ones(xx.shape) * error / np.sqrt(12)
+    yy = yy + (np.random.random([ninter+1]) * error - 0.5 * error)
+    print('here', np.random.random([ninter+1]) * error - 0.5 * error)
     # diff0, err0 = integrate_simpson(xx, yy, ye)
     # diff1, err1 = integrate_simpson_nonuniform(xx, yy, ye)
     # real_err0 = np.abs(np.exp(1) - np.exp(0) - diff0)

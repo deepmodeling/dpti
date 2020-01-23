@@ -11,8 +11,8 @@ import pymbar
 from lib.utils import create_path
 from lib.utils import copy_file_list
 from lib.utils import block_avg
-from lib.utils import integrate
-from lib.utils import integrate_sys_err
+from lib.utils import integrate_range
+# from lib.utils import integrate_sys_err
 from lib.utils import compute_nrefine
 from lib.utils import parse_seq
 from lib.utils import get_task_file_abspath
@@ -403,7 +403,7 @@ def _compute_thermo(fname, natoms, stat_skip, stat_bsize) :
     thermo_info['pv_err'] = pe * va * unit_cvt  / np.sqrt(natoms)
     return thermo_info
 
-def _post_tasks(iter_name, step, natoms) :
+def _post_tasks(iter_name, step, natoms, scheme = 's') :
     jdata = json.load(open(os.path.join(iter_name, 'in.json')))
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
@@ -473,8 +473,22 @@ def _post_tasks(iter_name, step, natoms) :
                fmt = '%.8e', 
                header = 'lmbda dU dU_err')
 
-    diff_e, err = integrate(all_lambda, de, all_err)
-    sys_err = integrate_sys_err(all_lambda, de)
+    new_lambda, i, i_e, s_e = integrate_range(all_lambda, de, all_err, scheme = scheme)
+    if new_lambda[-1] != all_lambda[-1] :
+        if new_lambda[-1] == all_lambda[-2]:
+            _, i1, i_e1, s_e1 = integrate_range(all_lambda[-2:], de[-2:], all_err[-2:], scheme='t')
+            diff_e = i[-1] + i1[-1]
+            err = np.linalg.norm([s_e[-1], s_e1[-1]])
+            sys_err = i_e[-1] + i_e1[-1]
+        else :
+            raise RuntimeError("lambda does not match!")
+    else:
+        diff_e = i[-1]
+        err = s_e[-1]
+        sys_err = i_e[-1]
+
+    # diff_e, err = integrate(all_lambda, de, all_err)
+    # sys_err = integrate_sys_err(all_lambda, de)
 
     thermo_info = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), 
                                   natoms,
@@ -607,13 +621,13 @@ def compute_ideal_mol(iter_name) :
     fe *= pc.Boltzmann * temp / pc.electron_volt
     return fe / natoms_o
 
-def post_tasks(iter_name, natoms, method = 'inte') :
+def post_tasks(iter_name, natoms, method = 'inte', scheme = 's') :
     subtask_name = os.path.join(iter_name, '00.angle_on')
     fe = compute_ideal_mol(subtask_name)
     print('# fe of ideal mol: %20.12f' % fe)
 #    print('# fe of ideal gas: %20.12f' % (einstein.ideal_gas_fe(subtask_name) * 3))
     if method == 'inte' :
-        e0, err0, tinfo0 = _post_tasks(subtask_name, 'angle_on', natoms)
+        e0, err0, tinfo0 = _post_tasks(subtask_name, 'angle_on', natoms, scheme=scheme)
     elif method == 'mbar' :
         e0, err0, tinfo0 = _post_tasks_mbar(subtask_name, 'angle_on', natoms)
     print('# fe of angle_on : %20.12f  %10.3e %10.3e' % (e0, err0[0], err0[1]))
@@ -621,7 +635,7 @@ def post_tasks(iter_name, natoms, method = 'inte') :
     # print(e, err)
     subtask_name = os.path.join(iter_name, '01.deep_on')
     if method == 'inte' :
-        e1, err1, tinfo1 = _post_tasks(subtask_name, 'deep_on', natoms)
+        e1, err1, tinfo1 = _post_tasks(subtask_name, 'deep_on', natoms, scheme=scheme)
     elif method == 'mbar' :
         e1, err1, tinfo1 = _post_tasks_mbar(subtask_name, 'deep_on', natoms)
     print('# fe of deep_on  : %20.12f  %10.3e %10.3e' % (e1, err1[0], err1[1]))
@@ -629,7 +643,7 @@ def post_tasks(iter_name, natoms, method = 'inte') :
     # print(e, err)
     subtask_name = os.path.join(iter_name, '02.bond_angle_off')
     if method == 'inte' :
-        e2, err2, tinfo2 = _post_tasks(subtask_name, 'bond_angle_off', natoms)
+        e2, err2, tinfo2 = _post_tasks(subtask_name, 'bond_angle_off', natoms, scheme=scheme)
     elif method == 'mbar' :
         e2, err2, tinfo2 = _post_tasks_mbar(subtask_name, 'bond_angle_off', natoms)
     print('# fe of bond_off : %20.12f  %10.3e %10.3e' % (e2, err2[0], err2[1]))
@@ -661,6 +675,8 @@ def _main ():
     parser_comp.add_argument('-m','--inte-method', type=str, default = 'inte', 
                              choices=['inte', 'mbar'], 
                              help='the method of thermodynamic integration')
+    parser_comp.add_argument('-s','--scheme', type=str, default = 'simpson', 
+                             help='the numeric integration scheme')
     parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
     parser_comp.add_argument('-i', '--input', type=str, required=True,
                              help='input job')

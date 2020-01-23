@@ -30,6 +30,8 @@ def _main ():
                              help='the method of thermodynamic integration')
     parser_comp.add_argument('-d','--disorder-corr', action = 'store_true',
                              help='apply disorder correction for ice')
+    parser_comp.add_argument('-s','--scheme', type=str, default = 'simpson', 
+                             help='the numeric integration scheme')
 
     parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
     parser_comp.add_argument('-i', '--input', type=str, required=True,
@@ -81,7 +83,7 @@ def _main ():
             pauling_corr = 0
         # compute integration
         if args.inte_method == 'inte' :
-            de, de_err, thermo_info = hti.post_tasks(job, jdata, natoms = nmols)
+            de, de_err, thermo_info = hti.post_tasks(job, jdata, natoms = nmols, scheme = args.scheme)
         elif args.inte_method == 'mbar':
             de, de_err, thermo_info = hti.post_tasks_mbar(job, jdata, natoms = nmols)
         else :
