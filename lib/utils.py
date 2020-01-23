@@ -181,7 +181,7 @@ def _interval_deriv2 (xx, yy) :
     coeff = np.linalg.solve(mat, yy)
     return 2.*coeff[0]
 
-def interval_sys_err (xx, yy, mode) :
+def interval_sys_err_trapezoidal (xx, yy, mode) :
     if mode == 'middle' :        
         d0 = np.abs(_interval_deriv2(xx[0:3], yy[0:3]))
         d1 = np.abs(_interval_deriv2(xx[1:4], yy[1:4]))
@@ -196,28 +196,123 @@ def interval_sys_err (xx, yy, mode) :
     return 1./12.*(dx**3)*dd
 
 
-def integrate_sys_err (xx, yy) :
+def integrate_sys_err_trapezoidal (xx, yy) :
     err = 0
     if len(xx) <= 2 :
         return err
-    err += interval_sys_err(xx[0:3], yy[0:3], 'left')
+    err += interval_sys_err_trapezoidal(xx[0:3], yy[0:3], 'left')
     # print('here', err)
     for ii in range(1, len(xx)-2) :
-        err += interval_sys_err(xx[ii-1:ii+3], yy[ii-1:ii+3], 'middle')
+        err += interval_sys_err_trapezoidal(xx[ii-1:ii+3], yy[ii-1:ii+3], 'middle')
         # print('here2', interval_sys_err(xx[ii-1:ii+3], yy[ii-1:ii+3], 'middle'))
-    err += interval_sys_err(xx[-3:], yy[-3:], 'right')    
+    err += interval_sys_err_trapezoidal(xx[-3:], yy[-3:], 'right')    
     # print('here1', interval_sys_err(xx[-3:], yy[-3:], 'right') )
     return err
+
+
+def integrate_sys_err_simpson (xx, yy) :
+    err = 0
+    if len(xx) <= 4 :
+        return err
+    xx = np.array(xx)
+    ye = np.zeros(xx.size)
+    interval_error = np.zeros(xx.size//4+1)
+    for ii in range(xx.size//4):
+        inte0,_ = integrate_simpson_nonuniform(xx[ii*4:ii*4+5], yy[ii*4:ii*4+5], ye[ii*4:ii*4+5])
+        inte1,_ = integrate_simpson_nonuniform(xx[ii*4:ii*4+5:2], yy[ii*4:ii*4+5:2], ye[ii*4:ii*4+5:2])
+        err = np.abs(inte0 - inte1)
+        interval_error[ii+1] = err
+    # from scipy.interpolate import interp1d
+    # err = interp1d(xx[::4], err0, kind='cubic')
+    return interval_error[-1]
+
+
+def integrate_sys_err (xx, yy, scheme_ = 's') :
+    scheme = (scheme_.lower()[0])
+    if scheme == 't':
+        return integrate_sys_err_trapezoidal(xx, yy)
+    elif scheme == 's':
+        return integrate_sys_err_simpson(xx, yy)
+    else:
+        raise RuntimeError('unknow integration scheme', scheme_)
+
+def integrate_range_trapezoidal(xx, yy, ye):
+    xx = np.array(xx)
+    nn = xx.size
+    inte = np.zeros([nn])
+    stat_err = np.zeros([nn])
+    inte_err = np.zeros([nn])
+    stat_err[0] = ye[0]
+    for ii in range(1, nn):
+        inter_i, inter_se = integrate_trapezoidal(xx[ii-1:ii+1], yy[ii-1:ii+1], ye[ii-1:ii+1])
+        inte[ii] = inte[ii-1] + inter_i
+        stat_err[ii] = np.sqrt(stat_err[ii-1]**2 + inter_se**2)
+    if nn <= 2:
+        return inte, inte_err, stat_err
+    inte_err[1] = interval_sys_err_trapezoidal(xx[0:3], yy[0:3], 'left')
+    for ii in range(1, nn-2):
+        inte_err[ii+1] = inte_err[ii] + interval_sys_err_trapezoidal(xx[ii-1:ii+3], yy[ii-1:ii+3], 'middle')
+    inte_err[nn-1] = inte_err[nn-2] + interval_sys_err_trapezoidal(xx[-3:], yy[-3:], 'right')
+    return xx, inte, inte_err, stat_err
+
+def _integrate_range_simpson_inner(xx, yy, ye):
+    xx = np.array(xx)
+    nn = xx.size
+    new_xx = [xx[0]]
+    inte = [0]
+    stat_err = [ye[0]]
+    inte_err = [0]
+    for ii in range(2, nn, 2):
+        inter_i, inter_se = integrate_simpson_nonuniform(xx[ii-2:ii+1], yy[ii-2:ii+1], ye[ii-2:ii+1])
+        new_xx.append(xx[ii])
+        inte.append(inte[-1] + inter_i)
+        stat_err.append(np.sqrt(stat_err[-1]**2 + inter_se**2))
+    return np.array(new_xx), np.array(inte), np.array(stat_err)
+
+def integrate_range_simpson(xx, yy, ye):
+    xx = np.array(xx)
+    # error esti series 0
+    xx0, inte0, stat_err0 = _integrate_range_simpson_inner(xx, yy, ye)
+    if len(xx) < 5:
+        return xx0, inte0, stat_err0, np.zeros(xx0.shape)
+    xx1, inte1, stat_err1 = _integrate_range_simpson_inner(xx[::2], yy[::2], ye[::2])
+    diff1 = np.abs(inte1-inte0[::2]) / 16.0
+    assert(np.linalg.norm(xx1-xx0[::2]) < 1e-10)
+    # error esti series 1, shifted from series 0
+    xx2, inte2, stat_err2 = _integrate_range_simpson_inner(xx[2:], yy[2:], ye[2:])
+    xx3, inte3, stat_err3 = _integrate_range_simpson_inner(xx[2::2], yy[2::2], ye[2::2])
+    from scipy.interpolate import interp1d
+    f = interp1d(xx1, diff1)
+    diff3 = np.abs(inte3 - inte2[::2]) / 16.0 + f(xx2[0])
+    assert(np.linalg.norm(xx3-xx2[::2]) < 1e-10)
+    # combine the estimates
+    inte_err0 = np.zeros(xx0.shape)
+    for ii in range(inte_err0.size):
+        if ii % 2 == 0:
+            inte_err0[ii] = diff1[ii//2]
+        else:
+            inte_err0[ii] = diff3[ii//2]    
+    return xx0, inte0, inte_err0, stat_err0
+
+def integrate_range (xx, yy, ye, scheme_ = 's') :
+    scheme = (scheme_.lower()[0])
+    if scheme == 't':
+        return integrate_range_trapezoidal(xx, yy, ye)
+    elif scheme == 's':
+        return integrate_range_simpson(xx, yy, ye)
+        pass
+    else:
+        raise RuntimeError('unknow integration scheme', scheme_)
 
 
 def compute_nrefine (all_t, integrand, err, error_scale = None) :
     ntask = all_t.size
     interval_err = []
-    interval_err.append(interval_sys_err(all_t[0:3], integrand[0:3], 'left'))
+    interval_err.append(interval_sys_err_trapezoidal(all_t[0:3], integrand[0:3], 'left'))
     for ii in range(1, ntask-2) :
         interval_err.append(
-            interval_sys_err(all_t[ii-1:ii+3], integrand[ii-1:ii+3], 'middle'))
-    interval_err.append(interval_sys_err(all_t[-3:], integrand[-3:], 'right'))
+            interval_sys_err_trapezoidal(all_t[ii-1:ii+3], integrand[ii-1:ii+3], 'middle'))
+    interval_err.append(interval_sys_err_trapezoidal(all_t[-3:], integrand[-3:], 'right'))
     if error_scale is not None :
         for ii in range(0, ntask-1) :
             interval_err[ii] *= error_scale[ii+1]
@@ -242,14 +337,21 @@ def get_task_file_abspath(task_name, file_name):
 
 
 if __name__ == '__main__':
-    ninter = 7
-    error = 1e-2
+    ninter = 4
+    error = 1e-10
     xx = np.arange(0, 1+1e-10, 1./ninter)
     yy = np.exp(xx)
     ye = np.random.random([ninter+1]) * error
-    diff0, err0 = integrate_simpson(xx, yy, ye)
-    diff1, err1 = integrate_simpson_nonuniform(xx, yy, ye)
-    real_err0 = np.abs(np.exp(1) - np.exp(0) - diff0)
-    real_err1 = np.abs(np.exp(1) - np.exp(0) - diff1)
-    print('real_error %.2e\nstat_error %.2e' % (real_err0, err0))
-    print('real_error %.2e\nstat_error %.2e' % (real_err1, err1))
+    # diff0, err0 = integrate_simpson(xx, yy, ye)
+    # diff1, err1 = integrate_simpson_nonuniform(xx, yy, ye)
+    # real_err0 = np.abs(np.exp(1) - np.exp(0) - diff0)
+    # real_err1 = np.abs(np.exp(1) - np.exp(0) - diff1)
+    # print('real_error %.2e\nstat_error %.2e' % (real_err0, err0))
+    # print('real_error %.2e\nstat_error %.2e' % (real_err1, err1))
+
+    xx1, ii1, i_err1, s_err1 = integrate_range_simpson(xx, yy, ye)
+    real_err1 = np.abs(ii1 - (np.exp(xx1) - np.exp(0)))
+    print(real_err1)
+    print(i_err1)
+    print(s_err1)
+

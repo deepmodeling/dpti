@@ -8,9 +8,8 @@ import pymbar
 from lib.utils import create_path
 from lib.utils import copy_file_list
 from lib.utils import block_avg
-from lib.utils import integrate
-from lib.utils import integrate_sys_err
-from lib.utils import interval_sys_err
+from lib.utils import integrate_range
+# from lib.utils import integrate_sys_err
 from lib.utils import compute_nrefine
 from lib.utils import parse_seq
 from lib.utils import get_task_file_abspath
@@ -248,7 +247,7 @@ def _print_thermo_info(info, more_head = '') :
     ptr += '# PV(err)  [eV]:  %20.8f %20.8f' % (info['pv'], info['pv_err'])
     print(ptr)
 
-def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err) :
+def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's') :
     path = jdata['path']
     ens = jdata['ens']
     all_temps = []
@@ -256,9 +255,14 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err) :
     all_fe = []
     all_fe_err = []
     all_fe_sys_err = []
-    for ii in range(0, len(all_t)) :
-        diff_e, err = integrate(all_t[0:ii+1], integrand[0:ii+1], integrand_err[0:ii+1])
-        sys_err = integrate_sys_err(all_t[0:ii+1], integrand[0:ii+1])
+
+    all_t, inte, inte_e, stat_e = integrate_range(all_t, integrand, integrand_err, scheme)
+    for ii in range(0, len(all_t)):
+        diff_e = inte[ii]
+        err = stat_e[ii]
+        sys_err = inte_e[ii]
+        # diff_e, err = integrate(all_t[0:ii+1], integrand[0:ii+1], integrand_err[0:ii+1], scheme)
+        # sys_err = integrate_sys_err(all_t[0:ii+1], integrand[0:ii+1], scheme)
         if path == 't' or path == 't-ginv':
             e1 = (Eo / (all_t[0]) - diff_e) * all_t[ii]
             err = np.sqrt(np.square(Eo_err / all_t[0]) + np.square(err))
@@ -277,7 +281,7 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err) :
         all_fe_sys_err.append(sys_err)
     return all_temps, all_press, all_fe, all_fe_err, all_fe_sys_err
 
-def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None) :
+def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, scheme = 's') :
     equi_conf = get_task_file_abspath(iter_name, jdata['equi_conf'])
     if natoms == None :        
         natoms = get_natoms(equi_conf)
@@ -383,9 +387,9 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None) :
         integrand_2 = integrand[index:]
         integrand_err_2 = integrand_err[index:]
         all_temps_1, all_press_1, all_fe_1, all_fe_err_1, all_fe_sys_err_1 \
-            = _thermo_inte(jdata, Eo, Eo_err, all_t_1, integrand_1, integrand_err_1)
+            = _thermo_inte(jdata, Eo, Eo_err, all_t_1, integrand_1, integrand_err_1, scheme = scheme)
         all_temps_2, all_press_2, all_fe_2, all_fe_err_2, all_fe_sys_err_2 \
-            = _thermo_inte(jdata, Eo, Eo_err, all_t_2, integrand_2, integrand_err_2)
+            = _thermo_inte(jdata, Eo, Eo_err, all_t_2, integrand_2, integrand_err_2, scheme = scheme)
         all_temps_1 = np.flip(all_temps_1, 0)
         all_press_1 = np.flip(all_press_1, 0)
         all_fe_1 = np.flip(all_fe_1, 0)
@@ -398,18 +402,18 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None) :
         all_fe_sys_err = np.append(all_fe_sys_err_1, all_fe_sys_err_2[1:])
     else :    
         all_temps, all_press, all_fe, all_fe_err, all_fe_sys_err \
-            = _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err)
+            = _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = scheme)
 
     if 'nvt' == ens :
-        print('#%8s  %15s  %9s  %9s' % ('T(ctrl)', 'F', 'stat_err', 'inte_err'))
+        print('#%8s  %20s  %9s  %9s  %9s' % ('T(ctrl)', 'F', 'stat_err', 'inte_err', 'err'))
         for ii in range(len(all_temps)) :
-            print ('%9.2f  %20.12f  %9.2e  %9.2e' 
-                   % (all_temps[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii]))
+            print ('%9.2f  %20.12f  %9.2e  %9.2e  %9.2e' 
+                   % (all_temps[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]])))
     elif 'npt' in ens :
-        print('#%8s  %15s  %15s  %9s  %9s' % ('T(ctrl)', 'P(ctrl)', 'F', 'stat_err', 'inte_err'))
+        print('#%8s  %15s  %20s  %9s  %9s  %9s' % ('T(ctrl)', 'P(ctrl)', 'F', 'stat_err', 'inte_err', 'err'))
         for ii in range(len(all_temps)) :
-            print ('%9.2f  %15.8e  %20.12f  %9.2e  %9.2e' 
-                   % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii]))
+            print ('%9.2f  %15.8e  %20.12f  %9.2e  %9.2e  %9.2e' 
+                   % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]])))
 
 
 def post_tasks_mbar(iter_name, jdata, Eo, natoms = None) :
@@ -629,6 +633,8 @@ def _main ():
                              help='The statistical error of the starting free energy')
     parser_comp.add_argument('-t', '--To', type=float, 
                              help='the starting thermodynamic position')
+    parser_comp.add_argument('-s', '--scheme', type=str, default = 'simpson',
+                             help='the numerical integration scheme')
 
     parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
     parser_comp.add_argument('-i', '--input', type=str, required=True,
@@ -650,7 +656,7 @@ def _main ():
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
         if args.inte_method == 'inte' :
-            post_tasks(job, jdata, args.Eo, Eo_err = args.Eo_err, To = args.To)
+            post_tasks(job, jdata, args.Eo, Eo_err = args.Eo_err, To = args.To, scheme = args.scheme)
         elif args.inte_method == 'mbar' :
             post_tasks_mbar(job, jdata, args.Eo)
         else :

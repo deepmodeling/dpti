@@ -39,6 +39,8 @@ def _main ():
                              help='The statistical error of the starting free energy')
     parser_comp.add_argument('-t', '--To', type=float, 
                              help='the starting thermodynamic position')
+    parser_comp.add_argument('-s', '--scheme', type=str, default = 'simpson',
+                             help='the numerical integration scheme')
 
     parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
     parser_comp.add_argument('-i', '--input', type=str, required=True,
@@ -66,7 +68,7 @@ def _main ():
             natoms *= np.prod(jdata['copies'])
         nmols = natoms // 3
         if args.inte_method == 'inte' :
-            ti.post_tasks(job, jdata, args.Eo, Eo_err = args.Eo_err, To = args.To, natoms = nmols)
+            ti.post_tasks(job, jdata, args.Eo, Eo_err = args.Eo_err, To = args.To, natoms = nmols, scheme = args.scheme)
         elif args.inte_method == 'mbar' :
             ti.post_tasks_mbar(job, jdata, args.Eo, natoms = nmols)
         else :
