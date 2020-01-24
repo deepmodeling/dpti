@@ -110,6 +110,13 @@ def _gen_lammps_input (conf_file,
     ret += '# dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
     if ens == 'nvt' :
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
+    elif ens == 'nvt-langevin' :
+        ret += 'fix             1 all nve\n'
+        ret += 'fix             2 all langevin ${TEMP} ${TEMP} ${TAU_T} %d' % (np.random.randint(0, 2**16))
+        if crystal == 'frenkel':
+            ret += ' zero yes\n'
+        else:
+            ret += ' zero no\n'            
     elif ens == 'npt-iso' or ens == 'npt':
         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}\n'
     elif ens == 'nve' :
@@ -187,6 +194,9 @@ def _gen_lammps_input_ideal (conf_file,
     ret += '# dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
     if ens == 'nvt' :
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
+    elif ens == 'nvt-langevin' :
+        ret += 'fix             1 all nve\n'
+        ret += 'fix             2 all langevin ${TEMP} ${TEMP} ${TAU_T} %d zero yes\n' % (np.random.randint(0, 2**16))
     elif ens == 'npt-iso' or ens == 'npt':
         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}\n'
     elif ens == 'nve' :
@@ -204,7 +214,7 @@ def _gen_lammps_input_ideal (conf_file,
     return ret
 
 
-def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
+def make_tasks(iter_name, jdata, ref, switch_style = 'both', langevin = False) :
     if 'crystal' not in jdata:
         print('do not find crystal in jdata, assume vega')
         jdata['crystal'] = 'vega'
@@ -261,6 +271,12 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
         os.chdir(work_path)
         os.symlink(os.path.relpath(copied_conf), 'conf.lmp')
         os.symlink(os.path.relpath(linked_model), 'graph.pb')
+        if idx == 0:
+            ens = 'nvt-langevin'
+        else :
+            ens = 'nvt'
+        if langevin:
+            ens = 'nvt-langevin'        
         if ref == 'einstein' :
             lmp_str \
                 = _gen_lammps_input('conf.lmp',
@@ -270,7 +286,7 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
                                     spring_k, 
                                     nsteps, 
                                     dt,
-                                    'nvt',
+                                    ens,
                                     temp,
                                     prt_freq = stat_freq, 
                                     copies = copies,
@@ -284,7 +300,7 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
                                           'graph.pb',
                                           nsteps, 
                                           dt,
-                                          'nvt',
+                                          ens,
                                           temp,
                                           prt_freq = stat_freq, 
                                           copies = copies)
