@@ -214,7 +214,7 @@ def _gen_lammps_input_ideal (conf_file,
     return ret
 
 
-def make_tasks(iter_name, jdata, ref, switch_style = 'both', langevin = False) :
+def make_tasks(iter_name, jdata, ref, switch_style = 'both') :
     if 'crystal' not in jdata:
         print('do not find crystal in jdata, assume vega')
         jdata['crystal'] = 'vega'
@@ -253,6 +253,7 @@ def make_tasks(iter_name, jdata, ref, switch_style = 'both', langevin = False) :
     linked_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
     shutil.copyfile(model, linked_model)
     jdata['model'] = 'graph.pb'
+    langevin = jdata.get('langevin', True)
 
     cwd = os.getcwd()
     os.chdir(iter_name)
