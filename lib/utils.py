@@ -248,7 +248,7 @@ def integrate_range_trapezoidal(xx, yy, ye):
         inte[ii] = inte[ii-1] + inter_i
         stat_err[ii] = np.sqrt(stat_err[ii-1]**2 + inter_se**2)
     if nn <= 2:
-        return inte, inte_err, stat_err
+        return xx, inte, inte_err, stat_err
     inte_err[1] = interval_sys_err_trapezoidal(xx[0:3], yy[0:3], 'left')
     for ii in range(1, nn-2):
         inte_err[ii+1] = inte_err[ii] + interval_sys_err_trapezoidal(xx[ii-1:ii+3], yy[ii-1:ii+3], 'middle')
@@ -301,7 +301,6 @@ def integrate_range (xx, yy, ye, scheme = 's') :
         return integrate_range_trapezoidal(xx, yy, ye)
     elif scheme_ == 's':
         return integrate_range_simpson(xx, yy, ye)
-        pass
     else:
         raise RuntimeError('unknow integration scheme', scheme)
 
