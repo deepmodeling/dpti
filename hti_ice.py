@@ -18,6 +18,8 @@ def _main ():
                             help='json parameter file')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
+    parser_gen.add_argument('-b','--both', action = 'store_true',
+                            help='switching on DP and switching off spring in the same path')
 
     parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
     parser_comp.add_argument('JOB', type=str ,
@@ -54,7 +56,7 @@ def _main ():
             print('# gen task with Frenkel\'s Einstein crystal')
         else :
             print('# gen task with Vega\'s Einstein molecule')
-        hti.make_tasks(output, jdata, 'einstein', 'both')
+        hti.make_tasks(output, jdata, 'einstein', args.both)
     elif args.command == 'refine' :
         hti.refine_task(args.input, args.output, args.error, args.print)        
     elif args.command == 'compute' :
@@ -82,12 +84,7 @@ def _main ():
         else :
             pauling_corr = 0
         # compute integration
-        if args.inte_method == 'inte' :
-            de, de_err, thermo_info = hti.post_tasks(job, jdata, natoms = nmols, scheme = args.scheme)
-        elif args.inte_method == 'mbar':
-            de, de_err, thermo_info = hti.post_tasks_mbar(job, jdata, natoms = nmols)
-        else :
-            raise RuntimeError('unknow method for integration')        
+        de, de_err, thermo_info = hti.post_tasks(job, jdata, natoms = nmols, method = args.inte_method, scheme = args.scheme)
         # printing
         print_format = '%20.12f  %10.3e  %10.3e'
         hti.print_thermo_info(thermo_info)
