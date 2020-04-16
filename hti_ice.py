@@ -18,8 +18,11 @@ def _main ():
                             help='json parameter file')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
-    parser_gen.add_argument('-b','--both', action = 'store_true',
-                            help='switching on DP and switching off spring in the same path')
+    parser_gen.add_argument('-s','--switch', type=str, default = 'one-step',
+                            choices = ['one-step', 'two-step', 'three-step'],
+                            help='one-step: switching on DP and switching off spring simultanenously.\
+                            two-step: 1 switching on DP, 2 switching off spring.\
+                            three-step: 1 switching on soft LJ, 2 switching on DP, 3 switching off spring and soft LJ.')
 
     parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
     parser_comp.add_argument('JOB', type=str ,
@@ -56,7 +59,7 @@ def _main ():
             print('# gen task with Frenkel\'s Einstein crystal')
         else :
             print('# gen task with Vega\'s Einstein molecule')
-        hti.make_tasks(output, jdata, 'einstein', args.both)
+        hti.make_tasks(output, jdata, 'einstein', args.switch)
     elif args.command == 'refine' :
         hti.refine_task(args.input, args.output, args.error, args.print)        
     elif args.command == 'compute' :

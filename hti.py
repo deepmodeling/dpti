@@ -20,6 +20,160 @@ from lib.lammps import get_natoms
 def make_iter_name (iter_index) :
     return "task_hti." + ('%04d' % iter_index)
 
+
+def _ff_lj_on(lamb,
+              model,
+              sparam):
+    nn = sparam['n']
+    alpha_lj = sparam['alpha_lj']
+    rcut = sparam['rcut']
+    epsilon = sparam['epsilon']
+    sigma_oo = sparam['sigma_oo']
+    sigma_oh = sparam['sigma_oh']
+    sigma_hh = sparam['sigma_hh']
+    activation = sparam['activation']
+    ret = ''
+    ret += 'variable        EPSILON equal %f\n' % epsilon
+    ret += 'pair_style      lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
+    ret += 'pair_coeff      1 1 ${EPSILON} %f %f\n' % (sigma_oo, activation)
+    ret += 'pair_coeff      1 2 ${EPSILON} %f %f\n' % (sigma_oh, activation)
+    ret += 'pair_coeff      2 2 ${EPSILON} %f %f\n' % (sigma_hh, activation)
+    ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_LAMBDA scale yes\n'
+    ret += 'compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_EPSILON\n'    
+    return ret
+
+
+def _ff_deep_on(lamb,
+                model,
+                sparam):
+    nn = sparam['n']
+    alpha_lj = sparam['alpha_lj']
+    rcut = sparam['rcut']
+    epsilon = sparam['epsilon']
+    sigma_oo = sparam['sigma_oo']
+    sigma_oh = sparam['sigma_oh']
+    sigma_hh = sparam['sigma_hh']
+    activation = sparam['activation']
+    ret = ''
+    ret += 'variable        EPSILON equal %f\n' % epsilon
+    ret += 'variable        ONE equal 1\n'
+    ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
+    ret += 'pair_coeff      * * deepmd\n'
+    ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
+    ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
+    ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
+    ret += 'fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA\n'
+    ret += 'compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE\n'
+    return ret
+
+
+def _ff_lj_off(lamb,
+               model, 
+               sparam) :
+    nn = sparam['n']
+    alpha_lj = sparam['alpha_lj']
+    rcut = sparam['rcut']
+    epsilon = sparam['epsilon']
+    sigma_oo = sparam['sigma_oo']
+    sigma_oh = sparam['sigma_oh']
+    sigma_hh = sparam['sigma_hh']
+    activation = sparam['activation']
+    ret = ''
+    ret += 'variable        EPSILON equal %f\n' % epsilon
+    ret += 'variable        INV_EPSILON equal -${EPSILON}\n'
+    ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
+    ret += 'pair_coeff      * * deepmd\n'
+    ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
+    ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
+    ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
+    ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_INV_LAMBDA scale yes\n'
+    ret += 'compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_INV_EPSILON\n'    
+    return ret
+    
+
+def _ff_spring(lamb,
+               spring_k,
+               var_spring):
+    ret = ''
+    if type(spring_k) is not list :
+        if var_spring :
+            spring_const = spring_k * (1 - lamb)
+        else:
+            spring_const = spring_k            
+        ret += 'fix             l_spring all spring/self %.10e\n' % (spring_const)
+        ret += 'fix_modify      l_spring energy yes\n'
+    else :
+        ntypes = len(spring_k)
+        for ii in range(ntypes) :
+            ret += 'group           type_%s type %s\n' % (ii+1, ii+1)
+        for ii in range(ntypes) :
+            if var_spring:
+                spring_const = spring_k[ii] * (1 - lamb)
+            else:
+                spring_const = spring_k[ii]
+            ret += 'fix             l_spring_%s type_%s spring/self %.10e\n' % (ii+1, ii+1, spring_const)
+            ret += 'fix_modify      l_spring_%s energy yes\n' % (ii+1)
+        sum_str = 'f_l_spring_1'
+        for ii in range(1,ntypes) :
+            sum_str += '+f_l_spring_%s' % (ii+1)
+        ret += 'variable        l_spring equal %s\n' % (sum_str)
+    return ret
+
+    
+def _ff_soft_lj(lamb,
+                model,
+                spring_k,
+                step,
+                sparam):
+    ret = ''
+    ret += '# --------------------- FORCE FIELDS ---------------------\n'
+    if step == 'lj_on':
+        ret += _ff_lj_on(lamb, model, sparam)
+        var_spring = False
+    elif step == 'deep_on':
+        ret += _ff_deep_on(lamb, model, sparam)
+        var_spring = False
+    elif step == 'spring_off':
+        ret += _ff_lj_off(lamb, model, sparam)
+        var_spring = True
+    else:
+        raise RuntimeError('unkown step', step)
+
+    ret += _ff_spring(lamb, spring_k, var_spring)
+    
+    return ret
+
+
+def _ff_two_steps(lamb,
+                  model,
+                  spring_k,
+                  step):
+    ret = ''
+    ret += '# --------------------- FORCE FIELDS ---------------------\n'
+    ret += 'pair_style      deepmd %s\n' % model
+    ret += 'pair_coeff\n'
+    
+    if step == 'both' or step == 'spring_off':                
+        var_spring = True
+    elif step == 'deep_on':
+        var_spring = False
+    else:
+        raise RuntimeError('unkown step', step)
+    if step == 'both' or step == 'deep_on':                
+        var_deep = True
+    elif step == 'spring_off':
+        var_deep = False
+    else:
+        raise RuntimeError('unkown step', step)
+
+    ret += _ff_spring(lamb, spring_k, var_spring)
+
+    if var_deep:
+        ret += 'fix             l_deep all adapt 1 pair deepmd scale * * v_LAMBDA\n'
+    ret += 'compute         e_deep all pe pair\n'
+    return ret
+
+    
 def _gen_lammps_input (conf_file, 
                        mass_map,
                        lamb,
@@ -35,7 +189,9 @@ def _gen_lammps_input (conf_file,
                        prt_freq = 100, 
                        copies = None,
                        crystal = 'vega', 
-                       switch_style = 'both') :
+                       sparam = {},
+                       switch = 'one-step',
+                       step = 'both') :
     if crystal == 'frenkel' :
         assert(type(spring_k) == list)
     ret = ''
@@ -62,47 +218,14 @@ def _gen_lammps_input (conf_file,
     ret += 'change_box      all triclinic\n'
     for jj in range(len(mass_map)) :
         ret += "mass            %d %f\n" %(jj+1, mass_map[jj])
-    ret += '# --------------------- FORCE FIELDS ---------------------\n'
-    ret += 'pair_style      deepmd %s\n' % model
-    ret += 'pair_coeff\n'
-    
-    if switch_style == 'both' or switch_style == 'spring_off':                
-        var_spring = True
-    elif switch_style == 'deep_on':
-        var_spring = False
+
+    # force field setting
+    if switch == 'one-step' or switch == 'two-step':
+        ret += _ff_two_steps(lamb, model, spring_k, step)
+    elif switch == 'three-step':
+        ret += _ff_soft_lj(lamb, model, spring_k, step, sparam)
     else:
-        raise RuntimeError('unkown switch_style', switch_style)
-    if switch_style == 'both' or switch_style == 'deep_on':                
-        var_deep = True
-    elif switch_style == 'spring_off':
-        var_deep = False
-    else:
-        raise RuntimeError('unkown switch_style', switch_style)
-    if type(spring_k) is not list :
-        if var_spring :
-            spring_const = spring_k * (1 - lamb)
-        else:
-            spring_const = spring_k            
-        ret += 'fix             l_spring all spring/self %.10e\n' % (spring_const)
-        ret += 'fix_modify      l_spring energy yes\n'
-    else :
-        ntypes = len(spring_k)
-        for ii in range(ntypes) :
-            ret += 'group           type_%s type %s\n' % (ii+1, ii+1)
-        for ii in range(ntypes) :
-            if var_spring:
-                spring_const = spring_k[ii] * (1 - lamb)
-            else:
-                spring_const = spring_k[ii]
-            ret += 'fix             l_spring_%s type_%s spring/self %.10e\n' % (ii+1, ii+1, spring_const)
-            ret += 'fix_modify      l_spring_%s energy yes\n' % (ii+1)
-        sum_str = 'f_l_spring_1'
-        for ii in range(1,ntypes) :
-            sum_str += '+f_l_spring_%s' % (ii+1)
-        ret += 'variable        l_spring equal %s\n' % (sum_str)
-    if var_deep:
-        ret += 'fix             l_deep all adapt 1 pair deepmd scale * * v_LAMBDA\n'
-    ret += 'compute         e_deep all pe pair\n'
+        raise RuntimeError('unknow switch', switch)
 
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
     ret += 'neighbor        1.0 bin\n'
@@ -110,9 +233,15 @@ def _gen_lammps_input (conf_file,
     ret += 'thermo          ${THERMO_FREQ}\n'
     if 1 - lamb != 0 :
         if type(spring_k) is not list :        
-            ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring c_e_deep\n'
+            if switch == 'three-step':
+                ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring c_e_diff[1]\n'
+            else:
+                ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring c_e_deep\n'
         else :
-            ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol v_l_spring c_e_deep\n'
+            if switch == 'three-step':
+                ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol v_l_spring c_e_diff[1]\n'
+            else:
+                ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol v_l_spring c_e_deep\n'
     else :
         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_deep c_e_deep\n'
     ret += 'thermo_modify   format 9 %.16e\n'
@@ -224,14 +353,14 @@ def _gen_lammps_input_ideal (conf_file,
     return ret
 
 
-def make_tasks(iter_name, jdata, ref, one_step = True):
+def make_tasks(iter_name, jdata, ref, switch = 'one-step'):
     equi_conf = os.path.abspath(jdata['equi_conf'])
     model = os.path.abspath(jdata['model'])
 
-    if one_step:
+    if switch == 'one-step':
         subtask_name = iter_name
-        _make_tasks(subtask_name, jdata, ref, switch_style = 'both')
-    else:
+        _make_tasks(subtask_name, jdata, ref, step = 'both')
+    elif switch == 'two-step' or switch == 'three-step':
         create_path(iter_name)
         copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
         shutil.copyfile(equi_conf, copied_conf)
@@ -243,30 +372,43 @@ def make_tasks(iter_name, jdata, ref, one_step = True):
         os.chdir(iter_name)    
         with open('in.json', 'w') as fp:
             json.dump(jdata, fp, indent=4)
-
-        subtask_name = '00.deep_on'
-        _make_tasks(subtask_name, jdata, ref, switch_style = 'deep_on', link = True)
-        subtask_name = '01.spring_off'
-        _make_tasks(subtask_name, jdata, ref, switch_style = 'spring_off', link = True)
-
+        if switch == 'two-step':
+            subtask_name = '00.deep_on'
+            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'deep_on', link = True)
+            subtask_name = '01.spring_off'
+            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'spring_off', link = True)
+        elif switch == 'three-step':
+            subtask_name = '00.lj_on'
+            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'lj_on', link = True)
+            subtask_name = '01.deep_on'
+            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'deep_on', link = True)
+            subtask_name = '02.spring_off'
+            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'spring_off', link = True)
+        else:
+            raise RuntimeError('unknow switch', switch)
         os.chdir(cwd)
+    else:
+        raise RuntimeError('unknow switch', switch)
 
     
-def _make_tasks(iter_name, jdata, ref, switch_style = 'both', link = False) :
+def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link = False) :
     if 'crystal' not in jdata:
         print('do not find crystal in jdata, assume vega')
         jdata['crystal'] = 'vega'
     crystal = jdata['crystal']
     protect_eps = jdata['protect_eps']
 
-    if switch_style == 'both':
+    if switch == 'one-step':
         all_lambda = parse_seq(jdata['lambda'])
-    elif switch_style == 'deep_on':
-        all_lambda = parse_seq(jdata['lambda_deep_on'])
-    elif switch_style == 'spring_off':
-        all_lambda = parse_seq(jdata['lambda_spring_off'])
-    else :
-        raise RuntimeError('unknown switch_style', switch_style)
+    elif switch == 'two-step' or switch == 'three-step':
+        if step == 'deep_on':
+            all_lambda = parse_seq(jdata['lambda_deep_on'])
+        elif step == 'spring_off':
+            all_lambda = parse_seq(jdata['lambda_spring_off'])
+        elif step == 'lj_on':
+            all_lambda = parse_seq(jdata['lambda_lj_on'])
+        else:
+            raise RuntimeError('unknown step', step)
 
     if all_lambda[0] == 0 :
         all_lambda[0] += protect_eps
@@ -281,6 +423,7 @@ def _make_tasks(iter_name, jdata, ref, switch_style = 'both', link = False) :
     nsteps = jdata['nsteps']
     dt = jdata['dt']
     spring_k = jdata['spring_k']
+    sparam = jdata.get('soft_param', {})
     if crystal == 'frenkel' :
         spring_k_1 = []
         for ii in model_mass_map :
@@ -292,7 +435,8 @@ def _make_tasks(iter_name, jdata, ref, switch_style = 'both', link = False) :
         copies = jdata['copies']
     temp = jdata['temp']
     jdata['reference'] = ref
-    jdata['switch_style'] = switch_style
+    jdata['switch'] = switch
+    jdata['step'] = step
 
     create_path(iter_name)
     copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
@@ -346,7 +490,9 @@ def _make_tasks(iter_name, jdata, ref, switch_style = 'both', link = False) :
                                     temp,
                                     prt_freq = stat_freq, 
                                     copies = copies,
-                                    switch_style = switch_style, 
+                                    switch = switch,
+                                    step = step,
+                                    sparam = sparam,
                                     crystal = crystal)
         elif ref == 'ideal' :
             lmp_str \
@@ -456,25 +602,26 @@ def _compute_thermo(fname, natoms, stat_skip, stat_bsize) :
 
 
 def post_tasks(iter_name, jdata, natoms = None, method = 'inte', scheme = 's'):
+    switch = 'one-step'
     if os.path.isdir(os.path.join(iter_name, '00.deep_on')):
-        two_steps = True
-    else:
-        two_steps = False
+        switch = 'two-step'
+    if os.path.isdir(os.path.join(iter_name, '00.lj_on')):
+        switch = 'three-step'
 
-    if two_steps:
+    if switch == 'two-step':
         subtask_name = os.path.join(iter_name, '00.deep_on')
         if method == 'inte' :
-            e0, err0, tinfo0 = _post_tasks(subtask_name, jdata, natoms = natoms, scheme = scheme, switch_style = 'deep_on')
+            e0, err0, tinfo0 = _post_tasks(subtask_name, jdata, natoms = natoms, scheme = scheme, switch = switch, step = 'deep_on')
         elif method == 'mbar':
-            e0, err0, tinfo0 = _post_tasks_mbar(subtask_name, jdata, natoms = natoms, switch_style = 'deep_on')
+            e0, err0, tinfo0 = _post_tasks_mbar(subtask_name, jdata, natoms = natoms, switch = switch, step = 'deep_on')
         else :
             raise RuntimeError('unknow method for integration')
         print('# fe of deep_on:    %20.12f  %10.3e %10.3e' % (e0, err0[0], err0[1]))
         subtask_name = os.path.join(iter_name, '01.spring_off')
         if method == 'inte' :
-            e1, err1, tinfo1 = _post_tasks(subtask_name, jdata, natoms = natoms, scheme = scheme, switch_style = 'spring_off')
+            e1, err1, tinfo1 = _post_tasks(subtask_name, jdata, natoms = natoms, scheme = scheme, switch = switch, step = 'spring_off')
         elif method == 'mbar':
-            e1, err1, tinfo1 = _post_tasks_mbar(subtask_name, jdata, natoms = natoms, switch_style = 'spring_off')
+            e1, err1, tinfo1 = _post_tasks_mbar(subtask_name, jdata, natoms = natoms, switch = switch, step = 'spring_off')
         else :
             raise RuntimeError('unknow method for integration')
         print('# fe of spring_off: %20.12f  %10.3e %10.3e' % (e1, err1[0], err1[1]))
@@ -483,6 +630,36 @@ def post_tasks(iter_name, jdata, natoms = None, method = 'inte', scheme = 's'):
         sys_err = ((err0[1]) + (err1[1]))
         err = [stt_err, sys_err]
         tinfo = tinfo1
+    elif switch == 'three-step':
+        subtask_name = os.path.join(iter_name, '00.lj_on')
+        if method == 'inte' :
+            e0, err0, tinfo0 = _post_tasks(subtask_name, jdata, natoms = natoms, scheme = scheme, switch = switch, step = 'lj_on')
+        elif method == 'mbar':
+            e0, err0, tinfo0 = _post_tasks_mbar(subtask_name, jdata, natoms = natoms, switch = switch, step = 'lj_on')
+        else :
+            raise RuntimeError('unknow method for integration')
+        print('# fe of lj_on:      %20.12f  %10.3e %10.3e' % (e0, err0[0], err0[1]))
+        subtask_name = os.path.join(iter_name, '01.deep_on')
+        if method == 'inte' :
+            e1, err1, tinfo1 = _post_tasks(subtask_name, jdata, natoms = natoms, scheme = scheme, switch = switch, step = 'deep_on')
+        elif method == 'mbar':
+            e1, err1, tinfo1 = _post_tasks_mbar(subtask_name, jdata, natoms = natoms, switch = switch, step = 'deep_on')
+        else :
+            raise RuntimeError('unknow method for integration')
+        print('# fe of deep_off:   %20.12f  %10.3e %10.3e' % (e1, err1[0], err1[1]))
+        subtask_name = os.path.join(iter_name, '02.spring_off')
+        if method == 'inte' :
+            e2, err2, tinfo2 = _post_tasks(subtask_name, jdata, natoms = natoms, scheme = scheme, switch = switch, step = 'spring_off')
+        elif method == 'mbar':
+            e2, err2, tinfo2 = _post_tasks_mbar(subtask_name, jdata, natoms = natoms, switch = switch, step = 'spring_off')
+        else :
+            raise RuntimeError('unknow method for integration')
+        print('# fe of spring_off: %20.12f  %10.3e %10.3e' % (e2, err2[0], err2[1]))
+        de = e0 + e1 + e2
+        stt_err = np.sqrt(np.square(err0[0]) + np.square(err1[0]) + np.square(err2[0]))
+        sys_err = ((err0[1]) + (err1[1]) + (err2[1]))
+        err = [stt_err, sys_err]
+        tinfo = tinfo2
     else:
         if method == 'inte':
             de, err, tinfo = _post_tasks(iter_name, jdata, natoms = natoms, scheme = scheme)
@@ -491,7 +668,7 @@ def post_tasks(iter_name, jdata, natoms = None, method = 'inte', scheme = 's'):
     return de, err, tinfo
     
 
-def _post_tasks(iter_name, jdata, natoms = None, scheme = 's', switch_style = 'both') :
+def _post_tasks(iter_name, jdata, natoms = None, scheme = 's', switch = 'one-step', step = 'both') :
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
     all_tasks = glob.glob(os.path.join(iter_name, 'task.[0-9]*'))
@@ -534,17 +711,30 @@ def _post_tasks(iter_name, jdata, natoms = None, scheme = 's', switch_style = 'b
     all_ed = np.array(all_ed)
     all_es_err = np.array(all_es_err)
     all_ed_err = np.array(all_ed_err)
-    if switch_style == 'both':
-        de = all_ed / all_lambda - all_es / (1 - all_lambda)
-        all_err = np.sqrt(np.square(all_ed_err / all_lambda) + np.square(all_es_err / (1 - all_lambda)))
-    elif switch_style == 'deep_on':
-        de = all_ed / all_lambda
-        all_err = all_ed_err / all_lambda
-    elif switch_style == 'spring_off':
-        de = -all_es / (1 - all_lambda)
-        all_err = all_es_err / (1 - all_lambda)
+    if switch == 'one-step' or switch == 'two-step':
+        if step == 'both':
+            de = all_ed / all_lambda - all_es / (1 - all_lambda)
+            all_err = np.sqrt(np.square(all_ed_err / all_lambda) + np.square(all_es_err / (1 - all_lambda)))
+        elif step == 'deep_on':
+            de = all_ed / all_lambda
+            all_err = all_ed_err / all_lambda
+        elif step == 'spring_off':
+            de = -all_es / (1 - all_lambda)
+            all_err = all_es_err / (1 - all_lambda)
+        else:
+            raise RuntimeError('unknow step', step)
+    elif switch == 'three-step' :
+        if step == 'lj_on' or step == 'deep_on':
+            de = all_ed
+            all_err = all_ed_err
+        elif step == 'spring_off':
+            de = -all_es / (1 - all_lambda) + all_ed
+            all_err = np.sqrt( np.square(all_es_err / (1 - all_lambda)) +
+                               np.square(all_ed_err) )
+        else:
+            raise RuntimeError('unknow step', step)
     else:
-        raise RuntimeError('unknow switch_style', switch_style)
+        raise RuntimeError('unknow switch', switch)
 
     all_print = []
     # all_print.append(np.arange(len(all_lambda)))
@@ -592,7 +782,8 @@ def _post_tasks(iter_name, jdata, natoms = None, scheme = 's', switch_style = 'b
 
     return diff_e, [err,sys_err], thermo_info
 
-def _post_tasks_mbar(iter_name, jdata, natoms = None) :
+
+def _post_tasks_mbar(iter_name, jdata, natoms = None, switch = 'one-step', step = 'both') :
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
     all_tasks = glob.glob(os.path.join(iter_name, 'task.[0-9]*'))
@@ -691,8 +882,11 @@ def _main ():
                             help='json parameter file')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
-    parser_gen.add_argument('-b','--both', action = 'store_true',
-                            help='switching on DP and switching off spring in the same path')
+    parser_gen.add_argument('-s','--switch', type=str, default = 'one-step',
+                            choices = ['one-step', 'two-step', 'three-step'],
+                            help='one-step: switching on DP and switching off spring simultanenously.\
+                            two-step: 1 switching on DP, 2 switching off spring.\
+                            three-step: 1 switching on soft LJ, 2 switching on DP, 3 switching off spring and soft LJ.')
 
     parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
     parser_comp.add_argument('JOB', type=str ,

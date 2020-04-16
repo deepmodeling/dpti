@@ -146,7 +146,8 @@ def frenkel(job) :
         sum_m += mass_map[idx] * ii
     fe -= 3.0 * np.log(s_Lambda_s)
     fe -= 1.5 * np.log(sum_m)
-    print('# FS corr ', -1.5 * np.log(sum_m) / np.sum(natoms)*pc.Boltzmann * temp / pc.electron_volt)
+    # fe += 2.0 * np.log(np.sum(natoms)/3.0)
+    print('# FS corr (does not apply)', 2.0 * np.log(np.sum(natoms)/3.0) *pc.Boltzmann * temp / pc.electron_volt / np.sum(natoms) * 3.0)
     # print((3.0 * np.log(s_Lambda_s) + 1.5 * np.log(sum_m)) * fact)
     fe += np.log(np.sum(natoms) / (vol * (pc.angstrom**3)))    
     # print(np.log(np.sum(natoms) / (vol * (pc.angstrom**3))) * fact, np.log(np.sum(natoms) / 3.0 / (vol * (pc.angstrom**3))) * fact)
