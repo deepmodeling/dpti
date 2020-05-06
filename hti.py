@@ -819,27 +819,45 @@ def _post_tasks_mbar(iter_name, jdata, natoms = None, switch = 'one-step', step 
         np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
         this_ed = data[:,9] / kt_in_ev
         this_es = data[:,8] / kt_in_ev
-        this_ed = this_ed[stat_skip:]
-        this_es = this_es[stat_skip:]
+        this_ed = this_ed[stat_skip::1]
+        this_es = this_es[stat_skip::1]
         nk.append(this_ed.size)
-        if switch_style == 'both':
-            ed = this_ed / all_lambda[idx]
-            es = this_es / (1 - all_lambda[idx])
-            block_u = []
-            for ll in all_lambda :
-                block_u.append(ed * ll + es * (1-ll))
-        elif switch_style == 'deep_on':
-            ed = this_ed / all_lambda[idx]
-            block_u = []
-            for ll in all_lambda :
-                block_u.append(ed * ll)
-        elif switch_style == 'spring_off':
-            es = this_es / (1 - all_lambda[idx])
-            block_u = []
-            for ll in all_lambda :
-                block_u.append(es * (1-ll))
+        if switch == 'one-step' or switch == 'two-step':
+            if step == 'both':
+                ed = this_ed / all_lambda[idx]
+                es = this_es / (1 - all_lambda[idx])
+                block_u = []
+                for ll in all_lambda :
+                    block_u.append(ed * ll + es * (1-ll))
+            elif step == 'deep_on':
+                ed = this_ed / all_lambda[idx]
+                block_u = []
+                for ll in all_lambda :
+                    block_u.append(ed * ll)
+            elif step == 'spring_off':
+                es = this_es / (1 - all_lambda[idx])
+                block_u = []
+                for ll in all_lambda :
+                    block_u.append(es * (1-ll))
+            else:
+                raise RuntimeError('unknown switch_style', switch_style)
+        elif switch == 'three-step':
+            if step == 'lj_on' or step == 'deep_on':
+                ed = this_ed
+                block_u = []
+                for ll in all_lambda:
+                    block_u.append(ed * ll)
+            elif step == 'spring_off':
+                ed = this_ed
+                es = this_es / (1 - all_lambda[idx])
+                block_u = []
+                for ll in all_lambda :
+                    block_u.append(ed * ll + es * (1-ll))
+            else:
+                raise RuntimeError('unknow step', step)
         else:
-            raise RuntimeError('unknown switch_style', switch_style)
+            raise RuntimeError('unknow switch', switch)
+                
         block_u = np.reshape(block_u, [nlambda, -1])
         if ukn.size == 0 :
             ukn = block_u 
@@ -847,8 +865,9 @@ def _post_tasks_mbar(iter_name, jdata, natoms = None, switch = 'one-step', step 
             ukn = np.concatenate((ukn, block_u), axis = 1)
     nk = np.array(nk)
 
-    mbar = pymbar.MBAR(ukn, nk)
-    Deltaf_ij, dDeltaf_ij, Theta_ij = mbar.getFreeEnergyDifferences()
+    mbar = pymbar.MBAR(ukn, nk, initialize = 'BAR', relative_tolerance = 1e-9)
+    #Deltaf_ij, dDeltaf_ij, Theta_ij = mbar.getFreeEnergyDifferences()
+    Deltaf_ij, dDeltaf_ij = mbar.getFreeEnergyDifferences()
     Deltaf_ij = Deltaf_ij / natoms
     dDeltaf_ij = dDeltaf_ij / np.sqrt(natoms)
 
