@@ -30,20 +30,23 @@ def _ff_angle_on(lamb,
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
     epsilon = sparam['epsilon']
-    sigma = sparam['sigma']
+    sigma_oo = sparam['sigma_oo']
+    sigma_oh = sparam['sigma_oh']
+    sigma_hh = sparam['sigma_hh']
     activation = sparam['activation']
     ret = ''
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'pair_style      lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
-    ret += 'pair_coeff      1 1 ${EPSILON} %f %f\n' % (sigma, activation)
-    ret += 'pair_coeff      1*2 2 0 %f 0\n' % (sigma)
+    ret += 'pair_coeff      1 1 ${EPSILON} %f %f\n' % (sigma_oo, activation)
+    ret += 'pair_coeff      1 2 ${EPSILON} %f %f\n' % (sigma_oh, activation)
+    ret += 'pair_coeff      2 2 ${EPSILON} %f %f\n' % (sigma_hh, activation)
     ret += 'bond_style      harmonic\n'
     ret += 'bond_coeff      1 %f %f\n' % (bond_k, bond_l)
     ret += 'variable        ANGLE_K equal ${LAMBDA}*%.16e\n' % angle_k
     ret += 'angle_style     harmonic\n'
     ret += 'angle_coeff     1 ${ANGLE_K} %f\n' % (angle_t)    
-    ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon 1 1 v_LAMBDA scale yes\n'
-    ret += 'compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon 1 1 v_EPSILON\n'    
+    ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_LAMBDA scale yes\n'
+    ret += 'compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_EPSILON\n'    
     return ret
 
 def _ff_deep_on(lamb,
@@ -58,15 +61,18 @@ def _ff_deep_on(lamb,
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
     epsilon = sparam['epsilon']
-    sigma = sparam['sigma']
+    sigma_oo = sparam['sigma_oo']
+    sigma_oh = sparam['sigma_oh']
+    sigma_hh = sparam['sigma_hh']
     activation = sparam['activation']
     ret = ''
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'variable        ONE equal 1\n'
     ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
     ret += 'pair_coeff      * * deepmd\n'
-    ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
-    ret += 'pair_coeff      1*2 2 lj/cut/soft 0 %f 0\n' % (sigma)
+    ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
+    ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
+    ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
     ret += 'bond_style      harmonic\n'
     ret += 'bond_coeff      1 %f %f\n' % (bond_k, bond_l)
     ret += 'angle_style     harmonic\n'
@@ -87,7 +93,9 @@ def _ff_bond_angle_off(lamb,
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
     epsilon = sparam['epsilon']
-    sigma = sparam['sigma']
+    sigma_oo = sparam['sigma_oo']
+    sigma_oh = sparam['sigma_oh']
+    sigma_hh = sparam['sigma_hh']
     activation = sparam['activation']
     ret = ''
     ret += 'variable        INV_LAMBDA equal 1-${LAMBDA}\n'
@@ -95,16 +103,17 @@ def _ff_bond_angle_off(lamb,
     ret += 'variable        INV_EPSILON equal -${EPSILON}\n'
     ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
     ret += 'pair_coeff      * * deepmd\n'
-    ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
-    ret += 'pair_coeff      1*2 2 lj/cut/soft 0 %f 0\n' % (sigma)
+    ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
+    ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
+    ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
     ret += 'variable        BOND_K equal %.16e\n' % (bond_k * (1-lamb))
     ret += 'bond_style      harmonic\n'
     ret += 'bond_coeff      1 ${BOND_K} %f\n' % (bond_l)
     ret += 'variable        ANGLE_K equal %.16e\n' % (angle_k * (1-lamb))
     ret += 'angle_style     harmonic\n'
     ret += 'angle_coeff     1 ${ANGLE_K} %f\n' % (angle_t)    
-    ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon 1 1 v_INV_LAMBDA scale yes\n'
-    ret += 'compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon 1 1 v_INV_EPSILON\n'    
+    ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_INV_LAMBDA scale yes\n'
+    ret += 'compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_INV_EPSILON\n'    
     return ret
 
 
