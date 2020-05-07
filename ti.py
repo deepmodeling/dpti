@@ -281,7 +281,7 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's
         all_fe_sys_err.append(sys_err)
     return all_temps, all_press, all_fe, all_fe_err, all_fe_sys_err
 
-def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, scheme = 's') :
+def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, scheme = 's', shift = 0.0) :
     equi_conf = get_task_file_abspath(iter_name, jdata['equi_conf'])
     if natoms == None :        
         natoms = get_natoms(equi_conf)
@@ -339,6 +339,8 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
             raise RuntimeError('invalid path setting' )
         # normalized by number of atoms
         ea /= natoms
+        if path == 't' or path == 't-ginv':
+            ea -= shift
         ee /= np.sqrt(natoms)
         all_e.append(ea)
         all_e_err.append(ee)

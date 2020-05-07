@@ -37,6 +37,8 @@ def _main ():
                              help='apply disorder correction for ice')
     parser_comp.add_argument('-s','--scheme', type=str, default = 'simpson', 
                              help='the numeric integration scheme')
+    parser_comp.add_argument('-S','--shift', type=float, default = 0.0, 
+                             help='a constant shift in the energy/mole computation, will be removed from FE')
 
     parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
     parser_comp.add_argument('-i', '--input', type=str, required=True,
@@ -98,13 +100,14 @@ def _main ():
         print('# Pauling corr:               %20.8f' % (pauling_corr))
         print(('# fe integration              ' + print_format) \
               % (de, de_err[0], de_err[1]))        
+        print( '# fe const shift              %20.12f' % args.shift)
         if args.type == 'helmholtz' :
             print('# Helmholtz free ener per mol (stat_err inte_err) [eV]:')
-            print(print_format % (e0 + de, de_err[0], de_err[1]))
+            print(print_format % (e0 + de - args.shift, de_err[0], de_err[1]))
         if args.type == 'gibbs' :
             pv = thermo_info['pv']
             pv_err = thermo_info['pv_err']
-            e1 = e0 + de + pv
+            e1 = e0 + de + pv - args.shift
             e1_err = np.sqrt(de_err[0]**2 + pv_err**2)
             print('# Gibbs free ener per mol (stat_err inte_err) [eV]:')
             print(print_format % (e1, e1_err, de_err[1]))
