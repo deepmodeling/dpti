@@ -10,6 +10,7 @@ from lib.utils import create_path
 from lib.utils import block_avg
 from lib.lammps import get_natoms
 from lib.RemoteJob import SSHSession, JobStatus, SlurmJob
+from dpgen.dispatcher.Dispatcher import Dispatcher
 
 def _group_slurm_jobs(ssh_sess,
                       resources,
@@ -66,10 +67,13 @@ def _make_tasks_onephase(temp,
     tau_p = jdata['tau_p']
 
     cwd = os.getcwd()
-    create_path(task_path)
+    if not os.path.isdir(task_path):
+        create_path(task_path)
     os.chdir(task_path)
-    os.symlink(os.path.relpath(conf_file), 'conf.lmp')
-    os.symlink(os.path.relpath(graph_file), 'graph.pb')
+    if not os.path.exists('conf.lmp'):
+        os.symlink(os.path.relpath(conf_file), 'conf.lmp')
+    if not os.path.exists('graph.pb'):
+        os.symlink(os.path.relpath(graph_file), 'graph.pb')
     
     # input for NPT MD
     lmp_str \
@@ -124,8 +128,9 @@ def make_dpdt (temp,
                inte_dir,
                task_path,
                mdata,
-               ssh_sess,
+               dispatcher,
                natoms = None,
+               shift = [0, 0],
                verbose = False) :
     assert(os.path.isdir(task_path))    
 
@@ -202,20 +207,31 @@ def make_dpdt (temp,
                              graph_file = 'graph.pb')
         # submit new task
         resources = mdata['resources']
-        lmp_exec = mdata['lmp_command']
-        command = lmp_exec + " -i in.lammps > /dev/null"
+        lmp_exec = mdata['command']
+        command = lmp_exec + " -i in.lammps"
         forward_files = ['conf.lmp', 'in.lammps', 'graph.pb']
         backward_files = ['log.lammps', 'out.lmp']
         run_tasks = ['0', '1']        
-        _group_slurm_jobs(ssh_sess,
-                          resources,
-                          command,
-                          work_path,
-                          run_tasks,
-                          1,
-                          [],
-                          forward_files,
-                          backward_files)
+
+        dispatcher.run_jobs(resources,
+                            command,
+                            work_path,
+                            run_tasks,
+                            1,
+                            [],
+                            forward_files,
+                            backward_files,
+                            forward_task_deference = False)
+        # _group_slurm_jobs(ssh_sess,
+        #                   resources,
+        #                   command,
+        #                   work_path,
+        #                   run_tasks,
+        #                   1,
+        #                   [],
+        #                   forward_files,
+        #                   backward_files)
+
         # collect resutls
         log_0 = os.path.join(work_path, '0', 'log.lammps')
         log_1 = os.path.join(work_path, '1', 'log.lammps')
@@ -226,7 +242,7 @@ def make_dpdt (temp,
         t0 = ti._compute_thermo(log_0, natoms[0], stat_skip, stat_bsize)
         t1 = ti._compute_thermo(log_1, natoms[1], stat_skip, stat_bsize)
         dv = t1['v'] - t0['v']
-        dh = t1['h'] - t0['h']
+        dh = t1['h'] - t0['h'] - (shift[1] - shift[0])
         with open(os.path.join('database', 'dpdt.out'), 'a') as fp:
             fp.write('%.16e %.16e %.16e %.16e\n' % \
                      (temp, pres, dv, dh))            
@@ -242,6 +258,7 @@ class GibbsDuhemFunc (object):
                   inte_dir,
                   pref = 1.0,
                   natoms = None,
+                  shift = [0, 0],
                   verbose = False):
         self.jdata = jdata
         self.mdata = mdata
@@ -250,8 +267,9 @@ class GibbsDuhemFunc (object):
         self.natoms = natoms
         self.verbose =  verbose
         self.pref = pref
+        self.shift = shift
         
-        self.ssh_sess = SSHSession(mdata['machine'])
+        self.dispatcher = Dispatcher(mdata['machine'], context_type = 'lazy-local', batch_type = 'pbs')
         if os.path.isdir(task_path) :
             print('find path ' + task_path + ' use it. The user should guarantee the consistency between the jdata and the found work path ')
         else :
@@ -264,13 +282,17 @@ class GibbsDuhemFunc (object):
             # x: temp, y: pres
             [dv, dh] = make_dpdt(x, y,
                                  self.inte_dir,
-                                 self.task_path, self.mdata, self.ssh_sess, self.natoms, self.verbose)
+                                 self.task_path, self.mdata, self.dispatcher, self.natoms,
+                                 self.shift,
+                                 self.verbose)
             return [dh / (x * dv) * self.ev2bar * self.pref]
         elif self.inte_dir == 'p' :
             # x: pres, y: temp
             [dv, dh] = make_dpdt(y, x,
                                  self.inte_dir,
-                                 self.task_path, self.mdata, self.ssh_sess, self.natoms, self.verbose)
+                                 self.task_path, self.mdata, self.dispatcher, self.natoms,
+                                 self.shift,
+                                 self.verbose)
             return [(y * dv) / dh / self.ev2bar * (1/self.pref)]
 
 
@@ -299,6 +321,8 @@ def _main () :
                         help='assumes water molecules: nmols = natoms//3')
     parser.add_argument('-o','--output', type=str, default = 'new_job',
                         help='the output folder for the job')
+    parser.add_argument('-S','--shift', type=float, nargs = 2, default = [0.0, 0.0],
+                        help='the output folder for the job')
     parser.add_argument('-v','--verbose', action = 'store_true',
                         help='print detailed infomation')
     args = parser.parse_args()
@@ -311,13 +335,15 @@ def _main () :
         conf_1 = jdata['phase_ii']['equi_conf']
         natoms = [get_natoms(conf_0), get_natoms(conf_1)]
         natoms = [ii // 3  for ii in natoms]
-    print (natoms)
+    print ('# natoms: ', natoms)
+    print ('# shifts: ', args.shift)
         
     gdf = GibbsDuhemFunc(jdata,
                          mdata,
                          args.output,
                          args.direction,
                          natoms = natoms,
+                         shift = args.shift,
                          verbose = args.verbose)
     sol = solve_ivp(gdf,
                     [args.begin, args.end],
