@@ -28,7 +28,7 @@ def _ff_lj_on(lamb,
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
     epsilon = sparam['epsilon']
-    sigma = sparam['sigma']
+    # sigma = sparam['sigma']
     # sigma_oo = sparam['sigma_oo']
     # sigma_oh = sparam['sigma_oh']
     # sigma_hh = sparam['sigma_hh']
@@ -36,7 +36,13 @@ def _ff_lj_on(lamb,
     ret = ''
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'pair_style      lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
-    ret += 'pair_coeff      * * ${EPSILON} %f %f\n' % (sigma, activation)
+
+    element_num=sparam.get('element_num', 1)
+    sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
+    for (i, j) in sigma_key_index:
+        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+str(j)], activation)
+
+    # ret += 'pair_coeff      * * ${EPSILON} %f %f\n' % (sigma, activation)
     # ret += 'pair_coeff      1 1 ${EPSILON} %f %f\n' % (sigma_oo, activation)
     # ret += 'pair_coeff      1 2 ${EPSILON} %f %f\n' % (sigma_oh, activation)
     # ret += 'pair_coeff      2 2 ${EPSILON} %f %f\n' % (sigma_hh, activation)
@@ -52,7 +58,7 @@ def _ff_deep_on(lamb,
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
     epsilon = sparam['epsilon']
-    sigma = sparam['sigma']
+    # sigma = sparam['sigma']
     # sigma_oo = sparam['sigma_oo']
     # sigma_oh = sparam['sigma_oh']
     # sigma_hh = sparam['sigma_hh']
@@ -62,7 +68,13 @@ def _ff_deep_on(lamb,
     ret += 'variable        ONE equal 1\n'
     ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
     ret += 'pair_coeff      * * deepmd\n'
-    ret += 'pair_coeff      * *  lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
+
+    element_num=sparam.get('element_num', 1)
+    sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
+    for (i, j) in sigma_key_index:
+        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+str(j)], activation)
+
+    # ret += 'pair_coeff      * *  lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
     # ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
     # ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
     # ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
@@ -78,7 +90,7 @@ def _ff_lj_off(lamb,
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
     epsilon = sparam['epsilon']
-    sigma = sparam['sigma']
+    # sigma = sparam['sigma']
     # sigma_oo = sparam['sigma_oo']
     # sigma_oh = sparam['sigma_oh']
     # sigma_hh = sparam['sigma_hh']
@@ -88,7 +100,13 @@ def _ff_lj_off(lamb,
     ret += 'variable        INV_EPSILON equal -${EPSILON}\n'
     ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
     ret += 'pair_coeff      * * deepmd\n'
-    ret += 'pair_coeff      * *  lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
+
+    element_num=sparam.get('element_num', 1)
+    sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
+    for (i, j) in sigma_key_index:
+        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+str(j)], activation)
+
+    # ret += 'pair_coeff      * *  lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
     # ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
     # ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
     # ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
@@ -101,7 +119,7 @@ def _ff_spring(lamb,
                m_spring_k,
                var_spring):
     ret = ''
-    ntypes = len(spring_k)
+    ntypes = len(m_spring_k)
     for ii in range(ntypes) :
         ret += 'group           type_%s type %s\n' % (ii+1, ii+1)
     for ii in range(ntypes) :
@@ -419,7 +437,17 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
     nsteps = jdata['nsteps']
     dt = jdata['dt']
     spring_k = jdata['spring_k']
+
     sparam = jdata.get('soft_param', {})
+    if sparam:
+        element_num=sparam.get('element_num', 1)
+        if element_num >= 9:
+            raise RuntimeError('not support element_num larger than 9')
+        sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
+        sigma_key_name_list = ['sigma_'+str(t[0])+str(t[1]) for t in sigma_key_index ]
+        for sigma_key_name in sigma_key_name_list:
+            assert sparam.get(sigma_key_name, None), 'there must be key-value for {sigma_key_name} in soft_param'.format(sigma_key_name=sigma_key_name)
+
     if crystal == 'frenkel' :
         m_spring_k = []
         for ii in model_mass_map :

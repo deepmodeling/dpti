@@ -24,12 +24,18 @@ def _ff_soft_on(lamb,
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
     epsilon = sparam['epsilon']
-    sigma = sparam['sigma']
+    # sigma = sparam['sigma']
     activation = sparam['activation']
     ret = ''
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'pair_style      lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
-    ret += 'pair_coeff      * * ${EPSILON} %f %f\n' % (sigma, activation)
+
+    element_num=sparam.get('element_num', 1)
+    sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
+    for (i, j) in sigma_key_index:
+        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+str(j)], activation)
+
+    # ret += 'pair_coeff      * * ${EPSILON} %f %f\n' % (sigma, activation)
     ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_LAMBDA scale yes\n'
     ret += 'compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_EPSILON\n'
     return ret
@@ -41,14 +47,20 @@ def _ff_deep_on(lamb,
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
     epsilon = sparam['epsilon']
-    sigma = sparam['sigma']
+    # sigma = sparam['sigma']
     activation = sparam['activation']
     ret = ''
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'variable        ONE equal 1\n'
     ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
     ret += 'pair_coeff      * * deepmd\n'
-    ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
+
+    element_num=sparam.get('element_num', 1)
+    sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
+    for (i, j) in sigma_key_index:
+        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+str(j)], activation)
+
+    # ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
     ret += 'fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA\n'
     ret += 'compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE\n'
     return ret
@@ -60,7 +72,7 @@ def _ff_soft_off(lamb,
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
     epsilon = sparam['epsilon']
-    sigma = sparam['sigma']
+    # sigma = sparam['sigma']
     activation = sparam['activation']
     ret = ''
     ret += 'variable        INV_LAMBDA equal 1-${LAMBDA}\n'
@@ -68,7 +80,13 @@ def _ff_soft_off(lamb,
     ret += 'variable        INV_EPSILON equal -${EPSILON}\n'
     ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
     ret += 'pair_coeff      * * deepmd\n'
-    ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
+
+    element_num=sparam.get('element_num', 1)
+    sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
+    for (i, j) in sigma_key_index:
+        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+str(j)], activation)
+
+    # ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
     ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_INV_LAMBDA scale yes\n'
     ret += 'compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_INV_EPSILON\n'
     return ret
@@ -170,6 +188,17 @@ def _make_tasks(iter_name, jdata, step) :
     if 'copies' in jdata :
         copies = jdata['copies']
     temp = jdata['temp']
+    
+    sparam = jdata.get('soft_param', {})
+    if sparam:
+        element_num=sparam.get('element_num', 1)
+        if element_num >= 9:
+            raise RuntimeError('not support element_num larger than 9')
+        sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
+        sigma_key_name_list = ['sigma_'+str(t[0])+str(t[1]) for t in sigma_key_index ]
+        for sigma_key_name in sigma_key_name_list:
+            assert sparam.get(sigma_key_name, None), 'there must be key-value for {sigma_key_name} in soft_param'.format(sigma_key_name=sigma_key_name)
+
 
     create_path(iter_name)
     cwd = os.getcwd()
