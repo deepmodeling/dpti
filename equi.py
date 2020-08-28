@@ -330,10 +330,12 @@ def post_task(iter_name, natoms = None, is_water = True) :
         if 'copies' in jdata :
             natoms *= np.prod(jdata['copies'])
     is_water=jdata.get('is_water', True)
-    if is_water :
+    if is_water is True:
         nmols = natoms // 3
-    else:
+    elif is_water is False:
         nmols = natoms
+    else:
+        raise RuntimeError('must specify key "is_water" of  bool value  in jdata')
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
     log_file = os.path.join(iter_name, 'log.lammps')
