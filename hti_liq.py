@@ -33,7 +33,7 @@ def _ff_soft_on(lamb,
     element_num=sparam.get('element_num', 1)
     sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
     for (i, j) in sigma_key_index:
-        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+str(j)], activation)
+        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+'_'+str(j)], activation)
 
     # ret += 'pair_coeff      * * ${EPSILON} %f %f\n' % (sigma, activation)
     ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_LAMBDA scale yes\n'
@@ -84,7 +84,7 @@ def _ff_soft_off(lamb,
     element_num=sparam.get('element_num', 1)
     sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
     for (i, j) in sigma_key_index:
-        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+str(j)], activation)
+        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+'_'+str(j)], activation)
 
     # ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
     ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_INV_LAMBDA scale yes\n'
@@ -192,10 +192,8 @@ def _make_tasks(iter_name, jdata, step) :
     sparam = jdata.get('soft_param', {})
     if sparam:
         element_num=sparam.get('element_num', 1)
-        if element_num >= 9:
-            raise RuntimeError('not support element_num larger than 9')
         sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
-        sigma_key_name_list = ['sigma_'+str(t[0])+str(t[1]) for t in sigma_key_index ]
+        sigma_key_name_list = ['sigma_'+str(t[0])+'_'+str(t[1]) for t in sigma_key_index ]
         for sigma_key_name in sigma_key_name_list:
             assert sparam.get(sigma_key_name, None), 'there must be key-value for {sigma_key_name} in soft_param'.format(sigma_key_name=sigma_key_name)
 
