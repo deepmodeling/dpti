@@ -58,7 +58,7 @@ def _ff_deep_on(lamb,
     element_num=sparam.get('element_num', 1)
     sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
     for (i, j) in sigma_key_index:
-        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+str(j)], activation)
+        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+'_'+str(j)], activation)
 
     # ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
     ret += 'fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA\n'
