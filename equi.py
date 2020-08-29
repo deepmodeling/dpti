@@ -59,8 +59,8 @@ def _gen_lammps_input (conf_file,
         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz\n'
     elif 'npt' in ens :
         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz\n'
-    else :
-        raise RuntimeError('unknow ensemble %s\n' % ens)                
+    else :	
+        raise RuntimeError('unknow ensemble %s\n' % ens)
     if dump_ave_posi: 
         ret += 'compute         ru all property/atom xu yu zu\n'
         ret += 'fix             ap all ave/atom ${DUMP_FREQ} ${NREPEAT} ${NSTEPS} c_ru[1] c_ru[2] c_ru[3]\n'
@@ -329,8 +329,13 @@ def post_task(iter_name, natoms = None, is_water = True) :
         natoms = lib.lammps.get_natoms(equi_conf)
         if 'copies' in jdata :
             natoms *= np.prod(jdata['copies'])
-    if is_water :
+    is_water=jdata.get('is_water', True)
+    if is_water is True:
         nmols = natoms // 3
+    elif is_water is False:
+        nmols = natoms
+    else:
+        raise RuntimeError('must specify key "is_water" of  bool value  in jdata')
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
     log_file = os.path.join(iter_name, 'log.lammps')
