@@ -40,7 +40,7 @@ def _ff_lj_on(lamb,
     element_num=sparam.get('element_num', 1)
     sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
     for (i, j) in sigma_key_index:
-        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+'_'+str(j)], activation)
+        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i+1, j+1, sparam['sigma_'+str(i)+'_'+str(j)], activation)
 
     # ret += 'pair_coeff      * * ${EPSILON} %f %f\n' % (sigma, activation)
     # ret += 'pair_coeff      1 1 ${EPSILON} %f %f\n' % (sigma_oo, activation)
@@ -72,7 +72,7 @@ def _ff_deep_on(lamb,
     element_num=sparam.get('element_num', 1)
     sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
     for (i, j) in sigma_key_index:
-        ret += 'pair_coeff      %s %s lj/cut/soft ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+'_'+str(j)], activation)
+        ret += 'pair_coeff      %s %s lj/cut/soft ${EPSILON} %f %f\n' % (i+1, j+1, sparam['sigma_'+str(i)+'_'+str(j)], activation)
 
     # ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
     # ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
@@ -104,7 +104,7 @@ def _ff_lj_off(lamb,
     element_num=sparam.get('element_num', 1)
     sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
     for (i, j) in sigma_key_index:
-        ret += 'pair_coeff      %s %s lj/cut/soft ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+'_'+str(j)], activation)
+        ret += 'pair_coeff      %s %s lj/cut/soft ${EPSILON} %f %f\n' % (i+1, j+1, sparam['sigma_'+str(i)+'_'+str(j)], activation)
 
     # ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
     # ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
