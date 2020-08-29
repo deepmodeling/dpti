@@ -38,7 +38,7 @@ def _ff_lj_on(lamb,
     ret += 'pair_style      lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
 
     element_num=sparam.get('element_num', 1)
-    sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
+    sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
     for (i, j) in sigma_key_index:
         ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+'_'+str(j)], activation)
 
@@ -70,11 +70,11 @@ def _ff_deep_on(lamb,
     ret += 'pair_coeff      * * deepmd\n'
 
     element_num=sparam.get('element_num', 1)
-    sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
+    sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
     for (i, j) in sigma_key_index:
-        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+'_'+str(j)], activation)
+        ret += 'pair_coeff      %s %s lj/cut/soft ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+'_'+str(j)], activation)
 
-    # ret += 'pair_coeff      * *  lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
+    # ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
     # ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
     # ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
     # ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
@@ -102,11 +102,11 @@ def _ff_lj_off(lamb,
     ret += 'pair_coeff      * * deepmd\n'
 
     element_num=sparam.get('element_num', 1)
-    sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
+    sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
     for (i, j) in sigma_key_index:
-        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+'_'+str(j)], activation)
+        ret += 'pair_coeff      %s %s lj/cut/soft ${EPSILON} %f %f\n' % (i, j, sparam['sigma_'+str(i)+'_'+str(j)], activation)
 
-    # ret += 'pair_coeff      * *  lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
+    # ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
     # ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
     # ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
     # ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
@@ -441,7 +441,7 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
     sparam = jdata.get('soft_param', {})
     if sparam:
         element_num=sparam.get('element_num', 1)
-        sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
+        sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
         sigma_key_name_list = ['sigma_'+str(t[0])+'_'+str(t[1]) for t in sigma_key_index ]
         for sigma_key_name in sigma_key_name_list:
             assert sparam.get(sigma_key_name, None), 'there must be key-value for {sigma_key_name} in soft_param'.format(sigma_key_name=sigma_key_name)
