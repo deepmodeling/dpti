@@ -58,7 +58,7 @@ def free_energy (job) :
     if type(spring_k) is not list:
         spring_k_1 = []
         for ii in mass_map :
-            spring_k_1.append(spring_k)
+            spring_k_1.append(spring_k * ii)
         spring_k = spring_k_1
     assert(len(mass_map) == len(spring_k))
     if 'copies' in jdata :

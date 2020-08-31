@@ -28,16 +28,24 @@ def _ff_lj_on(lamb,
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
     epsilon = sparam['epsilon']
-    sigma_oo = sparam['sigma_oo']
-    sigma_oh = sparam['sigma_oh']
-    sigma_hh = sparam['sigma_hh']
+    # sigma = sparam['sigma']
+    # sigma_oo = sparam['sigma_oo']
+    # sigma_oh = sparam['sigma_oh']
+    # sigma_hh = sparam['sigma_hh']
     activation = sparam['activation']
     ret = ''
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'pair_style      lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
-    ret += 'pair_coeff      1 1 ${EPSILON} %f %f\n' % (sigma_oo, activation)
-    ret += 'pair_coeff      1 2 ${EPSILON} %f %f\n' % (sigma_oh, activation)
-    ret += 'pair_coeff      2 2 ${EPSILON} %f %f\n' % (sigma_hh, activation)
+
+    element_num=sparam.get('element_num', 1)
+    sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
+    for (i, j) in sigma_key_index:
+        ret += 'pair_coeff      %s %s ${EPSILON} %f %f\n' % (i+1, j+1, sparam['sigma_'+str(i)+'_'+str(j)], activation)
+
+    # ret += 'pair_coeff      * * ${EPSILON} %f %f\n' % (sigma, activation)
+    # ret += 'pair_coeff      1 1 ${EPSILON} %f %f\n' % (sigma_oo, activation)
+    # ret += 'pair_coeff      1 2 ${EPSILON} %f %f\n' % (sigma_oh, activation)
+    # ret += 'pair_coeff      2 2 ${EPSILON} %f %f\n' % (sigma_hh, activation)
     ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_LAMBDA scale yes\n'
     ret += 'compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_EPSILON\n'    
     return ret
@@ -50,18 +58,26 @@ def _ff_deep_on(lamb,
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
     epsilon = sparam['epsilon']
-    sigma_oo = sparam['sigma_oo']
-    sigma_oh = sparam['sigma_oh']
-    sigma_hh = sparam['sigma_hh']
+    # sigma = sparam['sigma']
+    # sigma_oo = sparam['sigma_oo']
+    # sigma_oh = sparam['sigma_oh']
+    # sigma_hh = sparam['sigma_hh']
     activation = sparam['activation']
     ret = ''
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'variable        ONE equal 1\n'
     ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
     ret += 'pair_coeff      * * deepmd\n'
-    ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
-    ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
-    ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
+
+    element_num=sparam.get('element_num', 1)
+    sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
+    for (i, j) in sigma_key_index:
+        ret += 'pair_coeff      %s %s lj/cut/soft ${EPSILON} %f %f\n' % (i+1, j+1, sparam['sigma_'+str(i)+'_'+str(j)], activation)
+
+    # ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
+    # ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
+    # ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
+    # ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
     ret += 'fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA\n'
     ret += 'compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE\n'
     return ret
@@ -74,55 +90,55 @@ def _ff_lj_off(lamb,
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
     epsilon = sparam['epsilon']
-    sigma_oo = sparam['sigma_oo']
-    sigma_oh = sparam['sigma_oh']
-    sigma_hh = sparam['sigma_hh']
+    # sigma = sparam['sigma']
+    # sigma_oo = sparam['sigma_oo']
+    # sigma_oh = sparam['sigma_oh']
+    # sigma_hh = sparam['sigma_hh']
     activation = sparam['activation']
     ret = ''
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'variable        INV_EPSILON equal -${EPSILON}\n'
     ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
     ret += 'pair_coeff      * * deepmd\n'
-    ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
-    ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
-    ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
+
+    element_num=sparam.get('element_num', 1)
+    sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
+    for (i, j) in sigma_key_index:
+        ret += 'pair_coeff      %s %s lj/cut/soft ${EPSILON} %f %f\n' % (i+1, j+1, sparam['sigma_'+str(i)+'_'+str(j)], activation)
+
+    # ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
+    # ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
+    # ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
+    # ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
     ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_INV_LAMBDA scale yes\n'
     ret += 'compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_INV_EPSILON\n'    
     return ret
     
 
 def _ff_spring(lamb,
-               spring_k,
+               m_spring_k,
                var_spring):
     ret = ''
-    if type(spring_k) is not list :
-        if var_spring :
-            spring_const = spring_k * (1 - lamb)
+    ntypes = len(m_spring_k)
+    for ii in range(ntypes) :
+        ret += 'group           type_%s type %s\n' % (ii+1, ii+1)
+    for ii in range(ntypes) :
+        if var_spring:
+            m_spring_const = m_spring_k[ii] * (1 - lamb)
         else:
-            spring_const = spring_k            
-        ret += 'fix             l_spring all spring/self %.10e\n' % (spring_const)
-        ret += 'fix_modify      l_spring energy yes\n'
-    else :
-        ntypes = len(spring_k)
-        for ii in range(ntypes) :
-            ret += 'group           type_%s type %s\n' % (ii+1, ii+1)
-        for ii in range(ntypes) :
-            if var_spring:
-                spring_const = spring_k[ii] * (1 - lamb)
-            else:
-                spring_const = spring_k[ii]
-            ret += 'fix             l_spring_%s type_%s spring/self %.10e\n' % (ii+1, ii+1, spring_const)
-            ret += 'fix_modify      l_spring_%s energy yes\n' % (ii+1)
-        sum_str = 'f_l_spring_1'
-        for ii in range(1,ntypes) :
-            sum_str += '+f_l_spring_%s' % (ii+1)
-        ret += 'variable        l_spring equal %s\n' % (sum_str)
+            m_spring_const = m_spring_k[ii]
+        ret += 'fix             l_spring_%s type_%s spring/self %.10e\n' % (ii+1, ii+1, m_spring_const)
+        ret += 'fix_modify      l_spring_%s energy yes\n' % (ii+1)
+    sum_str = 'f_l_spring_1'
+    for ii in range(1,ntypes) :
+        sum_str += '+f_l_spring_%s' % (ii+1)
+    ret += 'variable        l_spring equal %s\n' % (sum_str)
     return ret
 
     
 def _ff_soft_lj(lamb,
                 model,
-                spring_k,
+                m_spring_k,
                 step,
                 sparam):
     ret = ''
@@ -139,14 +155,14 @@ def _ff_soft_lj(lamb,
     else:
         raise RuntimeError('unkown step', step)
 
-    ret += _ff_spring(lamb, spring_k, var_spring)
+    ret += _ff_spring(lamb, m_spring_k, var_spring)
     
     return ret
 
 
 def _ff_two_steps(lamb,
                   model,
-                  spring_k,
+                  m_spring_k,
                   step):
     ret = ''
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
@@ -166,7 +182,7 @@ def _ff_two_steps(lamb,
     else:
         raise RuntimeError('unkown step', step)
 
-    ret += _ff_spring(lamb, spring_k, var_spring)
+    ret += _ff_spring(lamb, m_spring_k, var_spring)
 
     if var_deep:
         ret += 'fix             l_deep all adapt 1 pair deepmd scale * * v_LAMBDA\n'
@@ -178,7 +194,7 @@ def _gen_lammps_input (conf_file,
                        mass_map,
                        lamb,
                        model,
-                       spring_k,
+                       m_spring_k,
                        nsteps,
                        dt,
                        ens,
@@ -192,8 +208,6 @@ def _gen_lammps_input (conf_file,
                        sparam = {},
                        switch = 'one-step',
                        step = 'both') :
-    if crystal == 'frenkel' :
-        assert(type(spring_k) == list)
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -221,9 +235,9 @@ def _gen_lammps_input (conf_file,
 
     # force field setting
     if switch == 'one-step' or switch == 'two-step':
-        ret += _ff_two_steps(lamb, model, spring_k, step)
+        ret += _ff_two_steps(lamb, model, m_spring_k, step)
     elif switch == 'three-step':
-        ret += _ff_soft_lj(lamb, model, spring_k, step, sparam)
+        ret += _ff_soft_lj(lamb, model, m_spring_k, step, sparam)
     else:
         raise RuntimeError('unknow switch', switch)
 
@@ -232,7 +246,7 @@ def _gen_lammps_input (conf_file,
     ret += 'timestep        %s\n' % dt
     ret += 'thermo          ${THERMO_FREQ}\n'
     if 1 - lamb != 0 :
-        if type(spring_k) is not list :        
+        if type(m_spring_k) is not list :        
             if switch == 'three-step':
                 ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring c_e_diff[1]\n'
             else:
@@ -423,12 +437,23 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
     nsteps = jdata['nsteps']
     dt = jdata['dt']
     spring_k = jdata['spring_k']
+
     sparam = jdata.get('soft_param', {})
+    if sparam:
+        element_num=sparam.get('element_num', 1)
+        sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
+        sigma_key_name_list = ['sigma_'+str(t[0])+'_'+str(t[1]) for t in sigma_key_index ]
+        for sigma_key_name in sigma_key_name_list:
+            assert sparam.get(sigma_key_name, None), 'there must be key-value for {sigma_key_name} in soft_param'.format(sigma_key_name=sigma_key_name)
+
     if crystal == 'frenkel' :
-        spring_k_1 = []
+        m_spring_k = []
         for ii in model_mass_map :
-            spring_k_1.append(spring_k * ii)
-        spring_k = spring_k_1
+            m_spring_k.append(spring_k * ii)
+    if crystal == 'vega' :
+        m_spring_k = []
+        for ii in model_mass_map :
+            m_spring_k.append(spring_k * ii)
     stat_freq = jdata['stat_freq']
     copies = None
     if 'copies' in jdata :
@@ -477,13 +502,15 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
             ens = 'nvt'
         if langevin:
             ens = 'nvt-langevin'        
+        if jdata.get('ens', False):
+            ens = jdata.get('ens')
         if ref == 'einstein' :
             lmp_str \
                 = _gen_lammps_input('conf.lmp',
                                     model_mass_map, 
                                     ii, 
                                     'graph.pb',
-                                    spring_k, 
+                                    m_spring_k, 
                                     nsteps, 
                                     dt,
                                     ens,
@@ -936,7 +963,10 @@ def _main ():
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
         if 'reference' not in jdata :
             jdata['reference'] = 'einstein'
-        e0 = einstein.free_energy(job)
+        if jdata['crystal'] == 'vega':
+            e0 = einstein.free_energy(job)
+        if jdata['crystal'] == 'frenkel':
+            e0 = einstein.frenkel(job)
         de, de_err, thermo_info = post_tasks(job, jdata, method = args.inte_method, scheme = args.scheme)
         # printing
         print_format = '%20.12f  %10.3e  %10.3e'
