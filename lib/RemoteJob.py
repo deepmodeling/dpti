@@ -428,7 +428,7 @@ class PBSJob (RemoteJob) :
         if job_id == "" :
             raise RuntimeError("job %s is has not been submitted" % self.remote_root)
         ret, stdin, stdout, stderr\
-            = self.block_call ("qstat " + job_id)
+            = self.block_call ("qstat -x " + job_id)
         err_str = stderr.read().decode('utf-8')
         if (ret != 0) :
             if str("qstat: Unknown Job Id") in err_str :
@@ -446,7 +446,7 @@ class PBSJob (RemoteJob) :
             return JobStatus.waiting
         elif    status_word in ["R"] :
             return JobStatus.running
-        elif    status_word in ["C","E","K"] :
+        elif    status_word in ["C","E","K","F"] :
             if self._check_finish_tag() :
                 return JobStatus.finished
             else :
@@ -480,12 +480,12 @@ class PBSJob (RemoteJob) :
         ret = ''
         ret += "#!/bin/bash -l\n"
         if res['numb_gpu'] == 0:
-            ret += '#PBS -l nodes=%d:ppn=%d\n' % (res['numb_node'], res['task_per_node'])
+            ret += '#PBS -l select=%d:ncpus=%d\n' % (res['numb_node'], res['task_per_node'])
         else :
-            ret += '#PBS -l nodes=%d:ppn=%d:gpus=%d\n' % (res['numb_node'], res['task_per_node'], res['numb_gpu'])
+            ret += '#PBS -l select=%d:ncpus=%d:ngpus=%d\n' % (res['numb_node'], res['task_per_node'], res['numb_gpu'])
         ret += '#PBS -l walltime=%s\n' % (res['time_limit'])
-        if res['mem_limit'] > 0 :
-            ret += "#PBS -l mem=%dG \n" % res['mem_limit']
+        # if res['mem_limit'] > 0 :
+        #     ret += "#PBS -l mem=%dG \n" % res['mem_limit']
         ret += '#PBS -j oe\n'
         if len(res['partition']) > 0 :
             ret += '#PBS -q %s\n' % res['partition']

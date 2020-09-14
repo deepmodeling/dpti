@@ -9,7 +9,7 @@ from scipy.integrate import solve_ivp
 from lib.utils import create_path
 from lib.utils import block_avg
 from lib.lammps import get_natoms
-from lib.RemoteJob import SSHSession, JobStatus, SlurmJob
+from lib.RemoteJob import SSHSession, JobStatus, SlurmJob,  PBSJob
 
 def _group_slurm_jobs(ssh_sess,
                       resources,
@@ -20,7 +20,7 @@ def _group_slurm_jobs(ssh_sess,
                       forward_common_files,
                       forward_task_files,
                       backward_task_files,
-                      remote_job = SlurmJob) :
+                      remote_job = PBSJob) :
     task_chunks = [
         [os.path.basename(j) for j in tasks[i:i + group_size]] \
         for i in range(0, len(tasks), group_size)
