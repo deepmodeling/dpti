@@ -192,7 +192,7 @@ def _make_tasks(iter_name, jdata, step) :
     sparam = jdata.get('soft_param', {})
     if sparam:
         element_num=sparam.get('element_num', 1)
-        sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(1,element_num+1) for j in range(1, element_num+1)))
+        sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
         sigma_key_name_list = ['sigma_'+str(t[0])+'_'+str(t[1]) for t in sigma_key_index ]
         for sigma_key_name in sigma_key_name_list:
             assert sparam.get(sigma_key_name, None), 'there must be key-value for {sigma_key_name} in soft_param'.format(sigma_key_name=sigma_key_name)
