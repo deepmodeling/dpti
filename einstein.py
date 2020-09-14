@@ -36,10 +36,12 @@ def ideal_gas_fe(job) :
     fe = 0
     for idx,ii in enumerate(natoms) :
         # kinetic contrib
-        rho = ii / (vol * (pc.angstrom**3))
-        fe += ii * np.log(rho * (Lambda_k[idx] ** 3)) 
-        fe -= ii
-        fe += 0.5 * np.log(2. * np.pi * ii)
+        # print('```', idx, ii)
+        if ii > 0:
+            rho = ii / (vol * (pc.angstrom**3))
+            fe += ii * np.log(rho * (Lambda_k[idx] ** 3)) 
+            fe -= ii
+            fe += 0.5 * np.log(2. * np.pi * ii)
     fe *= pc.Boltzmann * temp / pc.electron_volt
     fe /= np.sum(natoms)
     return fe
