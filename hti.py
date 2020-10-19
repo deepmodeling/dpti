@@ -265,7 +265,7 @@ def _gen_lammps_input (conf_file,
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
     elif ens == 'nvt-langevin' :
         ret += 'fix             1 all nve\n'
-        ret += 'fix             2 all langevin ${TEMP} ${TEMP} ${TAU_T} %d' % (np.random.randint(0, 2**16))
+        ret += 'fix             2 all langevin ${TEMP} ${TEMP} ${TAU_T} %d' % (np.random.randint(1, 2**16))
         if crystal == 'frenkel':
             ret += ' zero yes\n'
         else:
@@ -277,7 +277,7 @@ def _gen_lammps_input (conf_file,
     else :
         raise RuntimeError('unknow ensemble %s\n' % ens)        
     ret += '# --------------------- INITIALIZE -----------------------\n'    
-    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(0, 2**16))
+    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(1, 2**16))
     if crystal == 'frenkel' :
         ret += 'fix             fc all recenter INIT INIT INIT\n'
         ret += 'fix             fm all momentum 1 linear 1 1 1\n'
@@ -349,7 +349,7 @@ def _gen_lammps_input_ideal (conf_file,
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
     elif ens == 'nvt-langevin' :
         ret += 'fix             1 all nve\n'
-        ret += 'fix             2 all langevin ${TEMP} ${TEMP} ${TAU_T} %d zero yes\n' % (np.random.randint(0, 2**16))
+        ret += 'fix             2 all langevin ${TEMP} ${TEMP} ${TAU_T} %d zero yes\n' % (np.random.randint(1, 2**16))
     elif ens == 'npt-iso' or ens == 'npt':
         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}\n'
     elif ens == 'nve' :
@@ -358,7 +358,7 @@ def _gen_lammps_input_ideal (conf_file,
         raise RuntimeError('unknow ensemble %s\n' % ens)        
     ret += 'fix             mzero all momentum 10 linear 1 1 1\n'
     ret += '# --------------------- INITIALIZE -----------------------\n'    
-    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(0, 2**16))
+    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(1, 2**16))
     ret += 'velocity        all zero linear\n'
     ret += '# --------------------- RUN ------------------------------\n'    
     ret += 'run             ${NSTEPS}\n'
