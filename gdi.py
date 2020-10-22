@@ -321,6 +321,8 @@ def _main () :
                         help='assumes water molecules: nmols = natoms//3')
     parser.add_argument('-o','--output', type=str, default = 'new_job',
                         help='the output folder for the job')
+    parser.add_argument('-f','--first-step', type=float, default = None,
+                        help='the first step size of the integrator')
     parser.add_argument('-S','--shift', type=float, nargs = 2, default = [0.0, 0.0],
                         help='the output folder for the job')
     parser.add_argument('-v','--verbose', action = 'store_true',
@@ -351,7 +353,8 @@ def _main () :
                     t_eval = args.step_value,
                     method = 'RK23',
                     atol=args.abs_tol,
-                    rtol=args.rel_tol)
+                    rtol=args.rel_tol,
+                    first_step = args.first_step)
 
     if args.direction == 't' :
         tmp = np.concatenate([sol.t, sol.y[0]])
