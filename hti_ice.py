@@ -35,6 +35,9 @@ def _main ():
                              help='the method of thermodynamic integration')
     parser_comp.add_argument('-d','--disorder-corr', action = 'store_true',
                              help='apply disorder correction for ice')
+    parser_comp.add_argument('-p','--partial-disorder', type=str,
+                             choices = ['3', '5'],
+                             help='apply partial disorder correction for ice')
     parser_comp.add_argument('-s','--scheme', type=str, default = 'simpson', 
                              help='the numeric integration scheme')
     parser_comp.add_argument('-S','--shift', type=float, default = 0.0, 
@@ -84,7 +87,18 @@ def _main ():
         # compute Paulin estimate for disordered entropy
         if args.disorder_corr :
             temp = jdata['temp']
-            pauling_corr = -pc.Boltzmann * temp / pc.electron_volt * np.log(1.5)            
+            if args.partial_disorder is not None:
+                if args.partial_disorder == '5':
+                    pauling_corr = -pc.Boltzmann * temp / pc.electron_volt * 0.3817
+                    note_pauling = '(ice5)'
+                elif args.partial_disorder == '3':
+                    pauling_corr = -pc.Boltzmann * temp / pc.electron_volt * 0.3686
+                    note_pauling = '(ice3)'
+                else:
+                    raise RuntimeError(f'unknow partial_disorder {partial_disorder}')
+            else:
+                pauling_corr = -pc.Boltzmann * temp / pc.electron_volt * np.log(1.5)
+                note_pauling = '      '
             e0 += pauling_corr
         else :
             pauling_corr = 0
@@ -97,7 +111,7 @@ def _main ():
             print('# free ener of Einstein Mole: %20.8f' % (e0))
         else :
             print('# free ener of Einstein Crys: %20.8f' % (e0))
-        print('# Pauling corr:               %20.8f' % (pauling_corr))
+        print('# Pauling corr %s:        %20.8f' % (note_pauling, pauling_corr))
         print(('# fe integration              ' + print_format) \
               % (de, de_err[0], de_err[1]))        
         print( '# fe const shift              %20.12f' % args.shift)
