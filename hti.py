@@ -265,7 +265,7 @@ def _gen_lammps_input (conf_file,
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
     elif ens == 'nvt-langevin' :
         ret += 'fix             1 all nve\n'
-        ret += 'fix             2 all langevin ${TEMP} ${TEMP} ${TAU_T} %d' % (np.random.randint(0, 2**16))
+        ret += 'fix             2 all langevin ${TEMP} ${TEMP} ${TAU_T} %d' % (np.random.randint(1, 2**16))
         if crystal == 'frenkel':
             ret += ' zero yes\n'
         else:
@@ -277,7 +277,7 @@ def _gen_lammps_input (conf_file,
     else :
         raise RuntimeError('unknow ensemble %s\n' % ens)        
     ret += '# --------------------- INITIALIZE -----------------------\n'    
-    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(0, 2**16))
+    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(1, 2**16))
     if crystal == 'frenkel' :
         ret += 'fix             fc all recenter INIT INIT INIT\n'
         ret += 'fix             fm all momentum 1 linear 1 1 1\n'
@@ -349,7 +349,7 @@ def _gen_lammps_input_ideal (conf_file,
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
     elif ens == 'nvt-langevin' :
         ret += 'fix             1 all nve\n'
-        ret += 'fix             2 all langevin ${TEMP} ${TEMP} ${TAU_T} %d zero yes\n' % (np.random.randint(0, 2**16))
+        ret += 'fix             2 all langevin ${TEMP} ${TEMP} ${TAU_T} %d zero yes\n' % (np.random.randint(1, 2**16))
     elif ens == 'npt-iso' or ens == 'npt':
         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}\n'
     elif ens == 'nve' :
@@ -358,7 +358,7 @@ def _gen_lammps_input_ideal (conf_file,
         raise RuntimeError('unknow ensemble %s\n' % ens)        
     ret += 'fix             mzero all momentum 10 linear 1 1 1\n'
     ret += '# --------------------- INITIALIZE -----------------------\n'    
-    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(0, 2**16))
+    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(1, 2**16))
     ret += 'velocity        all zero linear\n'
     ret += '# --------------------- RUN ------------------------------\n'    
     ret += 'run             ${NSTEPS}\n'
@@ -683,6 +683,7 @@ def post_tasks(iter_name, jdata, natoms = None, method = 'inte', scheme = 's'):
             raise RuntimeError('unknow method for integration')
         print('# fe of spring_off: %20.12f  %10.3e %10.3e' % (e2, err2[0], err2[1]))
         de = e0 + e1 + e2
+        print(f'# HTI three-step error [stt_err, sys_err] {err0} {err1} {err2}')
         stt_err = np.sqrt(np.square(err0[0]) + np.square(err1[0]) + np.square(err2[0]))
         sys_err = ((err0[1]) + (err1[1]) + (err2[1]))
         err = [stt_err, sys_err]
@@ -715,12 +716,16 @@ def _post_tasks(iter_name, jdata, natoms = None, scheme = 's', switch = 'one-ste
     all_ed = []
     all_ed_err = []
 
+    all_etot = []
+    all_etot_err = []
+
     for ii in all_tasks :
         log_name = os.path.join(ii, 'log.lammps')
         data = get_thermo(log_name)
         np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
         sa, se = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
         da, de = block_avg(data[:, 9], skip = stat_skip, block_size = stat_bsize)
+        etot, etot_err = block_avg(data[:, 3], skip = stat_skip, block_size = stat_bsize)
         sa /= natoms
         se /= np.sqrt(natoms)
         da /= natoms
@@ -732,6 +737,9 @@ def _post_tasks(iter_name, jdata, natoms = None, scheme = 's', switch = 'one-ste
         all_ed.append(da)
         all_es_err.append(se)
         all_ed_err.append(de)
+        
+        all_etot.append(etot/natoms)
+        all_etot_err.append(etot_err)
 
     all_lambda = np.array(all_lambda)
     all_es = np.array(all_es)
@@ -772,11 +780,14 @@ def _post_tasks(iter_name, jdata, natoms = None, scheme = 's', switch = 'one-ste
     all_print.append(all_es / (1 - all_lambda))
     all_print.append(all_ed_err / all_lambda)
     all_print.append(all_es_err / (1 - all_lambda))
+    all_print.append(all_etot)
+    # all_print.append(all_etot_err)
+    all_print.append(all_es)
     all_print = np.array(all_print)
     np.savetxt(os.path.join(iter_name, 'hti.out'), 
                all_print.T, 
                fmt = '%.8e', 
-               header = 'lmbda dU dU_err Ud Us Ud_err Us_err')
+               header = 'lmbda dU dU_err Ud Us Ud_err Us_err etot spring_eng')
 
     new_lambda, i, i_e, s_e = integrate_range(all_lambda, de, all_err, scheme = scheme)
     if new_lambda[-1] != all_lambda[-1] :
@@ -945,6 +956,10 @@ def _main ():
                              help='the method of thermodynamic integration')
     parser_comp.add_argument('-s','--scheme', type=str, default = 'simpson', 
                              help='the numeric integration scheme')
+    parser_comp.add_argument('-g', '--Go', type=float, default = None,
+                             help='P*V modified to calculate gibbs free energy')
+    parser_comp.add_argument('-G', '--Go-err', type=float, default = None,
+                             help='P*V error modified to calculate gibbs free energy')
     args = parser.parse_args()
 
     if args.command is None :
@@ -981,8 +996,14 @@ def _main ():
             print('# Helmholtz free ener per atom (stat_err inte_err) [eV]:')
             print(print_format % (e0 + de, de_err[0], de_err[1]))
         if args.type == 'gibbs' :
-            pv = thermo_info['pv']
-            pv_err = thermo_info['pv_err']
+            if args.Go is None:
+                pv = thermo_info['pv']
+            else: 
+                pv = args.Go
+            if args.Go_err is None:
+                pv_err = thermo_info['pv_err']
+            else:
+                pv_err = args.Go_err
             e1 = e0 + de + pv
             e1_err = np.sqrt(de_err[0]**2 + pv_err**2)
             print('# Gibbs free ener per atom (stat_err inte_err) [eV]:')

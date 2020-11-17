@@ -143,8 +143,9 @@ def _gen_lammps_input_ideal (step,
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % dt
+    ret += 'compute 	    allmsd all msd\n'
     ret += 'thermo          ${THERMO_FREQ}\n'
-    ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_diff[1]\n'
+    ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_diff[1] c_allmsd[*]\n'
     ret += 'thermo_modify   format 9 %.16e\n'
     ret += '# dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
     if ens == 'nvt' :
@@ -157,7 +158,7 @@ def _gen_lammps_input_ideal (step,
         raise RuntimeError('unknow ensemble %s\n' % ens)        
     ret += 'fix             mzero all momentum 10 linear 1 1 1\n'
     ret += '# --------------------- INITIALIZE -----------------------\n'    
-    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(0, 2**16))
+    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(1, 2**16))
     ret += 'velocity        all zero linear\n'
     ret += '# --------------------- RUN ------------------------------\n'    
     ret += 'run             ${NSTEPS}\n'
@@ -292,12 +293,14 @@ def _post_tasks(iter_name, step, natoms) :
     all_lambda = []
     all_dp_a = []
     all_dp_e = []
+    all_msd_xyz = []
 
     for ii in all_tasks :
         log_name = os.path.join(ii, 'log.lammps')
         data = get_thermo(log_name)
         np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
         dp_a, dp_e = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
+        msd_xyz = data[-1, 12]
         dp_a /= natoms
         dp_e /= np.sqrt(natoms)
         lmda_name = os.path.join(ii, 'lambda.out')
@@ -305,10 +308,12 @@ def _post_tasks(iter_name, step, natoms) :
         all_lambda.append(ll)
         all_dp_a.append(dp_a)
         all_dp_e.append(dp_e)
+        all_msd_xyz.append(msd_xyz)
 
     all_lambda = np.array(all_lambda)
     all_dp_a = np.array(all_dp_a)
     all_dp_e = np.array(all_dp_e)
+    all_msd_xyz = np.array(all_msd_xyz)
     de = all_dp_a
     all_err = all_dp_e
 
@@ -317,11 +322,12 @@ def _post_tasks(iter_name, step, natoms) :
     all_print.append(all_lambda)
     all_print.append(de)
     all_print.append(all_err)
+    all_print.append(all_msd_xyz)
     all_print = np.array(all_print)
     np.savetxt(os.path.join(iter_name, 'hti.out'), 
                all_print.T, 
                fmt = '%.8e', 
-               header = 'lmbda dU dU_err')
+               header = 'lmbda dU dU_err msd_xyz')
 
     diff_e, err = integrate(all_lambda, de, all_err)
     sys_err = integrate_sys_err(all_lambda, de)
@@ -342,6 +348,7 @@ def post_tasks(iter_name, natoms) :
     subtask_name = os.path.join(iter_name, '02.soft_off')
     e2, err2, tinfo2 = _post_tasks(subtask_name, 'soft_off', natoms)
     fe = fe + e0 + e1 + e2
+    print(f'# HTI three-step error [stt_err, sys_err] {err0} {err1} {err2}')
     err = np.sqrt(np.square(err0[0]) + np.square(err1[0]) + np.square(err2[0]))
     sys_err = ((err0[1]) + (err1[1]) + (err2[1]))
     return fe, [err,sys_err], tinfo2
@@ -375,6 +382,10 @@ def _main ():
     parser_comp.add_argument('-t','--type', type=str, default = 'helmholtz', 
                              choices=['helmholtz', 'gibbs'], 
                              help='the type of free energy')
+    parser_comp.add_argument('-g', '--Go', type=float, default = None,
+                             help='P*V modified to calculate gibbs free energy')
+    parser_comp.add_argument('-G', '--Go-err', type=float, default = None,
+                             help='P*V error modified to calculate gibbs free energy')
     args = parser.parse_args()
 
     if args.command is None :
@@ -399,8 +410,14 @@ def _main ():
             print('# Helmholtz free ener per atom (err) [eV]:')
             print(print_format % (fe, fe_err[0], fe_err[1]))
         if args.type == 'gibbs' :
-            pv = thermo_info['pv']
-            pv_err = thermo_info['pv_err']
+            if args.Go is None:
+                pv = thermo_info['pv']
+            else: 
+                pv = args.Go
+            if args.Go_err is None:
+                pv_err = thermo_info['pv_err']
+            else:
+                pv_err = args.Go_err
             e1 = fe + pv
             e1_err = np.sqrt(fe_err[0]**2 + pv_err**2)
             print('# Gibbs free ener per mol (err) [eV]:')

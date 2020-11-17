@@ -70,6 +70,8 @@ def _gen_lammps_input (conf_file,
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
     elif ens == 'npt-iso' or ens == 'npt':
         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}\n'
+    elif ens == 'npt-xy' :
+        ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P} couple xy\n'
     elif ens == 'npt-aniso' :
         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P}\n'
     elif ens == 'npt-tri' :
@@ -80,7 +82,7 @@ def _gen_lammps_input (conf_file,
         raise RuntimeError('unknow ensemble %s\n' % ens)        
     ret += 'fix             mzero all momentum 10 linear 1 1 1\n'
     ret += '# --------------------- INITIALIZE -----------------------\n'    
-    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(0, 2**16))
+    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(1, 2**16))
     ret += 'velocity        all zero linear\n'
     ret += '# --------------------- RUN ------------------------------\n'    
     ret += 'run             ${NSTEPS}\n'
@@ -103,6 +105,7 @@ def npt_equi_conf(npt_name) :
     xy, xye = block_avg(data[:,11], skip = stat_skip, block_size = stat_bsize)
     xz, xze = block_avg(data[:,12], skip = stat_skip, block_size = stat_bsize)
     yz, yze = block_avg(data[:,13], skip = stat_skip, block_size = stat_bsize)
+    print('~~~', lx , ly, lz , xy, xz, yz)
     
     last_dump = lib.lammps.get_last_dump(dump_file).split('\n')
     sys_data = lib.dump.system_data(last_dump)

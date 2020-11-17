@@ -479,6 +479,8 @@ class PBSJob (RemoteJob) :
         _set_default_resource(res)
         ret = ''
         ret += "#!/bin/bash -l\n"
+        if res.get('hpc_job_name', None):
+            ret += '#PBS -N %s\n' % res['hpc_job_name']
         if res['numb_gpu'] == 0:
             ret += '#PBS -l select=%d:ncpus=%d\n' % (res['numb_node'], res['task_per_node'])
         else :

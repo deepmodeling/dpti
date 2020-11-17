@@ -85,13 +85,15 @@ def _gen_lammps_input (conf_file,
         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P}\n'
     elif ens == 'npt-tri' :
         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} tri ${PRES} ${PRES} ${TAU_P}\n'
+    elif ens == 'npt-xy' :
+        ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P} couple xy\n'
     elif ens == 'nve' :
         ret += 'fix             1 all nve\n'
     else :
         raise RuntimeError('unknow ensemble %s\n' % ens)        
     ret += 'fix             mzero all momentum 10 linear 1 1 1\n'
     ret += '# --------------------- INITIALIZE -----------------------\n'    
-    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(0, 2**16))
+    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(1, 2**16))
     ret += 'velocity        all zero linear\n'
     ret += '# --------------------- RUN ------------------------------\n'    
     ret += 'run             ${NSTEPS}\n'
@@ -247,7 +249,7 @@ def _print_thermo_info(info, more_head = '') :
     ptr += '# PV(err)  [eV]:  %20.8f %20.8f' % (info['pv'], info['pv_err'])
     print(ptr)
 
-def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's') :
+def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's', all_e=None) :
     path = jdata['path']
     ens = jdata['ens']
     all_temps = []
@@ -255,7 +257,35 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's
     all_fe = []
     all_fe_err = []
     all_fe_sys_err = []
+    
+    if all_e is not None:
+        print('switch to test integral mode by yuanfengbo')
+        array_e = np.asarray(all_e, dtype='float64')
+        array_t = np.asarray(all_t, dtype='float64')
+        array_t_delta = array_t[1:] - array_t[:-1]
+        array_e_delta = array_e[1:] - array_e[:-1]
+        array_b = array_e_delta / array_t_delta
+        array_a = array_e[:-1] - array_t[:-1] * array_b 
+        array_diff_e = array_a * (array_t[1:] - array_t[:-1])/(array_t[1:]*array_t[:-1]) + array_b * np.log(array_t[1:]/array_t[:-1])
+        
+        print('!!!', array_a, array_b, all_e , array_t_delta, array_e_delta, array_diff_e)
+        
+        # for ii in range(0, len(array_t)):
+        for ii in range(len(array_t)-1, -1, -1):
+            e1 = (Eo / (array_t[-1]) + np.sum(array_diff_e[ii:])) * array_t[ii]
+            # e1 = (Eo / (array_t[0]) - np.sum(array_diff_e[0:ii])) * array_t[ii]
+            all_temps.append(array_t[ii])
+            err = 0
+            sys_err = 0
+            all_press.append(jdata['press'])
+            all_fe.append(e1)
+            all_fe_err.append(err)
+            all_fe_sys_err.append(sys_err)
 
+        return all_temps, all_press, all_fe, all_fe_err, all_fe_sys_err
+            
+            
+        
     all_t, inte, inte_e, stat_e = integrate_range(all_t, integrand, integrand_err, scheme)
     for ii in range(0, len(all_t)):
         diff_e = inte[ii]
@@ -332,6 +362,7 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
         # COM corr
         if path == 't' or path == 't-ginv' :
             ea += 1.5 * pc.Boltzmann * tt / pc.electron_volt
+            # print('~~', tt, ea, 1.5 * pc.Boltzmann * tt / pc.electron_volt)
         elif path == 'p' :
             temp = jdata['temps']
             ea += 1.5 * pc.Boltzmann * temp / pc.electron_volt
@@ -404,7 +435,7 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
         all_fe_sys_err = np.append(all_fe_sys_err_1, all_fe_sys_err_2[1:])
     else :    
         all_temps, all_press, all_fe, all_fe_err, all_fe_sys_err \
-            = _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = scheme)
+            = _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = scheme, all_e=all_e)
 
     if 'nvt' == ens :
         print('#%8s  %20s  %9s  %9s  %9s' % ('T(ctrl)', 'F', 'stat_err', 'inte_err', 'err'))
