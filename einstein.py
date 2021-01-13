@@ -59,10 +59,10 @@ def free_energy (job) :
     mass_map = jdata['model_mass_map']
     spring_k = jdata['spring_k']
     if type(spring_k) is not list:
-        spring_k_1 = []
+        m_spring_k = []
         for ii in mass_map :
-            spring_k_1.append(spring_k * ii)
-        spring_k = spring_k_1
+            m_spring_k.append(spring_k * ii)
+        # spring_k = spring_k_1
     assert(len(mass_map) == len(spring_k))
     if 'copies' in jdata :
         ncopies = np.prod(jdata['copies'])
@@ -74,7 +74,7 @@ def free_energy (job) :
     natoms = [ii * ncopies for ii in sys_data['atom_numbs']]
     
     Lambda_k = [compute_lambda(temp, ii) for ii in mass_map]
-    Lambda_s = [compute_spring(temp, ii) for ii in spring_k]
+    Lambda_s = [compute_spring(temp, ii) for ii in m_spring_k]
     # print(np.log(Lambda_k), np.log(Lambda_s))
     
     with open(equi_conf) as fp:

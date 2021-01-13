@@ -25,7 +25,8 @@ def _gen_lammps_input (conf_file,
                        tau_p = 0.5,
                        prt_freq = 100, 
                        dump_freq = 1000, 
-                       dump_ave_posi = False) :
+                       dump_ave_posi = False,
+                       if_meam = False) :
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -49,16 +50,21 @@ def _gen_lammps_input (conf_file,
     for jj in range(len(mass_map)) :
         ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
-    ret += 'pair_style      deepmd %s\n' % model
-    ret += 'pair_coeff\n'
+    if if_meam:
+        ret += 'pair_style      meam\n'
+        ret += 'pair_coeff      * * /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
+    else:
+        ret += 'pair_style      deepmd %s\n' % model
+        ret += 'pair_coeff\n'
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % dt
     ret += 'thermo          ${THERMO_FREQ}\n'
+    ret += 'compute         allmsd all msd\n'
     if ens == 'nvt' :        
-        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz\n'
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz c_allmsd[*]\n'
     elif 'npt' in ens :
-        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz\n'
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz c_allmsd[*]\n'
     else :	
         raise RuntimeError('unknow ensemble %s\n' % ens)
     if dump_ave_posi: 
@@ -139,7 +145,7 @@ def extract(job_dir, output) :
     conf_lmp = lib.lmp.from_system_data(sys_data)
     open(output, 'w').write(conf_lmp)
 
-def make_task(iter_name, jdata, ens, temp, pres, avg_posi, npt_conf) :
+def make_task(iter_name, jdata, ens, temp, pres, avg_posi, npt_conf, if_meam=None) :
     equi_conf = jdata['equi_conf']
     equi_conf = os.path.abspath(equi_conf)
     if npt_conf is not None :
@@ -170,6 +176,8 @@ def make_task(iter_name, jdata, ens, temp, pres, avg_posi, npt_conf) :
         elif 'pres' in jdata :
             print('P = %f overrides the pres in json data' % pres)
         jdata['pres'] = pres    
+    if if_meam is None:
+        if_meam = jdata.get('if_meam', False)
 
     create_path(iter_name)
     cwd = os.getcwd()
@@ -194,7 +202,8 @@ def make_task(iter_name, jdata, ens, temp, pres, avg_posi, npt_conf) :
                             tau_p = tau_p,
                             prt_freq = stat_freq, 
                             dump_freq = dump_freq, 
-                            dump_ave_posi = avg_posi)
+                            dump_ave_posi = avg_posi,
+                            if_meam = if_meam)
     with open('in.lammps', 'w') as fp :
         fp.write(lmp_str)
     os.chdir(cwd)
@@ -344,6 +353,7 @@ def post_task(iter_name, natoms = None, is_water = True) :
     log_file = os.path.join(iter_name, 'log.lammps')
     info = _compute_thermo(log_file, nmols, stat_skip, stat_bsize)
     _print_thermo_info(info)
+    return info
 
 def _main ():
     parser = argparse.ArgumentParser(
@@ -365,6 +375,7 @@ def _main ():
                             help='use conf computed from NPT simulation')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
+    parser_gen.add_argument("-z", "--meam", help="whether use meam instead of dp", action="store_true")
 
     parser_comp = subparsers.add_parser('extract', help= 'Extract the conf')
     parser_comp.add_argument('JOB', type=str ,
@@ -390,7 +401,7 @@ def _main ():
         exit
     if args.command == 'gen' :
         jdata = json.load(open(args.PARAM, 'r'))        
-        make_task(args.output, jdata, args.ensemble, args.temperature, args.pressure, args.avg_posi, args.conf_npt)
+        make_task(args.output, jdata, args.ensemble, args.temperature, args.pressure, args.avg_posi, args.conf_npt, if_meam=args.meam)
     elif args.command == 'extract' :
         extract(args.JOB, args.output)
     elif args.command == 'stat-bond' :
