@@ -53,7 +53,8 @@ def _make_tasks_onephase(temp,
                          jdata,
                          ens = 'npt',
                          conf_file = 'conf.lmp', 
-                         graph_file = 'graph.pb') :
+                         graph_file = 'graph.pb',
+                         if_meam=False):
     # assume that model and conf.lmp exist in the current dir
     assert(os.path.isfile(conf_file))
     assert(os.path.isfile(graph_file))
@@ -88,7 +89,8 @@ def _make_tasks_onephase(temp,
                                pres,
                                tau_t = tau_t,
                                tau_p = tau_p,
-                               prt_freq = stat_freq)
+                               prt_freq = stat_freq,
+                               if_meam=if_meam)
     with open('thermo.out', 'w') as fp :
         fp.write('%.16e %.16e' % (temp, pres))
     with open('in.lammps', 'w') as fp :
@@ -132,7 +134,8 @@ def make_dpdt (temp,
                dispatcher,
                natoms = None,
                shift = [0, 0],
-               verbose = False) :
+               verbose = False,
+               if_meam=False) :
     assert(os.path.isdir(task_path))    
 
     cwd = os.getcwd()
@@ -201,13 +204,15 @@ def make_dpdt (temp,
                              jdata,
                              ens = jdata['phase_i'].get('ens', None),
                              conf_file = conf_0,
-                             graph_file = 'graph.pb')
+                             graph_file = 'graph.pb',
+                             if_meam=if_meam)
         _make_tasks_onephase(temp, pres, 
                              os.path.join(work_path, '1'),
                              jdata, 
                              ens = jdata['phase_ii'].get('ens', None),
                              conf_file = conf_1,
-                             graph_file = 'graph.pb')
+                             graph_file = 'graph.pb',
+                             if_meam=if_meam)
         # submit new task
         resources = mdata['resources']
         lmp_exec = mdata['command']
@@ -262,7 +267,8 @@ class GibbsDuhemFunc (object):
                   pref = 1.0,
                   natoms = None,
                   shift = [0, 0],
-                  verbose = False):
+                  verbose = False,
+                  if_meam=False):
         self.jdata = jdata
         self.mdata = mdata
         self.task_path = task_path
@@ -271,6 +277,7 @@ class GibbsDuhemFunc (object):
         self.verbose =  verbose
         self.pref = pref
         self.shift = shift
+        self.if_meam = if_meam
         
         self.dispatcher = Dispatcher(mdata['machine'], context_type = 'lazy-local', batch_type = 'pbs')
         if os.path.isdir(task_path) :
@@ -287,7 +294,8 @@ class GibbsDuhemFunc (object):
                                  self.inte_dir,
                                  self.task_path, self.mdata, self.dispatcher, self.natoms,
                                  self.shift,
-                                 self.verbose)
+                                 self.verbose,
+                                 if_meam=self.if_meam)
             return [dh / (x * dv) * self.ev2bar * self.pref]
         elif self.inte_dir == 'p' :
             # x: pres, y: temp
@@ -295,7 +303,8 @@ class GibbsDuhemFunc (object):
                                  self.inte_dir,
                                  self.task_path, self.mdata, self.dispatcher, self.natoms,
                                  self.shift,
-                                 self.verbose)
+                                 self.verbose,
+                                 if_meam=self.if_meam)
             return [(y * dv) / dh / self.ev2bar * (1/self.pref)]
 
 
@@ -330,6 +339,7 @@ def _main () :
                         help='the output folder for the job')
     parser.add_argument('-v','--verbose', action = 'store_true',
                         help='print detailed infomation')
+    parser.add_argument("-z", "--meam", help="whether use meam instead of dp", action="store_true")
     args = parser.parse_args()
     
     jdata = json.load(open(args.PARAM))
@@ -349,7 +359,8 @@ def _main () :
                          args.direction,
                          natoms = natoms,
                          shift = args.shift,
-                         verbose = args.verbose)
+                         verbose = args.verbose,
+                         if_meam=args.meam)
     sol = solve_ivp(gdf,
                     [args.begin, args.end],
                     [args.initial_value],

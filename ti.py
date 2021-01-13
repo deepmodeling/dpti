@@ -40,7 +40,8 @@ def _gen_lammps_input (conf_file,
                        tau_t = 0.1,
                        tau_p = 0.5,
                        prt_freq = 100,
-                       copies = None) :
+                       copies = None,
+                       if_meam = False):
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -64,16 +65,21 @@ def _gen_lammps_input (conf_file,
     for jj in range(len(mass_map)) :
         ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
-    ret += 'pair_style      deepmd %s\n' % model
-    ret += 'pair_coeff\n'
+    if if_meam:
+        ret += 'pair_style      meam \n'
+        ret += 'pair_coeff      * * /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
+    else:
+        ret += 'pair_style      deepmd %s\n' % model
+        ret += 'pair_coeff\n'
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % dt
     ret += 'thermo          ${THERMO_FREQ}\n'
+    ret += 'compute         allmsd all msd\n'
     if ens == 'nvt' :        
-        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol\n'
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
     elif 'npt' in ens :
-        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol\n'
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
     else :
         raise RuntimeError('unknow ensemble %s\n' % ens)                
     ret += '# dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z\n'
@@ -102,7 +108,7 @@ def _gen_lammps_input (conf_file,
     return ret
 
 
-def make_tasks(iter_name, jdata) :
+def make_tasks(iter_name, jdata, if_meam=False) :
     equi_conf = jdata['equi_conf']
     equi_conf = os.path.abspath(equi_conf)
     copies = None
@@ -174,7 +180,8 @@ def make_tasks(iter_name, jdata) :
                                     temps[ii],
                                     tau_t = tau_t,
                                     prt_freq = stat_freq, 
-                                    copies = copies)
+                                    copies = copies,
+                                    if_meam=if_meam)
             with open('thermo.out', 'w') as fp :
                 fp.write('%f' % temps[ii])
         elif 'npt' in ens and (path == 't' or path == 't-ginv'):
@@ -190,7 +197,8 @@ def make_tasks(iter_name, jdata) :
                                     tau_t = tau_t,
                                     tau_p = tau_p,
                                     prt_freq = stat_freq, 
-                                    copies = copies)
+                                    copies = copies,
+                                    if_meam=if_meam)
             with open('thermo.out', 'w') as fp :
                 fp.write('%f' % (temps[ii]))
         elif 'npt' in ens and path == 'p' :
@@ -206,7 +214,8 @@ def make_tasks(iter_name, jdata) :
                                     tau_t = tau_t,
                                     tau_p = tau_p,
                                     prt_freq = stat_freq, 
-                                    copies = copies)
+                                    copies = copies,
+                                    if_meam=if_meam)
             with open('thermo.out', 'w') as fp :
                 fp.write('%f' % (press[ii]))
         else:
@@ -331,6 +340,8 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
     all_e_err = []
     integrand = []
     integrand_err = []
+    all_enthalpy = []
+    all_msd_xyz = []
     if 'nvt' in ens and path == 't' :
         # TotEng
         stat_col = 3
@@ -359,6 +370,8 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
         ea, ee = block_avg(data[:, stat_col], 
                            skip = stat_skip, 
                            block_size = stat_bsize)
+        enthalpy, _ = block_avg(data[:, 5], skip = stat_skip, block_size = stat_bsize)
+        msd_xyz = data[-1, -1]
         # COM corr
         if path == 't' or path == 't-ginv' :
             ea += 1.5 * pc.Boltzmann * tt / pc.electron_volt
@@ -375,6 +388,8 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
         ee /= np.sqrt(natoms)
         all_e.append(ea)
         all_e_err.append(ee)
+        all_enthalpy.append(enthalpy)
+        all_msd_xyz.append(msd_xyz)
         # gen integrand
         if path == 't' or path == 't-ginv':
             integrand.append(ea / (tt * tt))
@@ -392,11 +407,13 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
     all_print.append(integrand)
     all_print.append(all_e)
     all_print.append(all_e_err)
+    all_print.append(all_enthalpy)
+    all_print.append(all_msd_xyz)
     all_print = np.array(all_print)
     np.savetxt(os.path.join(iter_name, 'ti.out'), 
                all_print.T, 
                fmt = '%.8e', 
-               header = 't/p Integrand U/V U/V_err')
+               header = 't/p Integrand U/V U/V_err enthalpy msd_xyz')
 
     info0 = _compute_thermo(os.path.join(all_tasks[ 0], 'log.lammps'), natoms, stat_skip, stat_bsize)
     info1 = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), natoms, stat_skip, stat_bsize)
@@ -653,6 +670,7 @@ def _main ():
                             help='json parameter file')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
+    parser_gen.add_argument("-z", "--meam", help="whether use meam instead of dp", action="store_true")
 
     parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
     parser_comp.add_argument('JOB', type=str ,
@@ -684,7 +702,7 @@ def _main ():
     if args.command == 'gen' :
         output = args.output
         jdata = json.load(open(args.PARAM, 'r'))
-        make_tasks(output, jdata)
+        make_tasks(output, jdata, if_meam=args.meam)
     elif args.command == 'compute' :
         job = args.JOB
         jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))

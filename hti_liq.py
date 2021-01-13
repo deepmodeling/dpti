@@ -42,7 +42,8 @@ def _ff_soft_on(lamb,
 
 def _ff_deep_on(lamb, 
                 sparam, 
-                model) :
+                model,
+                if_meam=False):
     nn = sparam['n']
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
@@ -52,8 +53,12 @@ def _ff_deep_on(lamb,
     ret = ''
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'variable        ONE equal 1\n'
-    ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
-    ret += 'pair_coeff      * * deepmd\n'
+    if if_meam:
+        ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
+        ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn \n'
+    else:
+        ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
+        ret += 'pair_coeff      * * deepmd\n'
 
     element_num=sparam.get('element_num', 1)
     sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
@@ -61,13 +66,18 @@ def _ff_deep_on(lamb,
         ret += 'pair_coeff      %s %s lj/cut/soft ${EPSILON} %f %f\n' % (i+1, j+1, sparam['sigma_'+str(i)+'_'+str(j)], activation)
 
     # ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
-    ret += 'fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA\n'
-    ret += 'compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE\n'
+    if if_meam:
+        ret += 'fix             tot_pot all adapt/fep 0 pair meam scale * * v_LAMBDA\n'
+        ret += 'compute         e_diff all fep ${TEMP} pair meam scale * * v_ONE\n'
+    else:
+        ret += 'fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA\n'
+        ret += 'compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE\n'
     return ret
 
 def _ff_soft_off(lamb, 
                  sparam, 
-                 model) :
+                 model,
+                 if_meam=False) :
     nn = sparam['n']
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
@@ -78,8 +88,12 @@ def _ff_soft_off(lamb,
     ret += 'variable        INV_LAMBDA equal 1-${LAMBDA}\n'
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'variable        INV_EPSILON equal -${EPSILON}\n'
-    ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
-    ret += 'pair_coeff      * * deepmd\n'
+    if if_meam:
+        ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
+        ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn \n'
+    else:
+        ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
+        ret += 'pair_coeff      * * deepmd\n'
 
     element_num=sparam.get('element_num', 1)
     sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
@@ -106,7 +120,8 @@ def _gen_lammps_input_ideal (step,
                              tau_p = 0.5,
                              prt_freq = 100, 
                              copies = None,
-                             norm_style = 'first') :
+                             norm_style = 'first',
+                             if_meam = False) :
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -135,9 +150,9 @@ def _gen_lammps_input_ideal (step,
     if step == 'soft_on' :
         ret += _ff_soft_on(lamb, soft_param)
     elif step == 'deep_on' :
-        ret += _ff_deep_on(lamb, soft_param, model)
+        ret += _ff_deep_on(lamb, soft_param, model, if_meam=if_meam)
     elif step == 'soft_off' :
-        ret += _ff_soft_off(lamb, soft_param, model)
+        ret += _ff_soft_off(lamb, soft_param, model, if_meam=if_meam)
     else :
         raise RuntimeError('unknown step')
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
@@ -167,7 +182,7 @@ def _gen_lammps_input_ideal (step,
     return ret
 
 
-def _make_tasks(iter_name, jdata, step) :
+def _make_tasks(iter_name, jdata, step, if_meam=False) :
     if step == 'soft_on' :
         all_lambda = parse_seq(jdata['lambda_soft_on'])
     elif step == 'deep_on' :
@@ -225,7 +240,8 @@ def _make_tasks(iter_name, jdata, step) :
                                       'nvt',
                                       temp,
                                       prt_freq = stat_freq, 
-                                      copies = copies)
+                                      copies = copies,
+                                      if_meam = if_meam)
         with open('in.lammps', 'w') as fp :
             fp.write(lmp_str)
         with open('lambda.out', 'w') as fp :
@@ -233,7 +249,7 @@ def _make_tasks(iter_name, jdata, step) :
         os.chdir(cwd)
 
 
-def make_tasks(iter_name, jdata) :
+def make_tasks(iter_name, jdata, if_meam=False) :
     equi_conf = os.path.abspath(jdata['equi_conf'])
     model = os.path.abspath(jdata['model'])
 
@@ -251,11 +267,11 @@ def make_tasks(iter_name, jdata) :
         json.dump(jdata, fp, indent=4)
     os.chdir(cwd)
     subtask_name = os.path.join(iter_name, '00.soft_on')
-    _make_tasks(subtask_name, jdata, 'soft_on')
+    _make_tasks(subtask_name, jdata, 'soft_on', if_meam=if_meam)
     subtask_name = os.path.join(iter_name, '01.deep_on')
-    _make_tasks(subtask_name, jdata, 'deep_on')
+    _make_tasks(subtask_name, jdata, 'deep_on', if_meam=if_meam)
     subtask_name = os.path.join(iter_name, '02.soft_off')
-    _make_tasks(subtask_name, jdata, 'soft_off')
+    _make_tasks(subtask_name, jdata, 'soft_off', if_meam=if_meam)
 
 
 def _compute_thermo(fname, natoms, stat_skip, stat_bsize) :
@@ -375,6 +391,7 @@ def _main ():
                             help='json parameter file')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
+    parser_gen.add_argument("-z", "--meam", help="whether use meam instead of dp", action="store_true")
 
     parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
     parser_comp.add_argument('JOB', type=str ,
@@ -382,10 +399,10 @@ def _main ():
     parser_comp.add_argument('-t','--type', type=str, default = 'helmholtz', 
                              choices=['helmholtz', 'gibbs'], 
                              help='the type of free energy')
-    parser_comp.add_argument('-g', '--Go', type=float, default = None,
-                             help='P*V modified to calculate gibbs free energy')
-    parser_comp.add_argument('-G', '--Go-err', type=float, default = None,
-                             help='P*V error modified to calculate gibbs free energy')
+    parser_comp.add_argument('-g', '--pv', type=float, default = None,
+                             help='press*vol value override to calculate Gibbs free energy')
+    parser_comp.add_argument('-G', '--pv-err', type=float, default = None,
+                             help='press*vol error')
     args = parser.parse_args()
 
     if args.command is None :
@@ -394,7 +411,7 @@ def _main ():
     if args.command == 'gen' :
         output = args.output
         jdata = json.load(open(args.PARAM, 'r'))
-        make_tasks(output, jdata)
+        make_tasks(output, jdata, if_meam=args.meam)
     elif args.command == 'compute' :
         fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
         sys_data = lmp.to_system_data(fp_conf.read().split('\n'))
@@ -410,14 +427,14 @@ def _main ():
             print('# Helmholtz free ener per atom (err) [eV]:')
             print(print_format % (fe, fe_err[0], fe_err[1]))
         if args.type == 'gibbs' :
-            if args.Go is None:
+            if args.pv is None:
                 pv = thermo_info['pv']
             else: 
-                pv = args.Go
-            if args.Go_err is None:
+                pv = args.pv
+            if args.pv_err is None:
                 pv_err = thermo_info['pv_err']
             else:
-                pv_err = args.Go_err
+                pv_err = args.pv_err
             e1 = fe + pv
             e1_err = np.sqrt(fe_err[0]**2 + pv_err**2)
             print('# Gibbs free ener per mol (err) [eV]:')
