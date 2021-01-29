@@ -4,14 +4,21 @@ import os, sys, json, argparse, glob
 import numpy as np
 import scipy.constants as pc
 
+sys.path.insert(0, os.path.dirname(__file__))
 from lib.utils import create_path
 from lib.utils import block_avg
 from lib.water import compute_bonds
 from lib.water import posi_diff
 from lib.utils import get_task_file_abspath
-import lib.lmp
-import lib.dump 
-import lib.lammps
+# import deepti
+
+from lib.lammps import get_natoms, get_last_dump, get_thermo
+from lib.lmp import from_system_data
+from lib.dump import system_data
+# from lib import dump 
+# from .lib import lammps
+# from .lib import dump
+# from .lib import lmp
 
 def _gen_lammps_input (conf_file, 
                        mass_map,
@@ -104,7 +111,7 @@ def npt_equi_conf(npt_name) :
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
 
-    data = lib.lammps.get_thermo(thermo_file)
+    data = get_thermo(thermo_file)
     lx, lxe = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
     ly, lye = block_avg(data[:, 9], skip = stat_skip, block_size = stat_bsize)
     lz, lze = block_avg(data[:,10], skip = stat_skip, block_size = stat_bsize)
@@ -113,8 +120,8 @@ def npt_equi_conf(npt_name) :
     yz, yze = block_avg(data[:,13], skip = stat_skip, block_size = stat_bsize)
     print('~~~', lx , ly, lz , xy, xz, yz)
     
-    last_dump = lib.lammps.get_last_dump(dump_file).split('\n')
-    sys_data = lib.dump.system_data(last_dump)
+    last_dump = get_last_dump(dump_file).split('\n')
+    sys_data = system_data(last_dump)
     sys_data['cell'][0][0] = lx
     sys_data['cell'][1][1] = ly
     sys_data['cell'][2][2] = lz
@@ -122,7 +129,7 @@ def npt_equi_conf(npt_name) :
     sys_data['cell'][2][0] = xz
     sys_data['cell'][2][1] = yz
 
-    conf_lmp = lib.lmp.from_system_data(sys_data)
+    conf_lmp = from_system_data(sys_data)
     return conf_lmp
 
 def extract(job_dir, output) :
@@ -133,7 +140,7 @@ def extract(job_dir, output) :
         dump_file = os.path.join(job_dir, 'dump.equi')
         assert(os.path.isfile(dump_file))
         print('# found dump.equi, use it')        
-    last_dump = lib.lammps.get_last_dump(dump_file).split('\n')
+    last_dump = get_last_dump(dump_file).split('\n')
     for idx in range(len(last_dump)) :
         ii = last_dump[idx]
         if 'ITEM: ATOMS' in ii :
@@ -141,11 +148,11 @@ def extract(job_dir, output) :
             ii = ii.replace('f_ap[2]', 'y')
             ii = ii.replace('f_ap[3]', 'z')
         last_dump[idx] = ii
-    sys_data = lib.dump.system_data(last_dump)
-    conf_lmp = lib.lmp.from_system_data(sys_data)
+    sys_data = system_data(last_dump)
+    conf_lmp = from_system_data(sys_data)
     open(output, 'w').write(conf_lmp)
 
-def make_task(iter_name, jdata, ens, temp, pres, avg_posi, npt_conf, if_meam=None) :
+def make_task(iter_name, jdata, ens=None, temp=None, pres=None, avg_posi=None, npt_conf=None, if_meam=None) :
     equi_conf = jdata['equi_conf']
     equi_conf = os.path.abspath(equi_conf)
     if npt_conf is not None :
@@ -160,12 +167,12 @@ def make_task(iter_name, jdata, ens, temp, pres, avg_posi, npt_conf, if_meam=Non
     tau_t = jdata['tau_t']
     tau_p = jdata['tau_p']
 
-    if ens == None :
+    if ens is None :
         ens = jdata['ens']
     elif 'ens' in jdata :
         print('ens = %s overrides the ens in json data' % ens)
     jdata['ens'] = ens
-    if temp == None :
+    if temp is None :
         temp = jdata['temp']
     elif 'temp' in jdata :
         print('T = %f overrides the temp in json data' % temp)
@@ -185,10 +192,10 @@ def make_task(iter_name, jdata, ens, temp, pres, avg_posi, npt_conf, if_meam=Non
     with open('in.json', 'w') as fp:
         json.dump(jdata, fp, indent=4)
     if npt_conf is None :
-        os.symlink(os.path.relpath(equi_conf), 'conf.lmp')
+        os.symlink(os.path.realpath(equi_conf), 'conf.lmp')
     else :        
         open('conf.lmp', 'w').write(npt_equi_conf(npt_conf))
-    os.symlink(os.path.relpath(model), 'graph.pb')
+    os.symlink(os.path.realpath(model), 'graph.pb')
     lmp_str \
         = _gen_lammps_input('conf.lmp',
                             model_mass_map, 
@@ -219,7 +226,7 @@ def water_bond(iter_name, skip = 1) :
     all_rr = []
     all_tt = []
     for ii in range(skip, len(sections)-1) :
-        sys_data = lib.dump.system_data(lines[sections[ii]:sections[ii+1]])
+        sys_data = system_data(lines[sections[ii]:sections[ii+1]])
         atype = sys_data['atom_types']
         posis = sys_data['coordinates']
         cell  = sys_data['cell']
@@ -250,7 +257,7 @@ def water_bond(iter_name, skip = 1) :
 
 
 def _compute_thermo (lmplog, natoms, stat_skip, stat_bsize) :
-    data = lib.lammps.get_thermo(lmplog)
+    data = get_thermo(lmplog)
     ea, ee = block_avg(data[:, 3], skip = stat_skip, block_size = stat_bsize)
     ha, he = block_avg(data[:, 4], skip = stat_skip, block_size = stat_bsize)
     ta, te = block_avg(data[:, 5], skip = stat_skip, block_size = stat_bsize)
@@ -332,13 +339,14 @@ def _print_thermo_info(info, more_head = '') :
     rho_err = (info['v'] / (info['v'] - info['v_err'] ) - 1) * rho
     ptr += '# water density [kg/m^3] : %10.5f (%10.5f)' % (rho, rho_err)
     print(ptr)
+    return ptr
 
-def post_task(iter_name, natoms = None, is_water = True) :
+def post_task(iter_name, natoms = None, is_water = False) :
     j_file = os.path.join(iter_name, 'in.json')
     jdata = json.load(open(j_file))
     if natoms == None :
         equi_conf = get_task_file_abspath(iter_name, jdata['equi_conf'])
-        natoms = lib.lammps.get_natoms(equi_conf)
+        natoms = get_natoms(equi_conf)
         if 'copies' in jdata :
             natoms *= np.prod(jdata['copies'])
     is_water=jdata.get('is_water', True)
@@ -352,7 +360,9 @@ def post_task(iter_name, natoms = None, is_water = True) :
     stat_bsize = jdata['stat_bsize']
     log_file = os.path.join(iter_name, 'log.lammps')
     info = _compute_thermo(log_file, nmols, stat_skip, stat_bsize)
-    _print_thermo_info(info)
+    ptr = _print_thermo_info(info)
+    open(os.path.join(iter_name, 'result'), 'w').write(ptr)
+    open(os.path.join(iter_name, 'result.json'), 'w').write(json.dumps(info))
     return info
 
 def _main ():

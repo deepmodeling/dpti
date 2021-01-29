@@ -455,9 +455,14 @@ def _gen_lammps_input_ideal (conf_file,
     return ret
 
 
-def make_tasks(iter_name, jdata, ref, switch = 'one-step', if_meam=False):
+def make_tasks(iter_name, jdata, ref, switch = 'one-step', if_meam=None):
+    print('make_tasks: iter_name', iter_name)
+    if if_meam is None:
+        if_meam = jdata['if_meam']
     equi_conf = os.path.abspath(jdata['equi_conf'])
     model = os.path.abspath(jdata['model'])
+    if if_meam is None:
+        if_meam = jdata.get('if_meam', None)
 
     if switch == 'one-step':
         subtask_name = iter_name
@@ -632,7 +637,8 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
         os.chdir(cwd)
 
 
-def refine_task (from_task, to_task, err, print_ref=False) :
+def refine_task (from_task, to_task, err, print_ref=False, if_meam=None) :
+    # raise RuntimeError('No entry')
     from_task = os.path.abspath(from_task)
     to_task = os.path.abspath(to_task)
     
@@ -673,7 +679,7 @@ def refine_task (from_task, to_task, err, print_ref=False) :
     to_jdata['equi_conf'] = get_task_file_abspath(from_task, from_jdata['equi_conf'])
     to_jdata['model'] = get_task_file_abspath(from_task, from_jdata['model'])
 
-    make_tasks(to_task, to_jdata, to_jdata['reference'])
+    make_tasks(to_task, to_jdata, to_jdata['reference'], if_meam=if_meam)
 
     from_task_list = glob.glob(os.path.join(from_task, 'task.[0-9]*'))
     from_task_list.sort()
@@ -1027,6 +1033,106 @@ def print_thermo_info(info) :
     ptr += '# PV(err)  [eV]:  %20.8f %20.8f' % (info['pv'], info['pv_err'])
     print(ptr)
 
+def compute_task(job, free_energy_type='helmholtz', method='inte', scheme='simpson', manual_pv=None, manual_pv_err=None):
+    # print('hti.compute_task', job, jdata, method, scheme, free_energy_type)
+    # assert 'reference' in jdata
+    # job = args.JOB
+    jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
+    if 'reference' not in jdata:
+        jdata['reference'] = 'einstein'
+    if jdata['crystal'] == 'vega':
+        e0 = einstein.free_energy(job)
+    if jdata['crystal'] == 'frenkel':
+        e0 = einstein.frenkel(job)
+    de, de_err, thermo_info = post_tasks(job, jdata, method=method, scheme=scheme)
+    # printing
+    print_format = '%20.12f  %10.3e  %10.3e'
+    print_thermo_info(thermo_info)
+
+    info = thermo_info.copy()
+    
+    if jdata['reference'] == 'einstein' :
+        print('# free ener of Einstein Mole: %20.8f' % e0)
+    else :
+        print('# free ener of ideal gas: %20.8f' % e0)            
+
+    print(('# fe contrib due to integration ' + print_format) \
+          % (de, de_err[0], de_err[1]))
+
+    pv = None
+    pv_err = None
+    
+    if free_energy_type == 'helmholtz' :
+        e1 = e0 + de
+        e1_err = de_err[0]
+        print('# Helmholtz free ener per atom (stat_err inte_err) [eV]:')
+        print(print_format % (e1, de_err[0], de_err[1]))
+    elif free_energy_type == 'gibbs' :
+        if manual_pv is None:
+            pv = thermo_info['pv']
+        else: 
+            pv = manual_pv
+        if manual_pv_err is None:
+            pv_err = thermo_info['pv_err']
+        else:
+            pv_err = manual_pv_err
+        e1 = e0 + de + pv
+        e1_err = np.sqrt(de_err[0]**2 + pv_err**2)
+        print('# Gibbs free ener per atom (stat_err inte_err) [eV]:')
+        print(print_format % (e1, e1_err, de_err[1]))
+    else:
+        raise RuntimeError('known free energy type')
+
+    info['free_energy_type'] = free_energy_type
+    info['e0'] = e0
+    info['pv'] = pv
+    info['pv_err'] = pv_err
+    info['de'] = de
+    info['de_err'] = de_err
+    info['e1'] = e1
+    info['e1_err'] = e1_err
+    open(os.path.join(job, 'result.json'), 'w').write(json.dumps(info))
+    return info
+
+def hti_phase_trans_analyze(job, jdata=None):
+
+    if_phase_trans = False
+
+    logfile0 = glob.glob(os.path.join(job, '00*', 'hti.out'))[0]
+    logfile1 = glob.glob(os.path.join(job, '01*', 'hti.out'))[0]
+    logfile2 = glob.glob(os.path.join(job, '02*', 'hti.out'))[0]
+    
+    log0 = np.loadtxt(logfile0)
+    log1 = np.loadtxt(logfile1)
+    log2 = np.loadtxt(logfile2)
+    print(logfile0, log0)
+    print(logfile1, log1)
+    print(logfile2, log2)
+
+    msd0 = list(log0[:,-1])
+    msd1 = list(log1[:,-1])
+    msd2 = list(log2[:,-1])
+    
+    msd_all = []
+    msd_all.extend(msd0)
+    msd_all.extend(msd1)
+    msd_all.extend(msd2)
+
+    msd_min = min(msd_all)
+    msd_max = max(msd_all)
+
+    print('# deepti hti 00 log0')
+    print(log0)
+    print('# deepti hti 01 log1')
+    print(log1)
+    print('# deepti hti 02 log2')
+    print(log2)
+    
+    if msd_min < 20 and msd_max > 100:
+        if_phase_trans = True
+
+    return if_phase_trans
+
 def _main ():
     parser = argparse.ArgumentParser(
         description="Compute free energy by Hamiltonian TI")
@@ -1071,42 +1177,12 @@ def _main ():
             print('# gen task with Frenkel\'s Einstein crystal')
         else :
             print('# gen task with Vega\'s Einstein molecule')
-        make_tasks(output, jdata, 'einstein', args.switch, args.meam)
+        print('output:', output)
+        make_tasks(output, jdata, ref='einstein', switch=args.switch, if_meam=args.meam)
     elif args.command == 'compute' :
-        job = args.JOB
-        jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
-        if 'reference' not in jdata :
-            jdata['reference'] = 'einstein'
-        if jdata['crystal'] == 'vega':
-            e0 = einstein.free_energy(job)
-        if jdata['crystal'] == 'frenkel':
-            e0 = einstein.frenkel(job)
-        de, de_err, thermo_info = post_tasks(job, jdata, method = args.inte_method, scheme = args.scheme)
-        # printing
-        print_format = '%20.12f  %10.3e  %10.3e'
-        print_thermo_info(thermo_info)
-        if jdata['reference'] == 'einstein' :
-            print('# free ener of Einstein Mole: %20.8f' % e0)
-        else :
-            print('# free ener of ideal gas: %20.8f' % e0)            
-        print(('# fe contrib due to integration ' + print_format) \
-              % (de, de_err[0], de_err[1]))
-        if args.type == 'helmholtz' :
-            print('# Helmholtz free ener per atom (stat_err inte_err) [eV]:')
-            print(print_format % (e0 + de, de_err[0], de_err[1]))
-        if args.type == 'gibbs' :
-            if args.pv is None:
-                pv = thermo_info['pv']
-            else: 
-                pv = args.pv
-            if args.pv_err is None:
-                pv_err = thermo_info['pv_err']
-            else:
-                pv_err = args.pv_err
-            e1 = e0 + de + pv
-            e1_err = np.sqrt(de_err[0]**2 + pv_err**2)
-            print('# Gibbs free ener per atom (stat_err inte_err) [eV]:')
-            print(print_format % (e1, e1_err, de_err[1]))
+        compute_task(job=args.JOB, free_energy_type=args.type, method=args.inte_method, scheme=args.scheme, manual_pv=args.pv, manual_pv_err=args.pv_err)
+      #   if 'reference' not in jdata :
+      #       jdata['reference'] = 'einstein'
     
 if __name__ == '__main__' :
     _main()
