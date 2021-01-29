@@ -108,7 +108,9 @@ def _gen_lammps_input (conf_file,
     return ret
 
 
-def make_tasks(iter_name, jdata, if_meam=False) :
+def make_tasks(iter_name, jdata, if_meam=None) :
+    if if_meam is None:
+        if_meam = jdata['if_meam']
     equi_conf = jdata['equi_conf']
     equi_conf = os.path.abspath(equi_conf)
     copies = None
@@ -291,7 +293,7 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's
             all_fe_err.append(err)
             all_fe_sys_err.append(sys_err)
 
-        return all_temps, all_press, all_fe, all_fe_err, all_fe_sys_err
+        return np.asarray(all_temps), np.asarray(all_press), np.asarray(all_fe), np.asarray(all_fe_err), np.asarray(all_fe_sys_err)
             
             
         
@@ -320,7 +322,7 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's
         all_fe_sys_err.append(sys_err)
     return all_temps, all_press, all_fe, all_fe_err, all_fe_sys_err
 
-def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, scheme = 's', shift = 0.0) :
+def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, scheme = 'simpson', shift = 0.0) :
     equi_conf = get_task_file_abspath(iter_name, jdata['equi_conf'])
     if natoms == None :        
         natoms = get_natoms(equi_conf)
@@ -454,16 +456,35 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
         all_temps, all_press, all_fe, all_fe_err, all_fe_sys_err \
             = _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = scheme, all_e=all_e)
 
+    # print('ti.py:debug:data', data)
+    result = ""
+    # result_file = open(f"{iter_name}/../result", 'w')
     if 'nvt' == ens :
         print('#%8s  %20s  %9s  %9s  %9s' % ('T(ctrl)', 'F', 'stat_err', 'inte_err', 'err'))
+        result += ('#%8s  %20s  %9s  %9s  %9s\n' % ('T(ctrl)', 'F', 'stat_err', 'inte_err', 'err'))
         for ii in range(len(all_temps)) :
             print ('%9.2f  %20.12f  %9.2e  %9.2e  %9.2e' 
                    % (all_temps[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]])))
+            result += ('%9.2f  %20.12f  %9.2e  %9.2e  %9.2e\n' 
+                   % (all_temps[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]])))
     elif 'npt' in ens :
         print('#%8s  %15s  %20s  %9s  %9s  %9s' % ('T(ctrl)', 'P(ctrl)', 'F', 'stat_err', 'inte_err', 'err'))
+        result += ('#%8s  %15s  %20s  %9s  %9s  %9s\n' % ('T(ctrl)', 'P(ctrl)', 'F', 'stat_err', 'inte_err', 'err'))
         for ii in range(len(all_temps)) :
             print ('%9.2f  %15.8e  %20.12f  %9.2e  %9.2e  %9.2e' 
                    % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]])))
+            result += ('%9.2f  %15.8e  %20.12f  %9.2e  %9.2e  %9.2e\n'
+                   % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]])))
+            # print(all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]))
+    # result_file.close()
+    data = [all_temps.tolist(), all_press.tolist(), 
+        all_fe.tolist(), all_fe_err.tolist(), all_fe_sys_err.tolist(), 
+        np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist()]
+    info = dict(start_point_info=info0, end_point_info=info1, data=data)
+    print('result', result)
+    open(os.path.join(iter_name, '../', 'result'), 'w').write(result)
+    open(os.path.join(iter_name, 'result.json'), 'w').write(json.dumps(info))
+    return info
 
 
 def post_tasks_mbar(iter_name, jdata, Eo, natoms = None) :
@@ -584,6 +605,10 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms = None) :
         for ii in range(len(all_temps)) :
             print ('%9.2f  %15.8e  %20.12f  %9.2e  %9.2e' 
                    % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii]))
+    # info = dict(start_point_info=info0, end_point_info=info1, all_temps=list(all_temps), all_press=list(all_press),
+    #              all_fe=list(all_fe), all_fe_err=list(all_fe_err), all_fe_sys_err=list(all_fe_sys_err))
+    # open(os.path.join(iter_name, 'result.json'), 'w').write(json.dumps(info))
+    # return info
 
 
 def refine_task (from_task, to_task, err) :
@@ -659,6 +684,16 @@ def refine_task (from_task, to_task, err) :
         with open(os.path.join(to_task_list[ii], 'from.dir'), 'w') as fp:
             fp.write(from_task_list[back_map[ii]])
             
+def compute_task(job, inte_method, Eo, Eo_err, To, scheme='simpson'):
+    # job = args.JOB
+    jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
+    if inte_method == 'inte' :
+        info = post_tasks(job, jdata, Eo=Eo, Eo_err=Eo_err, To=To, scheme=scheme)
+    elif inte_method == 'mbar' :
+        info = post_tasks_mbar(job, jdata, args.Eo)
+    else :
+        raise RuntimeError('unknow integration method')
+    
 
 def _main ():
     parser = argparse.ArgumentParser(
@@ -704,14 +739,15 @@ def _main ():
         jdata = json.load(open(args.PARAM, 'r'))
         make_tasks(output, jdata, if_meam=args.meam)
     elif args.command == 'compute' :
-        job = args.JOB
-        jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
-        if args.inte_method == 'inte' :
-            post_tasks(job, jdata, args.Eo, Eo_err = args.Eo_err, To = args.To, scheme = args.scheme)
-        elif args.inte_method == 'mbar' :
-            post_tasks_mbar(job, jdata, args.Eo)
-        else :
-            raise RuntimeError('unknow integration method')
+        compute_task(args.JOB, inte_method=args.inte_method, Eo=args.Eo, Eo_err=args.Eo_err, To=args.To, scheme=args.scheme)
+    #     job = args.JOB
+    #     jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
+    #     if args.inte_method == 'inte' :
+    #         post_tasks(job, jdata, args.Eo, Eo_err = args.Eo_err, To = args.To, scheme = args.scheme)
+    #     elif args.inte_method == 'mbar' :
+    #         post_tasks_mbar(job, jdata, args.Eo)
+    #     else :
+    #         raise RuntimeError('unknow integration method')
     elif args.command == 'refine' :
         refine_task(args.input, args.output, args.error)
 

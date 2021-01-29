@@ -3,7 +3,9 @@
 import os, sys, json, argparse, glob
 import numpy as np
 import scipy.constants as pc
-import lib.lmp
+# from . import lib
+from lib import lmp
+# from lib import lmp
 
 def compute_lambda(temp, mass) :
     ret = 2. * np.pi * mass * (1e-3 / pc.Avogadro) * pc.Boltzmann * temp / (pc.Planck * pc.Planck)
@@ -29,7 +31,7 @@ def ideal_gas_fe(job) :
     else :
         ncopies = 1
 
-    sys_data = lib.lmp.to_system_data(open(equi_conf).read().split('\n'))
+    sys_data = lmp.to_system_data(open(equi_conf).read().split('\n'))
     vol = np.linalg.det(sys_data['cell'])
     natoms = [ii * ncopies for ii in sys_data['atom_numbs']]
 
@@ -69,7 +71,7 @@ def free_energy (job) :
     else :
         ncopies = 1
 
-    sys_data = lib.lmp.to_system_data(open(equi_conf).read().split('\n'))
+    sys_data = lmp.to_system_data(open(equi_conf).read().split('\n'))
     vol = np.linalg.det(sys_data['cell'])
     natoms = [ii * ncopies for ii in sys_data['atom_numbs']]
     
@@ -128,7 +130,7 @@ def frenkel(job) :
     else :
         ncopies = 1    
 
-    sys_data = lib.lmp.to_system_data(open(equi_conf).read().split('\n'))
+    sys_data = lmp.to_system_data(open(equi_conf).read().split('\n'))
     vol = np.linalg.det(sys_data['cell'])
     natoms = [ii * ncopies for ii in sys_data['atom_numbs']]
 

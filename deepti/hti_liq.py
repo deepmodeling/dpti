@@ -250,6 +250,8 @@ def _make_tasks(iter_name, jdata, step, if_meam=False) :
 
 
 def make_tasks(iter_name, jdata, if_meam=False) :
+    if if_meam is None:
+        if_meam = jdata['if_meam']
     equi_conf = os.path.abspath(jdata['equi_conf'])
     model = os.path.abspath(jdata['model'])
 
@@ -380,6 +382,54 @@ def _print_thermo_info(info) :
     ptr += '# PV(err)  [eV]:  %20.8f %20.8f' % (info['pv'], info['pv_err'])
     print(ptr)
 
+def compute_task(job, free_energy_type='helmholtz', scheme='simpson', manual_pv=None, manual_pv_err=None):
+    jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
+    fp_conf = open(os.path.join(job, 'conf.lmp'))
+    sys_data = lmp.to_system_data(fp_conf.read().split('\n'))
+    natoms = sum(sys_data['atom_numbs'])
+    jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
+    if 'copies' in jdata :
+        natoms *= np.prod(jdata['copies'])
+    fe, fe_err, thermo_info = post_tasks(job, natoms)
+    _print_thermo_info(thermo_info)
+
+    info = thermo_info.copy()
+
+    pv = None
+    pv_err = None
+    
+    print ('# numb atoms: %d' % natoms)
+    print_format = '%20.12f  %10.3e  %10.3e'
+    if free_energy_type == 'helmholtz' :
+        e1 = fe # e0 + de
+        e1_err = fe_err[0]
+        print('# Helmholtz free ener per atom (err) [eV]:')
+        print(print_format % (fe, fe_err[0], fe_err[1]))
+    if free_energy_type == 'gibbs' :
+        if manual_pv is None:
+            pv = thermo_info['pv']
+        else: 
+            pv = manual_pv
+        if manual_pv_err is None:
+            pv_err = thermo_info['pv_err']
+        else:
+            pv_err = manual_pv_err
+        e1 = fe + pv
+        e1_err = np.sqrt(fe_err[0]**2 + pv_err**2)
+        print('# Gibbs free ener per mol (err) [eV]:')
+        print(print_format % (e1, e1_err, fe_err[1]))
+    else:
+        raise RuntimeError('known free energy type')
+
+    info['free_energy_type'] = free_energy_type
+    info['pv'] = pv
+    info['pv_err'] = pv_err
+    # info['de'] = de
+    # info['de_err'] = de_err
+    info['e1'] = e1
+    info['e1_err'] = e1_err
+    open(os.path.join(job, 'result.json'), 'w').write(json.dumps(info))
+    return info
 
 def _main ():
     parser = argparse.ArgumentParser(
@@ -413,32 +463,34 @@ def _main ():
         jdata = json.load(open(args.PARAM, 'r'))
         make_tasks(output, jdata, if_meam=args.meam)
     elif args.command == 'compute' :
-        fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
-        sys_data = lmp.to_system_data(fp_conf.read().split('\n'))
-        natoms = sum(sys_data['atom_numbs'])
-        jdata = json.load(open(os.path.join(args.JOB, 'in.json'), 'r'))
-        if 'copies' in jdata :
-            natoms *= np.prod(jdata['copies'])
-        fe, fe_err, thermo_info = post_tasks(args.JOB, natoms)
-        _print_thermo_info(thermo_info)
-        print ('# numb atoms: %d' % natoms)
-        print_format = '%20.12f  %10.3e  %10.3e'
-        if args.type == 'helmholtz' :
-            print('# Helmholtz free ener per atom (err) [eV]:')
-            print(print_format % (fe, fe_err[0], fe_err[1]))
-        if args.type == 'gibbs' :
-            if args.pv is None:
-                pv = thermo_info['pv']
-            else: 
-                pv = args.pv
-            if args.pv_err is None:
-                pv_err = thermo_info['pv_err']
-            else:
-                pv_err = args.pv_err
-            e1 = fe + pv
-            e1_err = np.sqrt(fe_err[0]**2 + pv_err**2)
-            print('# Gibbs free ener per mol (err) [eV]:')
-            print(print_format % (e1, e1_err, fe_err[1]))
+        compute_task(job=args.JOB, free_energy_type=args.type, manual_pv=args.pv, manual_pv_err=args.pv_err)
+
+     #    fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
+     #    sys_data = lmp.to_system_data(fp_conf.read().split('\n'))
+     #    natoms = sum(sys_data['atom_numbs'])
+     #    jdata = json.load(open(os.path.join(args.JOB, 'in.json'), 'r'))
+     #    if 'copies' in jdata :
+     #        natoms *= np.prod(jdata['copies'])
+     #    fe, fe_err, thermo_info = post_tasks(args.JOB, natoms)
+     #    _print_thermo_info(thermo_info)
+     #    print ('# numb atoms: %d' % natoms)
+     #    print_format = '%20.12f  %10.3e  %10.3e'
+     #    if args.type == 'helmholtz' :
+     #        print('# Helmholtz free ener per atom (err) [eV]:')
+     #        print(print_format % (fe, fe_err[0], fe_err[1]))
+     #    if args.type == 'gibbs' :
+     #        if args.pv is None:
+     #            pv = thermo_info['pv']
+     #        else: 
+     #            pv = args.pv
+     #        if args.pv_err is None:
+     #            pv_err = thermo_info['pv_err']
+     #        else:
+     #            pv_err = args.pv_err
+     #        e1 = fe + pv
+     #        e1_err = np.sqrt(fe_err[0]**2 + pv_err**2)
+     #        print('# Gibbs free ener per mol (err) [eV]:')
+     #        print(print_format % (e1, e1_err, fe_err[1]))
 
     
 if __name__ == '__main__' :
