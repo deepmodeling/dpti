@@ -1,4 +1,6 @@
 *~
 iter*
 task*
+*.pb
 __pycache__
+tests/origin_files/

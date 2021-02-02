@@ -1,0 +1,7 @@
+# meam data
+# elt    lat    z       ielement  atwt
+# alpha        b0       b1      b2      b3      alat            esub    asub
+# t0   t1       t2      t3      rozero  ibar
+'Sn'    'fcc'   12      50       118.71
+5.78062105438   5.5000     5.1000     4.5000     4.3000  4.92146319706  3.0500  1.0500 
+1     1.3000     3.6000     -0.9000   1.00    3
