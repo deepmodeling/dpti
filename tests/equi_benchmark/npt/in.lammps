@@ -1,0 +1,37 @@
+clear
+# --------------------- VARIABLES-------------------------
+variable        NSTEPS          equal 1000000
+variable        THERMO_FREQ     equal 10
+variable        DUMP_FREQ       equal 100000
+variable        NREPEAT         equal ${NSTEPS}/${DUMP_FREQ}
+variable        TEMP            equal 400.000000
+variable        PRES            equal 200000.000000
+variable        TAU_T           equal 0.200000
+variable        TAU_P           equal 2.000000
+# ---------------------- INITIALIZAITION ------------------
+units           metal
+boundary        p p p
+atom_style      atomic
+# --------------------- ATOM DEFINITION ------------------
+box             tilt large
+read_data       conf.lmp
+change_box      all triclinic
+mass            1 118.710000
+# --------------------- FORCE FIELDS ---------------------
+pair_style      deepmd graph.pb
+pair_coeff
+# --------------------- MD SETTINGS ----------------------
+neighbor        1.0 bin
+timestep        0.002000
+thermo          ${THERMO_FREQ}
+compute         allmsd all msd
+thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz c_allmsd[*]
+dump            1 all custom ${DUMP_FREQ} dump.equi id type x y z vx vy vz
+fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P} couple xy
+fix             mzero all momentum 10 linear 1 1 1
+# --------------------- INITIALIZE -----------------------
+velocity        all create ${TEMP} 7858
+velocity        all zero linear
+# --------------------- RUN ------------------------------
+run             ${NSTEPS}
+write_data      out.lmp
