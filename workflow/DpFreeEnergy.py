@@ -85,11 +85,6 @@ def all_start_check():
 
 @task()
 def NPT_start(start_info):
-    # print(start_info)
-    # print(context)
-
-    # work_base_dir = start_info['work_base_dir']
-    # dag_work_dir = start_info['dag_work_dir']
     dag_work_dir = get_dag_work_dir(context=get_current_context())
     sim_work_dir = os.path.join(dag_work_dir, 'NPT_sim', 'new_job')
     if os.path.isfile(os.path.join(dag_work_dir, 'NPT_sim', 'new_job', 'result.json')):
@@ -112,7 +107,8 @@ def NPT_start(start_info):
 def NPT_sim(sim_work_dir):
     lazy_local_context = LazyLocalContext(local_root=sim_work_dir, work_profile=None)
     pbs = PBS(context=lazy_local_context)
-    resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, queue_name="V100_12_92", group_size=1, if_cuda_multi_devices=False) 
+    resources = Resources(number_node=1, cpu_per_node=4, gpu_per_node=1, 
+        queue_name="V100_12_92", group_size=1, if_cuda_multi_devices=False) 
     task = Task(command='lmp_serial -i in.lammps', task_work_path='./') 
     submission = Submission(work_base=sim_work_dir, resources=resources, batch=pbs, task_list=[task])
     submission.run_submission()
