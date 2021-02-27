@@ -1,0 +1,25 @@
+{
+    "equi_conf": "./conf.lmp",
+    "mass_map": [
+        118.71
+    ],
+    "nsteps": 1000000,
+    "timestep": 0.002,
+    "ens": "npt-xy",
+    "temp": 400,
+    "pres": 200000,
+    "tau_t": 0.2,
+    "tau_p": 2,
+    "thermo_freq": 10,
+    "stat_freq": 10,
+    "dump_freq": 100000,
+    "stat_skip": 30000,
+    "stat_bsize": 1000,
+    "if_dump_avg_posi": false,
+    "model_type": "meam",
+    "deepmd_model": null,
+    "meam_library": "library_18Metals.meam",
+    "meam_potential": "Sn_18Metals.meam",
+    "meam_element": "Sn",
+    "is_water": false
+}
