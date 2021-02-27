@@ -20,6 +20,8 @@ from lib.dump import system_data
 # from .lib import dump
 # from .lib import lmp
 
+np.random.seed(0)
+
 def _gen_lammps_input (conf_file, 
                        mass_map,
                        model,
