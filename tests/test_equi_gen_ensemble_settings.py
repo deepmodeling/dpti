@@ -56,6 +56,8 @@ write_data      out.lmp
         self.assertEqual(ret_npt_xy, ret5)
         self.assertEqual(ret_npt_tri, ret6)
         self.assertEqual(ret_nve, ret7)
+        with self.assertRaises(RuntimeError):
+            deepti.equi.gen_equi_ensemble_settings(equi_settings=dict(ens='foo'))
 
 
 if __name__ == '__main__':

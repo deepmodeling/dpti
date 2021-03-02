@@ -35,7 +35,8 @@ def _gen_lammps_input (conf_file,
                        prt_freq = 100, 
                        dump_freq = 1000, 
                        dump_ave_posi = False,
-                       if_meam = False) :
+                       if_meam = False,
+                       meam_model=None) :
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -61,7 +62,7 @@ def _gen_lammps_input (conf_file,
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
     if if_meam:
         ret += 'pair_style      meam\n'
-        ret += 'pair_coeff      * * /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
+        ret += f'pair_coeff      * * {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
         ret += 'pair_style      deepmd %s\n' % model
         ret += 'pair_coeff\n'
@@ -154,12 +155,13 @@ def extract(job_dir, output) :
     conf_lmp = from_system_data(sys_data)
     open(output, 'w').write(conf_lmp)
 
-def make_task(iter_name, jdata, ens=None, temp=None, pres=None, avg_posi=None, npt_conf=None, if_meam=None) :
+def make_task(iter_name, jdata, ens=None, temp=None, pres=None, avg_posi=None, npt_conf=None, if_meam=None):
     equi_conf = jdata['equi_conf']
     equi_conf = os.path.abspath(equi_conf)
     if npt_conf is not None :
         npt_conf = os.path.abspath(npt_conf)
     model = jdata['model']
+    meam_model = jdata.get('meam_model', None)
     model = os.path.abspath(model)
     model_mass_map = jdata['model_mass_map']
     nsteps = jdata['nsteps']
@@ -199,7 +201,7 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, avg_posi=None, n
         open('conf.lmp', 'w').write(npt_equi_conf(npt_conf))
     os.symlink(os.path.realpath(model), 'graph.pb')
     lmp_str \
-        = _gen_lammps_input('conf.lmp',
+            = _gen_lammps_input('conf.lmp',
                             model_mass_map, 
                             'graph.pb',
                             nsteps, 
@@ -212,7 +214,8 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, avg_posi=None, n
                             prt_freq = stat_freq, 
                             dump_freq = dump_freq, 
                             dump_ave_posi = avg_posi,
-                            if_meam = if_meam)
+                            if_meam = if_meam,
+                            meam_model = meam_model)
     with open('in.lammps', 'w') as fp :
         fp.write(lmp_str)
     os.chdir(cwd)
