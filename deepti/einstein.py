@@ -158,11 +158,11 @@ def frenkel(job) :
 
     fe *= pc.Boltzmann * temp / pc.electron_volt
     fe /= np.sum(natoms)
-    n=np.sum(natoms)
+    total_atom_num = np.sum(natoms)
     print('###', fe, Lambda_k, Lambda_s, np.log(Lambda_k[0]), np.log(Lambda_s[0]))
     print('### average U', 3 * pc.Boltzmann * temp)
     print('### Hel F', fe)
-    print('### debug', (3*n - 0.5 - 3*n*np.log(Lambda_k[0]) - 3*(natoms[0]-1)*np.log(Lambda_s[0]) + np.log((vol * (pc.angstrom**3))) + 0.5*np.log(n)) )
+    print('### debug', (3*total_atom_num - 0.5 - 3*total_atom_num*np.log(Lambda_k[0]) - 3*(natoms[0]-1)*np.log(Lambda_s[0]) + np.log((vol * (pc.angstrom**3))) + 0.5*np.log(total_atom_num)) )
     return fe
         
     

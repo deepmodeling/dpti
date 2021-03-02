@@ -41,7 +41,8 @@ def _gen_lammps_input (conf_file,
                        tau_p = 0.5,
                        prt_freq = 100,
                        copies = None,
-                       if_meam = False):
+                       if_meam = False,
+                       meam_model = None):
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -65,9 +66,12 @@ def _gen_lammps_input (conf_file,
     for jj in range(len(mass_map)) :
         ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
+    # if if_meam:
+    #     ret += 'pair_style      meam \n'
+    #     ret += 'pair_coeff      * * /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
     if if_meam:
         ret += 'pair_style      meam \n'
-        ret += 'pair_coeff      * * /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
+        ret += f'pair_coeff      * * {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
         ret += 'pair_style      deepmd %s\n' % model
         ret += 'pair_coeff\n'
@@ -117,6 +121,7 @@ def make_tasks(iter_name, jdata, if_meam=None) :
     if 'copies' in jdata :
         copies = jdata['copies']
     model = jdata['model']
+    meam_model = jdata.get('meam_model', None)
     model = os.path.abspath(model)
     model_mass_map = jdata['model_mass_map']
     nsteps = jdata['nsteps']
@@ -183,7 +188,8 @@ def make_tasks(iter_name, jdata, if_meam=None) :
                                     tau_t = tau_t,
                                     prt_freq = stat_freq, 
                                     copies = copies,
-                                    if_meam=if_meam)
+                                    if_meam=if_meam,
+                                    meam_model=meam_model)
             with open('thermo.out', 'w') as fp :
                 fp.write('%f' % temps[ii])
         elif 'npt' in ens and (path == 't' or path == 't-ginv'):
@@ -200,7 +206,8 @@ def make_tasks(iter_name, jdata, if_meam=None) :
                                     tau_p = tau_p,
                                     prt_freq = stat_freq, 
                                     copies = copies,
-                                    if_meam=if_meam)
+                                    if_meam=if_meam,
+                                    meam_model=meam_model)
             with open('thermo.out', 'w') as fp :
                 fp.write('%f' % (temps[ii]))
         elif 'npt' in ens and path == 'p' :
@@ -217,7 +224,8 @@ def make_tasks(iter_name, jdata, if_meam=None) :
                                     tau_p = tau_p,
                                     prt_freq = stat_freq, 
                                     copies = copies,
-                                    if_meam=if_meam)
+                                    if_meam=if_meam,
+                                    meam_model=meam_model)
             with open('thermo.out', 'w') as fp :
                 fp.write('%f' % (press[ii]))
         else:

@@ -54,7 +54,8 @@ def _ff_lj_on(lamb,
 def _ff_deep_on(lamb,
                 model,
                 sparam,
-                if_meam=False):
+                if_meam=False,
+                meam_model=None):
     nn = sparam['n']
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
@@ -67,9 +68,12 @@ def _ff_deep_on(lamb,
     ret = ''
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'variable        ONE equal 1\n'
+    # if if_meam:
+    #     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
+    #     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn \n'
     if if_meam:
         ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
-        ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn \n'
+        ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
         ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
         ret += 'pair_coeff      * * deepmd\n'
@@ -130,7 +134,8 @@ def _ff_deep_on(lamb,
 def _ff_lj_off(lamb,
                model, 
                sparam,
-               if_meam=False) :
+               if_meam=False,
+               meam_model=None) :
     nn = sparam['n']
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
@@ -143,9 +148,12 @@ def _ff_lj_off(lamb,
     ret = ''
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'variable        INV_EPSILON equal -${EPSILON}\n'
+    # if if_meam:
+    #     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n'  % (nn, alpha_lj, rcut)
+    #     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
     if if_meam:
         ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n'  % (nn, alpha_lj, rcut)
-        ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
+        ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
         ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
         ret += 'pair_coeff      * * deepmd\n'
@@ -223,7 +231,8 @@ def _ff_soft_lj(lamb,
                 m_spring_k,
                 step,
                 sparam,
-                if_meam=False):
+                if_meam=False,
+                meam_model=None):
     ret = ''
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
     if step == 'lj_on':
@@ -231,11 +240,11 @@ def _ff_soft_lj(lamb,
         var_spring = False
     elif step == 'deep_on':
         # ret += _ff_meam_on(lamb, model, sparam)
-        ret += _ff_deep_on(lamb, model, sparam, if_meam=if_meam)
+        ret += _ff_deep_on(lamb, model, sparam, if_meam=if_meam, meam_model=meam_model)
         var_spring = False
     elif step == 'spring_off':
         # ret += _ff_meam_lj_off(lamb, model, sparam)
-        ret += _ff_lj_off(lamb, model, sparam, if_meam=if_meam)
+        ret += _ff_lj_off(lamb, model, sparam, if_meam=if_meam, meam_model=meam_model)
         var_spring = True
     else:
         raise RuntimeError('unkown step', step)
@@ -293,7 +302,8 @@ def _gen_lammps_input (conf_file,
                        sparam = {},
                        switch = 'one-step',
                        step = 'both',
-                       if_meam = False):
+                       if_meam = False,
+                       meam_model = None):
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -323,7 +333,7 @@ def _gen_lammps_input (conf_file,
     if switch == 'one-step' or switch == 'two-step':
         ret += _ff_two_steps(lamb, model, m_spring_k, step)
     elif switch == 'three-step':
-        ret += _ff_soft_lj(lamb, model, m_spring_k, step, sparam, if_meam=if_meam)
+        ret += _ff_soft_lj(lamb, model, m_spring_k, step, sparam, if_meam=if_meam, meam_model=meam_model)
     else:
         raise RuntimeError('unknow switch', switch)
 
@@ -396,7 +406,8 @@ def _gen_lammps_input_ideal (conf_file,
                              prt_freq = 100, 
                              copies = None,
                              norm_style = 'first',
-                             if_meam = False) :
+                             if_meam = False,
+                             meam_model = None) :
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -460,13 +471,14 @@ def make_tasks(iter_name, jdata, ref, switch = 'one-step', if_meam=None):
     if if_meam is None:
         if_meam = jdata['if_meam']
     equi_conf = os.path.abspath(jdata['equi_conf'])
+    meam_model = jdata.get('meam_model', None)
     model = os.path.abspath(jdata['model'])
     if if_meam is None:
         if_meam = jdata.get('if_meam', None)
 
     if switch == 'one-step':
         subtask_name = iter_name
-        _make_tasks(subtask_name, jdata, ref, step = 'both', if_meam=if_meam)
+        _make_tasks(subtask_name, jdata, ref, step = 'both', if_meam=if_meam,  meam_model=meam_model)
     elif switch == 'two-step' or switch == 'three-step':
         create_path(iter_name)
         copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
@@ -481,16 +493,16 @@ def make_tasks(iter_name, jdata, ref, switch = 'one-step', if_meam=None):
             json.dump(jdata, fp, indent=4)
         if switch == 'two-step':
             subtask_name = '00.deep_on'
-            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'deep_on', link = True, if_meam=if_meam)
+            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'deep_on', link = True, if_meam=if_meam, meam_model=meam_model)
             subtask_name = '01.spring_off'
-            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'spring_off', link = True, if_meam=if_meam)
+            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'spring_off', link = True, if_meam=if_meam, meam_model=meam_model)
         elif switch == 'three-step':
             subtask_name = '00.lj_on'
-            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'lj_on', link = True, if_meam=if_meam)
+            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'lj_on', link = True, if_meam=if_meam, meam_model=meam_model)
             subtask_name = '01.deep_on'
-            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'deep_on', link = True, if_meam=if_meam)
+            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'deep_on', link = True, if_meam=if_meam, meam_model=meam_model)
             subtask_name = '02.spring_off'
-            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'spring_off', link = True, if_meam=if_meam)
+            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'spring_off', link = True, if_meam=if_meam,  meam_model=meam_model)
         else:
             raise RuntimeError('unknow switch', switch)
         os.chdir(cwd)
@@ -498,7 +510,7 @@ def make_tasks(iter_name, jdata, ref, switch = 'one-step', if_meam=None):
         raise RuntimeError('unknow switch', switch)
 
     
-def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link = False, if_meam=False):
+def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link = False, if_meam=False, meam_model=None):
     if 'crystal' not in jdata:
         print('do not find crystal in jdata, assume vega')
         jdata['crystal'] = 'vega'
@@ -614,7 +626,8 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
                                     step = step,
                                     sparam = sparam,
                                     crystal = crystal,
-                                    if_meam = if_meam)
+                                    if_meam = if_meam,
+                                    meam_model = meam_model)
         elif ref == 'ideal' :
             lmp_str \
                 = _gen_lammps_input_ideal('conf.lmp',
@@ -627,7 +640,8 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
                                           temp,
                                           prt_freq = stat_freq, 
                                           copies = copies,
-                                          if_meam = if_meam)
+                                          if_meam = if_meam,
+                                          meam_model = meam_model)
         else :
             raise RuntimeError('unknow reference system type ' + ref)
         with open('in.lammps', 'w') as fp :
@@ -637,7 +651,7 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
         os.chdir(cwd)
 
 
-def refine_task (from_task, to_task, err, print_ref=False, if_meam=None) :
+def refine_task (from_task, to_task, err, print_ref=False, if_meam=None, meam_model=None) :
     # raise RuntimeError('No entry')
     from_task = os.path.abspath(from_task)
     to_task = os.path.abspath(to_task)

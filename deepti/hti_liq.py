@@ -43,7 +43,8 @@ def _ff_soft_on(lamb,
 def _ff_deep_on(lamb, 
                 sparam, 
                 model,
-                if_meam=False):
+                if_meam=False,
+                meam_model=None):
     nn = sparam['n']
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
@@ -55,7 +56,7 @@ def _ff_deep_on(lamb,
     ret += 'variable        ONE equal 1\n'
     if if_meam:
         ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
-        ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn \n'
+        ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]} \n'
     else:
         ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
         ret += 'pair_coeff      * * deepmd\n'
@@ -77,7 +78,8 @@ def _ff_deep_on(lamb,
 def _ff_soft_off(lamb, 
                  sparam, 
                  model,
-                 if_meam=False) :
+                 if_meam=False,
+                 meam_model=None) :
     nn = sparam['n']
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
@@ -90,7 +92,7 @@ def _ff_soft_off(lamb,
     ret += 'variable        INV_EPSILON equal -${EPSILON}\n'
     if if_meam:
         ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
-        ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn \n'
+        ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1} {meam_model[2]} \n'
     else:
         ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
         ret += 'pair_coeff      * * deepmd\n'
@@ -121,7 +123,8 @@ def _gen_lammps_input_ideal (step,
                              prt_freq = 100, 
                              copies = None,
                              norm_style = 'first',
-                             if_meam = False) :
+                             if_meam = False,
+                             meam_model = meam_model) :
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -182,7 +185,7 @@ def _gen_lammps_input_ideal (step,
     return ret
 
 
-def _make_tasks(iter_name, jdata, step, if_meam=False) :
+def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=meam_model) :
     if step == 'soft_on' :
         all_lambda = parse_seq(jdata['lambda_soft_on'])
     elif step == 'deep_on' :
@@ -254,6 +257,7 @@ def make_tasks(iter_name, jdata, if_meam=False) :
         if_meam = jdata['if_meam']
     equi_conf = os.path.abspath(jdata['equi_conf'])
     model = os.path.abspath(jdata['model'])
+    meam_model = jdata.get('meam_model', None)
 
     create_path(iter_name)
     copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
@@ -269,11 +273,11 @@ def make_tasks(iter_name, jdata, if_meam=False) :
         json.dump(jdata, fp, indent=4)
     os.chdir(cwd)
     subtask_name = os.path.join(iter_name, '00.soft_on')
-    _make_tasks(subtask_name, jdata, 'soft_on', if_meam=if_meam)
+    _make_tasks(subtask_name, jdata, 'soft_on', if_meam=if_meam, meam_model=meam_model)
     subtask_name = os.path.join(iter_name, '01.deep_on')
-    _make_tasks(subtask_name, jdata, 'deep_on', if_meam=if_meam)
+    _make_tasks(subtask_name, jdata, 'deep_on', if_meam=if_meam, meam_model=meam_model)
     subtask_name = os.path.join(iter_name, '02.soft_off')
-    _make_tasks(subtask_name, jdata, 'soft_off', if_meam=if_meam)
+    _make_tasks(subtask_name, jdata, 'soft_off', if_meam=if_meam, meam_model=meam_model)
 
 
 def _compute_thermo(fname, natoms, stat_skip, stat_bsize) :
