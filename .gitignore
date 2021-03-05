@@ -2,5 +2,6 @@
 iter*
 task*
 *.pb
+!tests/graph.pb
 __pycache__
 tests/origin_files/
