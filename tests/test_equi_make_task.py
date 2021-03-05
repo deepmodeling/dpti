@@ -2,7 +2,7 @@ import os, json, shutil
 import numpy as np
 import unittest
 from unittest.mock import MagicMock, patch, PropertyMock
-from context import deepti
+from context import deepti, get_file_md5
 
 class TestEquiMakeTask(unittest.TestCase):
     def setUp(self):
@@ -12,6 +12,8 @@ class TestEquiMakeTask(unittest.TestCase):
         with open('equi_benchmark/npt/in.lammps', 'r') as f:
             self.equi_lammps_input1 = f.read()
         self.correct_basename = os.path.dirname(__file__)
+        self.graph_md5 = get_file_md5('graph.pb')
+        print(self.graph_md5)
 
     @patch('numpy.random')
     def test_equi_make_task(self, patch_random):
@@ -25,6 +27,8 @@ class TestEquiMakeTask(unittest.TestCase):
         with open(os.path.join(iter_name, 'in.lammps'), 'r') as f:
             equi_lammps_input2 = f.read()
         self.assertEqual(self.equi_lammps_input1, equi_lammps_input2)
+        link_graph_file = os.path.join(iter_name, 'graph.pb') 
+        self.assertEqual(self.graph_md5, get_file_md5(link_graph_file))
 
     @patch('numpy.random')
     def test_equi_make_task_self_consistent(self, patch_random):
@@ -36,6 +40,8 @@ class TestEquiMakeTask(unittest.TestCase):
         with open(os.path.join(iter_name, 'in.lammps'), 'r') as f:
             equi_lammps_input2 = f.read()
         self.assertEqual(self.equi_lammps_input1, equi_lammps_input2)
+        link_graph_file = os.path.join(iter_name, 'graph.pb') 
+        self.assertEqual(self.graph_md5, get_file_md5(link_graph_file))
 
     def get_correct_equi_setting1(self, iter_name):
         equi_settings1 = self.ori_equi_settings1.copy()
