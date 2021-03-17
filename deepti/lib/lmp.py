@@ -145,16 +145,16 @@ def from_system_data(system) :
     ntypes = len(system['atom_numbs'])    
     ret += '%d atoms\n' % natoms
     ret += '%d atom types\n' % ntypes
-    ret += '0 %f xlo xhi\n' % system['cell'][0][0]
-    ret += '0 %f ylo yhi\n' % system['cell'][1][1]
-    ret += '0 %f zlo zhi\n' % system['cell'][2][2]
-    ret += '%f %f %f xy xz yz\n' % \
+    ret += '0 %.8f xlo xhi\n' % system['cell'][0][0]
+    ret += '0 %.8f ylo yhi\n' % system['cell'][1][1]
+    ret += '0 %.8f zlo zhi\n' % system['cell'][2][2]
+    ret += '%.8f %.8f %.8f xy xz yz\n' % \
     (system['cell'][1][0], system['cell'][2][0], system['cell'][2][1])
     ret += '\n'
     ret += 'Atoms # atomic\n'
     ret += '\n'
     for ii in range(natoms) :
-        ret += '%d %d %f %f %f\n' % \
+        ret += '%d %d %.8f %.8f %.8f\n' % \
                (ii+1,
                 system['atom_types'][ii],
                 system['coordinates'][ii][0] - system['orig'][0],

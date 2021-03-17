@@ -14,7 +14,7 @@ from lib.utils import get_task_file_abspath
 from lib.lammps import get_thermo
 from lib.lammps import get_natoms
 
-import ti
+import deepti.ti
 
 def _main ():
     parser = argparse.ArgumentParser(

@@ -53,7 +53,9 @@ def _ff_lj_on(lamb,
 
 def _ff_deep_on(lamb,
                 model,
-                sparam):
+                sparam,
+                if_meam=False,
+                meam_model=None):
     nn = sparam['n']
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
@@ -66,8 +68,15 @@ def _ff_deep_on(lamb,
     ret = ''
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'variable        ONE equal 1\n'
-    ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
-    ret += 'pair_coeff      * * deepmd\n'
+    # if if_meam:
+    #     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
+    #     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn \n'
+    if if_meam:
+        ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
+        ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
+    else:
+        ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
+        ret += 'pair_coeff      * * deepmd\n'
 
     element_num=sparam.get('element_num', 1)
     sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
@@ -78,14 +87,55 @@ def _ff_deep_on(lamb,
     # ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
     # ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
     # ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
-    ret += 'fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA\n'
-    ret += 'compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE\n'
+    if if_meam:
+        ret += 'fix             tot_pot all adapt/fep 0 pair meam scale * * v_LAMBDA\n'
+        ret += 'compute         e_diff all fep ${TEMP} pair meam scale * * v_ONE\n'
+    else:
+        ret += 'fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA\n'
+        ret += 'compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE\n'
     return ret
+
+# def _ff_meam_on(lamb,
+#                 model,
+#                 sparam):
+#     nn = sparam['n']
+#     alpha_lj = sparam['alpha_lj']
+#     rcut = sparam['rcut']
+#     epsilon = sparam['epsilon']
+    # sigma = sparam['sigma']
+    # sigma_oo = sparam['sigma_oo']
+    # sigma_oh = sparam['sigma_oh']
+    # sigma_hh = sparam['sigma_hh']
+#     activation = sparam['activation']
+#     ret = ''
+#     ret += 'variable        EPSILON equal %f\n' % epsilon
+#     ret += 'variable        ONE equal 1\n'
+#     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
+#     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn \n'
+
+#     element_num=sparam.get('element_num', 1)
+#     sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
+#     for (i, j) in sigma_key_index:
+#         ret += 'pair_coeff      %s %s lj/cut/soft ${EPSILON} %f %f\n' % (i+1, j+1, sparam['sigma_'+str(i)+'_'+str(j)], activation)
+
+    # ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
+    # ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
+    # ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
+    # ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
+#     if if_meam:
+#         ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
+#         ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn \n'
+#     else:
+#         ret += 'fix             tot_pot all adapt/fep 0 pair meam scale * * v_LAMBDA\n'
+#         ret += 'compute         e_diff all fep ${TEMP} pair meam scale * * v_ONE\n'
+#     return ret
 
 
 def _ff_lj_off(lamb,
                model, 
-               sparam) :
+               sparam,
+               if_meam=False,
+               meam_model=None) :
     nn = sparam['n']
     alpha_lj = sparam['alpha_lj']
     rcut = sparam['rcut']
@@ -98,8 +148,16 @@ def _ff_lj_off(lamb,
     ret = ''
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'variable        INV_EPSILON equal -${EPSILON}\n'
-    ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
-    ret += 'pair_coeff      * * deepmd\n'
+    # if if_meam:
+    #     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n'  % (nn, alpha_lj, rcut)
+    #     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
+    if if_meam:
+        ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n'  % (nn, alpha_lj, rcut)
+        ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
+    else:
+        ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
+        ret += 'pair_coeff      * * deepmd\n'
+        
 
     element_num=sparam.get('element_num', 1)
     sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
@@ -113,6 +171,38 @@ def _ff_lj_off(lamb,
     ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_INV_LAMBDA scale yes\n'
     ret += 'compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_INV_EPSILON\n'    
     return ret
+
+# def _ff_meam_lj_off(lamb,
+#                model, 
+#                sparam) :
+#     nn = sparam['n']
+#     alpha_lj = sparam['alpha_lj']
+#     rcut = sparam['rcut']
+#     epsilon = sparam['epsilon']
+    # sigma = sparam['sigma']
+    # sigma_oo = sparam['sigma_oo']
+    # sigma_oh = sparam['sigma_oh']
+    # sigma_hh = sparam['sigma_hh']
+#     activation = sparam['activation']
+#     ret = ''
+#     ret += 'variable        EPSILON equal %f\n' % epsilon
+#     ret += 'variable        INV_EPSILON equal -${EPSILON}\n'
+#     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n'  % (nn, alpha_lj, rcut)
+#     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
+
+#     element_num=sparam.get('element_num', 1)
+#     sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
+#     for (i, j) in sigma_key_index:
+#         ret += 'pair_coeff      %s %s lj/cut/soft ${EPSILON} %f %f\n' % (i+1, j+1, sparam['sigma_'+str(i)+'_'+str(j)], activation)
+
+    # ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
+    # ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
+    # ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
+    # ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
+#     ret += 'fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_INV_LAMBDA scale yes\n'
+#     ret += 'compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_INV_EPSILON\n'    
+#     return ret
+    
     
 
 def _ff_spring(lamb,
@@ -140,17 +230,21 @@ def _ff_soft_lj(lamb,
                 model,
                 m_spring_k,
                 step,
-                sparam):
+                sparam,
+                if_meam=False,
+                meam_model=None):
     ret = ''
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
     if step == 'lj_on':
         ret += _ff_lj_on(lamb, model, sparam)
         var_spring = False
     elif step == 'deep_on':
-        ret += _ff_deep_on(lamb, model, sparam)
+        # ret += _ff_meam_on(lamb, model, sparam)
+        ret += _ff_deep_on(lamb, model, sparam, if_meam=if_meam, meam_model=meam_model)
         var_spring = False
     elif step == 'spring_off':
-        ret += _ff_lj_off(lamb, model, sparam)
+        # ret += _ff_meam_lj_off(lamb, model, sparam)
+        ret += _ff_lj_off(lamb, model, sparam, if_meam=if_meam, meam_model=meam_model)
         var_spring = True
     else:
         raise RuntimeError('unkown step', step)
@@ -207,7 +301,9 @@ def _gen_lammps_input (conf_file,
                        crystal = 'vega', 
                        sparam = {},
                        switch = 'one-step',
-                       step = 'both') :
+                       step = 'both',
+                       if_meam = False,
+                       meam_model = None):
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -237,7 +333,7 @@ def _gen_lammps_input (conf_file,
     if switch == 'one-step' or switch == 'two-step':
         ret += _ff_two_steps(lamb, model, m_spring_k, step)
     elif switch == 'three-step':
-        ret += _ff_soft_lj(lamb, model, m_spring_k, step, sparam)
+        ret += _ff_soft_lj(lamb, model, m_spring_k, step, sparam, if_meam=if_meam, meam_model=meam_model)
     else:
         raise RuntimeError('unknow switch', switch)
 
@@ -245,19 +341,20 @@ def _gen_lammps_input (conf_file,
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % dt
     ret += 'thermo          ${THERMO_FREQ}\n'
+    ret += 'compute         allmsd all msd\n'
     if 1 - lamb != 0 :
         if type(m_spring_k) is not list :        
             if switch == 'three-step':
-                ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring c_e_diff[1]\n'
+                ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring c_e_diff[1] c_allmsd[*]\n'
             else:
-                ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring c_e_deep\n'
+                ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring c_e_deep c_allmsd[*]\n'
         else :
             if switch == 'three-step':
-                ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol v_l_spring c_e_diff[1]\n'
+                ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol v_l_spring c_e_diff[1] c_allmsd[*]\n'
             else:
-                ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol v_l_spring c_e_deep\n'
+                ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol v_l_spring c_e_deep c_allmsd[*]\n'
     else :
-        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_deep c_e_deep\n'
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_deep c_e_deep c_allmsd[*]\n'
     ret += 'thermo_modify   format 9 %.16e\n'
     ret += 'thermo_modify   format 10 %.16e\n'
     ret += '# dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
@@ -308,7 +405,9 @@ def _gen_lammps_input_ideal (conf_file,
                              tau_p = 0.5,
                              prt_freq = 100, 
                              copies = None,
-                             norm_style = 'first') :
+                             norm_style = 'first',
+                             if_meam = False,
+                             meam_model = None) :
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -342,7 +441,7 @@ def _gen_lammps_input_ideal (conf_file,
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % dt
     ret += 'thermo          ${THERMO_FREQ}\n'
-    ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol v_ZERO c_e_deep\n'
+    ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol v_ZERO c_e_deep c_allmsd[*]\n'
     ret += 'thermo_modify   format 10 %.16e\n'
     ret += '# dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
     if ens == 'nvt' :
@@ -367,13 +466,19 @@ def _gen_lammps_input_ideal (conf_file,
     return ret
 
 
-def make_tasks(iter_name, jdata, ref, switch = 'one-step'):
+def make_tasks(iter_name, jdata, ref, switch = 'one-step', if_meam=None):
+    print('make_tasks: iter_name', iter_name)
+    if if_meam is None:
+        if_meam = jdata['if_meam']
     equi_conf = os.path.abspath(jdata['equi_conf'])
+    meam_model = jdata.get('meam_model', None)
     model = os.path.abspath(jdata['model'])
+    if if_meam is None:
+        if_meam = jdata.get('if_meam', None)
 
     if switch == 'one-step':
         subtask_name = iter_name
-        _make_tasks(subtask_name, jdata, ref, step = 'both')
+        _make_tasks(subtask_name, jdata, ref, step = 'both', if_meam=if_meam,  meam_model=meam_model)
     elif switch == 'two-step' or switch == 'three-step':
         create_path(iter_name)
         copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
@@ -388,16 +493,16 @@ def make_tasks(iter_name, jdata, ref, switch = 'one-step'):
             json.dump(jdata, fp, indent=4)
         if switch == 'two-step':
             subtask_name = '00.deep_on'
-            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'deep_on', link = True)
+            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'deep_on', link = True, if_meam=if_meam, meam_model=meam_model)
             subtask_name = '01.spring_off'
-            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'spring_off', link = True)
+            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'spring_off', link = True, if_meam=if_meam, meam_model=meam_model)
         elif switch == 'three-step':
             subtask_name = '00.lj_on'
-            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'lj_on', link = True)
+            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'lj_on', link = True, if_meam=if_meam, meam_model=meam_model)
             subtask_name = '01.deep_on'
-            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'deep_on', link = True)
+            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'deep_on', link = True, if_meam=if_meam, meam_model=meam_model)
             subtask_name = '02.spring_off'
-            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'spring_off', link = True)
+            _make_tasks(subtask_name, jdata, ref, switch = switch, step = 'spring_off', link = True, if_meam=if_meam,  meam_model=meam_model)
         else:
             raise RuntimeError('unknow switch', switch)
         os.chdir(cwd)
@@ -405,7 +510,7 @@ def make_tasks(iter_name, jdata, ref, switch = 'one-step'):
         raise RuntimeError('unknow switch', switch)
 
     
-def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link = False) :
+def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link = False, if_meam=False, meam_model=None):
     if 'crystal' not in jdata:
         print('do not find crystal in jdata, assume vega')
         jdata['crystal'] = 'vega'
@@ -520,7 +625,9 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
                                     switch = switch,
                                     step = step,
                                     sparam = sparam,
-                                    crystal = crystal)
+                                    crystal = crystal,
+                                    if_meam = if_meam,
+                                    meam_model = meam_model)
         elif ref == 'ideal' :
             lmp_str \
                 = _gen_lammps_input_ideal('conf.lmp',
@@ -532,7 +639,9 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
                                           ens,
                                           temp,
                                           prt_freq = stat_freq, 
-                                          copies = copies)
+                                          copies = copies,
+                                          if_meam = if_meam,
+                                          meam_model = meam_model)
         else :
             raise RuntimeError('unknow reference system type ' + ref)
         with open('in.lammps', 'w') as fp :
@@ -542,7 +651,8 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
         os.chdir(cwd)
 
 
-def refine_task (from_task, to_task, err, print_ref=False) :
+def refine_task (from_task, to_task, err, print_ref=False, if_meam=None, meam_model=None) :
+    # raise RuntimeError('No entry')
     from_task = os.path.abspath(from_task)
     to_task = os.path.abspath(to_task)
     
@@ -583,7 +693,7 @@ def refine_task (from_task, to_task, err, print_ref=False) :
     to_jdata['equi_conf'] = get_task_file_abspath(from_task, from_jdata['equi_conf'])
     to_jdata['model'] = get_task_file_abspath(from_task, from_jdata['model'])
 
-    make_tasks(to_task, to_jdata, to_jdata['reference'])
+    make_tasks(to_task, to_jdata, to_jdata['reference'], if_meam=if_meam)
 
     from_task_list = glob.glob(os.path.join(from_task, 'task.[0-9]*'))
     from_task_list.sort()
@@ -683,6 +793,7 @@ def post_tasks(iter_name, jdata, natoms = None, method = 'inte', scheme = 's'):
             raise RuntimeError('unknow method for integration')
         print('# fe of spring_off: %20.12f  %10.3e %10.3e' % (e2, err2[0], err2[1]))
         de = e0 + e1 + e2
+        print(f'# HTI three-step error [stt_err, sys_err] {err0} {err1} {err2}')
         stt_err = np.sqrt(np.square(err0[0]) + np.square(err1[0]) + np.square(err2[0]))
         sys_err = ((err0[1]) + (err1[1]) + (err2[1]))
         err = [stt_err, sys_err]
@@ -715,12 +826,20 @@ def _post_tasks(iter_name, jdata, natoms = None, scheme = 's', switch = 'one-ste
     all_ed = []
     all_ed_err = []
 
+    all_etot = []
+    all_etot_err = []
+    all_enthalpy = []
+    all_msd_xyz = []
+
     for ii in all_tasks :
         log_name = os.path.join(ii, 'log.lammps')
         data = get_thermo(log_name)
         np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
         sa, se = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
         da, de = block_avg(data[:, 9], skip = stat_skip, block_size = stat_bsize)
+        etot, etot_err = block_avg(data[:, 3], skip = stat_skip, block_size = stat_bsize)
+        enthalpy, _ = block_avg(data[:, 5], skip = stat_skip, block_size = stat_bsize)
+        msd_xyz = data[-1,-1]
         sa /= natoms
         se /= np.sqrt(natoms)
         da /= natoms
@@ -732,6 +851,11 @@ def _post_tasks(iter_name, jdata, natoms = None, scheme = 's', switch = 'one-ste
         all_ed.append(da)
         all_es_err.append(se)
         all_ed_err.append(de)
+        
+        all_etot.append(etot/natoms)
+        all_etot_err.append(etot_err)
+        all_enthalpy.append(enthalpy)
+        all_msd_xyz.append(msd_xyz)
 
     all_lambda = np.array(all_lambda)
     all_es = np.array(all_es)
@@ -772,11 +896,16 @@ def _post_tasks(iter_name, jdata, natoms = None, scheme = 's', switch = 'one-ste
     all_print.append(all_es / (1 - all_lambda))
     all_print.append(all_ed_err / all_lambda)
     all_print.append(all_es_err / (1 - all_lambda))
+    all_print.append(all_etot)
+    # all_print.append(all_etot_err)
+    all_print.append(all_es)
+    all_print.append(all_enthalpy)
+    all_print.append(all_msd_xyz)
     all_print = np.array(all_print)
     np.savetxt(os.path.join(iter_name, 'hti.out'), 
                all_print.T, 
                fmt = '%.8e', 
-               header = 'lmbda dU dU_err Ud Us Ud_err Us_err')
+               header = 'lmbda dU dU_err Ud Us Ud_err Us_err etot spring_eng enthalpy msd_xyz')
 
     new_lambda, i, i_e, s_e = integrate_range(all_lambda, de, all_err, scheme = scheme)
     if new_lambda[-1] != all_lambda[-1] :
@@ -918,6 +1047,106 @@ def print_thermo_info(info) :
     ptr += '# PV(err)  [eV]:  %20.8f %20.8f' % (info['pv'], info['pv_err'])
     print(ptr)
 
+def compute_task(job, free_energy_type='helmholtz', method='inte', scheme='simpson', manual_pv=None, manual_pv_err=None):
+    # print('hti.compute_task', job, jdata, method, scheme, free_energy_type)
+    # assert 'reference' in jdata
+    # job = args.JOB
+    jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
+    if 'reference' not in jdata:
+        jdata['reference'] = 'einstein'
+    if jdata['crystal'] == 'vega':
+        e0 = einstein.free_energy(job)
+    if jdata['crystal'] == 'frenkel':
+        e0 = einstein.frenkel(job)
+    de, de_err, thermo_info = post_tasks(job, jdata, method=method, scheme=scheme)
+    # printing
+    print_format = '%20.12f  %10.3e  %10.3e'
+    print_thermo_info(thermo_info)
+
+    info = thermo_info.copy()
+    
+    if jdata['reference'] == 'einstein' :
+        print('# free ener of Einstein Mole: %20.8f' % e0)
+    else :
+        print('# free ener of ideal gas: %20.8f' % e0)            
+
+    print(('# fe contrib due to integration ' + print_format) \
+          % (de, de_err[0], de_err[1]))
+
+    pv = None
+    pv_err = None
+    
+    if free_energy_type == 'helmholtz' :
+        e1 = e0 + de
+        e1_err = de_err[0]
+        print('# Helmholtz free ener per atom (stat_err inte_err) [eV]:')
+        print(print_format % (e1, de_err[0], de_err[1]))
+    elif free_energy_type == 'gibbs' :
+        if manual_pv is None:
+            pv = thermo_info['pv']
+        else: 
+            pv = manual_pv
+        if manual_pv_err is None:
+            pv_err = thermo_info['pv_err']
+        else:
+            pv_err = manual_pv_err
+        e1 = e0 + de + pv
+        e1_err = np.sqrt(de_err[0]**2 + pv_err**2)
+        print('# Gibbs free ener per atom (stat_err inte_err) [eV]:')
+        print(print_format % (e1, e1_err, de_err[1]))
+    else:
+        raise RuntimeError('known free energy type')
+
+    info['free_energy_type'] = free_energy_type
+    info['e0'] = e0
+    info['pv'] = pv
+    info['pv_err'] = pv_err
+    info['de'] = de
+    info['de_err'] = de_err
+    info['e1'] = e1
+    info['e1_err'] = e1_err
+    open(os.path.join(job, 'result.json'), 'w').write(json.dumps(info))
+    return info
+
+def hti_phase_trans_analyze(job, jdata=None):
+
+    if_phase_trans = False
+
+    logfile0 = glob.glob(os.path.join(job, '00*', 'hti.out'))[0]
+    logfile1 = glob.glob(os.path.join(job, '01*', 'hti.out'))[0]
+    logfile2 = glob.glob(os.path.join(job, '02*', 'hti.out'))[0]
+    
+    log0 = np.loadtxt(logfile0)
+    log1 = np.loadtxt(logfile1)
+    log2 = np.loadtxt(logfile2)
+    print(logfile0, log0)
+    print(logfile1, log1)
+    print(logfile2, log2)
+
+    msd0 = list(log0[:,-1])
+    msd1 = list(log1[:,-1])
+    msd2 = list(log2[:,-1])
+    
+    msd_all = []
+    msd_all.extend(msd0)
+    msd_all.extend(msd1)
+    msd_all.extend(msd2)
+
+    msd_min = min(msd_all)
+    msd_max = max(msd_all)
+
+    print('# deepti hti 00 log0')
+    print(log0)
+    print('# deepti hti 01 log1')
+    print(log1)
+    print('# deepti hti 02 log2')
+    print(log2)
+    
+    if msd_min < 20 and msd_max > 100:
+        if_phase_trans = True
+
+    return if_phase_trans
+
 def _main ():
     parser = argparse.ArgumentParser(
         description="Compute free energy by Hamiltonian TI")
@@ -929,10 +1158,11 @@ def _main ():
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
     parser_gen.add_argument('-s','--switch', type=str, default = 'one-step',
-                            choices = ['one-step', 'two-step', 'three-step'],
+                            choices = ['one-step', 'two-step', 'three-step', ],
                             help='one-step: switching on DP and switching off spring simultanenously.\
                             two-step: 1 switching on DP, 2 switching off spring.\
                             three-step: 1 switching on soft LJ, 2 switching on DP, 3 switching off spring and soft LJ.')
+    parser_gen.add_argument("-z", "--meam", help="whether use meam instead of dp", action="store_true")
 
     parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
     parser_comp.add_argument('JOB', type=str ,
@@ -945,6 +1175,10 @@ def _main ():
                              help='the method of thermodynamic integration')
     parser_comp.add_argument('-s','--scheme', type=str, default = 'simpson', 
                              help='the numeric integration scheme')
+    parser_comp.add_argument('-g', '--pv', type=float, default = None,
+                             help='press*vol value override to calculate Gibbs free energy')
+    parser_comp.add_argument('-G', '--pv-err', type=float, default = None,
+                             help='press*vol error')
     args = parser.parse_args()
 
     if args.command is None :
@@ -957,36 +1191,12 @@ def _main ():
             print('# gen task with Frenkel\'s Einstein crystal')
         else :
             print('# gen task with Vega\'s Einstein molecule')
-        make_tasks(output, jdata, 'einstein', args.switch)
+        print('output:', output)
+        make_tasks(output, jdata, ref='einstein', switch=args.switch, if_meam=args.meam)
     elif args.command == 'compute' :
-        job = args.JOB
-        jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
-        if 'reference' not in jdata :
-            jdata['reference'] = 'einstein'
-        if jdata['crystal'] == 'vega':
-            e0 = einstein.free_energy(job)
-        if jdata['crystal'] == 'frenkel':
-            e0 = einstein.frenkel(job)
-        de, de_err, thermo_info = post_tasks(job, jdata, method = args.inte_method, scheme = args.scheme)
-        # printing
-        print_format = '%20.12f  %10.3e  %10.3e'
-        print_thermo_info(thermo_info)
-        if jdata['reference'] == 'einstein' :
-            print('# free ener of Einstein Mole: %20.8f' % e0)
-        else :
-            print('# free ener of ideal gas: %20.8f' % e0)            
-        print(('# fe contrib due to integration ' + print_format) \
-              % (de, de_err[0], de_err[1]))
-        if args.type == 'helmholtz' :
-            print('# Helmholtz free ener per atom (stat_err inte_err) [eV]:')
-            print(print_format % (e0 + de, de_err[0], de_err[1]))
-        if args.type == 'gibbs' :
-            pv = thermo_info['pv']
-            pv_err = thermo_info['pv_err']
-            e1 = e0 + de + pv
-            e1_err = np.sqrt(de_err[0]**2 + pv_err**2)
-            print('# Gibbs free ener per atom (stat_err inte_err) [eV]:')
-            print(print_format % (e1, e1_err, de_err[1]))
+        compute_task(job=args.JOB, free_energy_type=args.type, method=args.inte_method, scheme=args.scheme, manual_pv=args.pv, manual_pv_err=args.pv_err)
+      #   if 'reference' not in jdata :
+      #       jdata['reference'] = 'einstein'
     
 if __name__ == '__main__' :
     _main()

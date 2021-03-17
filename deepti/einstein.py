@@ -3,10 +3,13 @@
 import os, sys, json, argparse, glob
 import numpy as np
 import scipy.constants as pc
-import lib.lmp
+# from . import lib
+from lib import lmp
+# from lib import lmp
 
 def compute_lambda(temp, mass) :
     ret = 2. * np.pi * mass * (1e-3 / pc.Avogadro) * pc.Boltzmann * temp / (pc.Planck * pc.Planck)
+    print('!!', mass, 1./np.sqrt(ret))
     return 1./np.sqrt(ret)    
 
 def compute_spring(temp, spring_k) :
@@ -18,7 +21,7 @@ def ideal_gas_fe(job) :
     equi_conf = jdata['equi_conf']
     cwd = os.getcwd()
     os.chdir(job)
-    assert(os.path.isfile(equi_conf))
+    assert(os.path.isfile(equi_conf)),equi_conf
     equi_conf = os.path.abspath(equi_conf)
     os.chdir(cwd)
     temp = jdata['temp']
@@ -28,7 +31,7 @@ def ideal_gas_fe(job) :
     else :
         ncopies = 1
 
-    sys_data = lib.lmp.to_system_data(open(equi_conf).read().split('\n'))
+    sys_data = lmp.to_system_data(open(equi_conf).read().split('\n'))
     vol = np.linalg.det(sys_data['cell'])
     natoms = [ii * ncopies for ii in sys_data['atom_numbs']]
 
@@ -36,10 +39,12 @@ def ideal_gas_fe(job) :
     fe = 0
     for idx,ii in enumerate(natoms) :
         # kinetic contrib
-        rho = ii / (vol * (pc.angstrom**3))
-        fe += ii * np.log(rho * (Lambda_k[idx] ** 3)) 
-        fe -= ii
-        fe += 0.5 * np.log(2. * np.pi * ii)
+        # print('```', idx, ii)
+        if ii > 0:
+            rho = ii / (vol * (pc.angstrom**3))
+            fe += ii * np.log(rho * (Lambda_k[idx] ** 3)) 
+            fe -= ii
+            fe += 0.5 * np.log(2. * np.pi * ii)
     fe *= pc.Boltzmann * temp / pc.electron_volt
     fe /= np.sum(natoms)
     return fe
@@ -56,22 +61,22 @@ def free_energy (job) :
     mass_map = jdata['model_mass_map']
     spring_k = jdata['spring_k']
     if type(spring_k) is not list:
-        spring_k_1 = []
+        m_spring_k = []
         for ii in mass_map :
-            spring_k_1.append(spring_k * ii)
-        spring_k = spring_k_1
+            m_spring_k.append(spring_k * ii)
+        # spring_k = spring_k_1
     assert(len(mass_map) == len(spring_k))
     if 'copies' in jdata :
         ncopies = np.prod(jdata['copies'])
     else :
         ncopies = 1
 
-    sys_data = lib.lmp.to_system_data(open(equi_conf).read().split('\n'))
+    sys_data = lmp.to_system_data(open(equi_conf).read().split('\n'))
     vol = np.linalg.det(sys_data['cell'])
     natoms = [ii * ncopies for ii in sys_data['atom_numbs']]
     
     Lambda_k = [compute_lambda(temp, ii) for ii in mass_map]
-    Lambda_s = [compute_spring(temp, ii) for ii in spring_k]
+    Lambda_s = [compute_spring(temp, ii) for ii in m_spring_k]
     # print(np.log(Lambda_k), np.log(Lambda_s))
     
     with open(equi_conf) as fp:
@@ -99,7 +104,6 @@ def free_energy (job) :
             # print(3.0 * ii * np.log(Lambda_s[idx]) * fact)
     fe *= pc.Boltzmann * temp / pc.electron_volt
     fe /= np.sum(natoms)
-    # print(fe)
     return fe
 
 
@@ -117,21 +121,21 @@ def frenkel(job) :
     spring_k = jdata['spring_k']
     assert(type(spring_k) is not list)
     if type(spring_k) is not list:
-        spring_k_1 = []
+        m_spring_k = []
         for ii in mass_map :
-            spring_k_1.append(spring_k * ii)
-        spring_k = spring_k_1
+            m_spring_k.append(spring_k * ii)
+        # spring_k = spring_k_1
     if 'copies' in jdata :
         ncopies = np.prod(jdata['copies'])
     else :
         ncopies = 1    
 
-    sys_data = lib.lmp.to_system_data(open(equi_conf).read().split('\n'))
+    sys_data = lmp.to_system_data(open(equi_conf).read().split('\n'))
     vol = np.linalg.det(sys_data['cell'])
     natoms = [ii * ncopies for ii in sys_data['atom_numbs']]
 
     Lambda_k = [compute_lambda(temp, ii) for ii in mass_map]
-    Lambda_s = [compute_spring(temp, ii) for ii in spring_k]
+    Lambda_s = [compute_spring(temp, ii) for ii in m_spring_k]
     s_Lambda_s = compute_spring(temp, s_spring_k)
 
     fe = 0
@@ -154,6 +158,11 @@ def frenkel(job) :
 
     fe *= pc.Boltzmann * temp / pc.electron_volt
     fe /= np.sum(natoms)
+    total_atom_num = np.sum(natoms)
+    print('###', fe, Lambda_k, Lambda_s, np.log(Lambda_k[0]), np.log(Lambda_s[0]))
+    print('### average U', 3 * pc.Boltzmann * temp)
+    print('### Hel F', fe)
+    print('### debug', (3*total_atom_num - 0.5 - 3*total_atom_num*np.log(Lambda_k[0]) - 3*(natoms[0]-1)*np.log(Lambda_s[0]) + np.log((vol * (pc.angstrom**3))) + 0.5*np.log(total_atom_num)) )
     return fe
         
     

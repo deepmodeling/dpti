@@ -1,0 +1,14 @@
+language: python
+python:
+  - "3.6"
+  - "3.7"
+# command to install dependencies
+before_install:
+  - pip install --upgrade pip coverage codecov
+install:
+  - pip --version
+# command to run tests
+script:
+  - cd tests && coverage run --source=../deepti -m unittest -v && coverage report
+after_success:
+  - codecov
