@@ -9,7 +9,7 @@ from scipy.integrate import solve_ivp
 from lib.utils import create_path
 from lib.utils import block_avg
 from lib.lammps import get_natoms
-from lib.RemoteJob import SSHSession, JobStatus, SlurmJob
+from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
 from dpgen.dispatcher.Dispatcher import Dispatcher
 
 def _group_slurm_jobs(ssh_sess,
@@ -21,7 +21,7 @@ def _group_slurm_jobs(ssh_sess,
                       forward_common_files,
                       forward_task_files,
                       backward_task_files,
-                      remote_job = SlurmJob) :
+                      remote_job = PBSJob) :
     task_chunks = [
         [os.path.basename(j) for j in tasks[i:i + group_size]] \
         for i in range(0, len(tasks), group_size)
@@ -50,9 +50,12 @@ def _group_slurm_jobs(ssh_sess,
 def _make_tasks_onephase(temp, 
                          pres, 
                          task_path, 
-                         jdata, 
+                         jdata,
+                         ens = 'npt',
                          conf_file = 'conf.lmp', 
-                         graph_file = 'graph.pb') :
+                         graph_file = 'graph.pb',
+                         if_meam=False,
+                         meam_model=meam_model):
     # assume that model and conf.lmp exist in the current dir
     assert(os.path.isfile(conf_file))
     assert(os.path.isfile(graph_file))
@@ -82,12 +85,14 @@ def _make_tasks_onephase(temp,
                                'graph.pb',
                                nsteps, 
                                dt,
-                               'npt',
+                               ens,
                                temp,
                                pres,
                                tau_t = tau_t,
                                tau_p = tau_p,
-                               prt_freq = stat_freq)
+                               prt_freq = stat_freq,
+                               if_meam=if_meam,
+                               meam_model=meam_model)
     with open('thermo.out', 'w') as fp :
         fp.write('%.16e %.16e' % (temp, pres))
     with open('in.lammps', 'w') as fp :
@@ -131,7 +136,9 @@ def make_dpdt (temp,
                dispatcher,
                natoms = None,
                shift = [0, 0],
-               verbose = False) :
+               verbose = False,
+               if_meam=False,
+               meam_model=None) :
     assert(os.path.isdir(task_path))    
 
     cwd = os.getcwd()
@@ -197,14 +204,20 @@ def make_dpdt (temp,
         work_path = os.path.join('database', 'task.%06d' % counter)
         _make_tasks_onephase(temp, pres, 
                              os.path.join(work_path, '0'),
-                             jdata, 
+                             jdata,
+                             ens = jdata['phase_i'].get('ens', None),
                              conf_file = conf_0,
-                             graph_file = 'graph.pb')
+                             graph_file = 'graph.pb',
+                             if_meam=if_meam,
+                             meam_model=meam_model)
         _make_tasks_onephase(temp, pres, 
                              os.path.join(work_path, '1'),
                              jdata, 
+                             ens = jdata['phase_ii'].get('ens', None),
                              conf_file = conf_1,
-                             graph_file = 'graph.pb')
+                             graph_file = 'graph.pb',
+                             if_meam=if_meam,
+                             meam_model=meam_model)
         # submit new task
         resources = mdata['resources']
         lmp_exec = mdata['command']
@@ -259,7 +272,9 @@ class GibbsDuhemFunc (object):
                   pref = 1.0,
                   natoms = None,
                   shift = [0, 0],
-                  verbose = False):
+                  verbose = False,
+                  if_meam=False,
+                  meam_model=None):
         self.jdata = jdata
         self.mdata = mdata
         self.task_path = task_path
@@ -268,6 +283,8 @@ class GibbsDuhemFunc (object):
         self.verbose =  verbose
         self.pref = pref
         self.shift = shift
+        self.if_meam = if_meam
+        self.meam_model = meam_model
         
         self.dispatcher = Dispatcher(mdata['machine'], context_type = 'lazy-local', batch_type = 'pbs')
         if os.path.isdir(task_path) :
@@ -284,7 +301,9 @@ class GibbsDuhemFunc (object):
                                  self.inte_dir,
                                  self.task_path, self.mdata, self.dispatcher, self.natoms,
                                  self.shift,
-                                 self.verbose)
+                                 self.verbose,
+                                 if_meam=self.if_meam,
+                                 meam_model=meam_model)
             return [dh / (x * dv) * self.ev2bar * self.pref]
         elif self.inte_dir == 'p' :
             # x: pres, y: temp
@@ -292,7 +311,9 @@ class GibbsDuhemFunc (object):
                                  self.inte_dir,
                                  self.task_path, self.mdata, self.dispatcher, self.natoms,
                                  self.shift,
-                                 self.verbose)
+                                 self.verbose,
+                                 if_meam=self.if_meam,
+                                 meam_model=meam_model)
             return [(y * dv) / dh / self.ev2bar * (1/self.pref)]
 
 
@@ -327,6 +348,7 @@ def _main () :
                         help='the output folder for the job')
     parser.add_argument('-v','--verbose', action = 'store_true',
                         help='print detailed infomation')
+    parser.add_argument("-z", "--meam", help="whether use meam instead of dp", action="store_true")
     args = parser.parse_args()
     
     jdata = json.load(open(args.PARAM))
@@ -339,14 +361,16 @@ def _main () :
         natoms = [ii // 3  for ii in natoms]
     print ('# natoms: ', natoms)
     print ('# shifts: ', args.shift)
-        
+    meam_model = jdata.get('meam_model')
     gdf = GibbsDuhemFunc(jdata,
                          mdata,
                          args.output,
                          args.direction,
                          natoms = natoms,
                          shift = args.shift,
-                         verbose = args.verbose)
+                         verbose = args.verbose,
+                         if_meam=args.meam,
+                         meam_model=meam_model)
     sol = solve_ivp(gdf,
                     [args.begin, args.end],
                     [args.initial_value],

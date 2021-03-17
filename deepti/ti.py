@@ -40,7 +40,9 @@ def _gen_lammps_input (conf_file,
                        tau_t = 0.1,
                        tau_p = 0.5,
                        prt_freq = 100,
-                       copies = None) :
+                       copies = None,
+                       if_meam = False,
+                       meam_model = None):
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -64,16 +66,24 @@ def _gen_lammps_input (conf_file,
     for jj in range(len(mass_map)) :
         ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
-    ret += 'pair_style      deepmd %s\n' % model
-    ret += 'pair_coeff\n'
+    # if if_meam:
+    #     ret += 'pair_style      meam \n'
+    #     ret += 'pair_coeff      * * /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
+    if if_meam:
+        ret += 'pair_style      meam \n'
+        ret += f'pair_coeff      * * {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
+    else:
+        ret += 'pair_style      deepmd %s\n' % model
+        ret += 'pair_coeff\n'
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % dt
     ret += 'thermo          ${THERMO_FREQ}\n'
+    ret += 'compute         allmsd all msd\n'
     if ens == 'nvt' :        
-        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol\n'
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
     elif 'npt' in ens :
-        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol\n'
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
     else :
         raise RuntimeError('unknow ensemble %s\n' % ens)                
     ret += '# dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z\n'
@@ -85,6 +95,8 @@ def _gen_lammps_input (conf_file,
         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P}\n'
     elif ens == 'npt-tri' :
         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} tri ${PRES} ${PRES} ${TAU_P}\n'
+    elif ens == 'npt-xy' :
+        ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P} couple xy\n'
     elif ens == 'nve' :
         ret += 'fix             1 all nve\n'
     else :
@@ -100,13 +112,16 @@ def _gen_lammps_input (conf_file,
     return ret
 
 
-def make_tasks(iter_name, jdata) :
+def make_tasks(iter_name, jdata, if_meam=None) :
+    if if_meam is None:
+        if_meam = jdata['if_meam']
     equi_conf = jdata['equi_conf']
     equi_conf = os.path.abspath(equi_conf)
     copies = None
     if 'copies' in jdata :
         copies = jdata['copies']
     model = jdata['model']
+    meam_model = jdata.get('meam_model', None)
     model = os.path.abspath(model)
     model_mass_map = jdata['model_mass_map']
     nsteps = jdata['nsteps']
@@ -172,7 +187,9 @@ def make_tasks(iter_name, jdata) :
                                     temps[ii],
                                     tau_t = tau_t,
                                     prt_freq = stat_freq, 
-                                    copies = copies)
+                                    copies = copies,
+                                    if_meam=if_meam,
+                                    meam_model=meam_model)
             with open('thermo.out', 'w') as fp :
                 fp.write('%f' % temps[ii])
         elif 'npt' in ens and (path == 't' or path == 't-ginv'):
@@ -188,7 +205,9 @@ def make_tasks(iter_name, jdata) :
                                     tau_t = tau_t,
                                     tau_p = tau_p,
                                     prt_freq = stat_freq, 
-                                    copies = copies)
+                                    copies = copies,
+                                    if_meam=if_meam,
+                                    meam_model=meam_model)
             with open('thermo.out', 'w') as fp :
                 fp.write('%f' % (temps[ii]))
         elif 'npt' in ens and path == 'p' :
@@ -204,7 +223,9 @@ def make_tasks(iter_name, jdata) :
                                     tau_t = tau_t,
                                     tau_p = tau_p,
                                     prt_freq = stat_freq, 
-                                    copies = copies)
+                                    copies = copies,
+                                    if_meam=if_meam,
+                                    meam_model=meam_model)
             with open('thermo.out', 'w') as fp :
                 fp.write('%f' % (press[ii]))
         else:
@@ -247,7 +268,7 @@ def _print_thermo_info(info, more_head = '') :
     ptr += '# PV(err)  [eV]:  %20.8f %20.8f' % (info['pv'], info['pv_err'])
     print(ptr)
 
-def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's') :
+def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's', all_e=None) :
     path = jdata['path']
     ens = jdata['ens']
     all_temps = []
@@ -255,7 +276,35 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's
     all_fe = []
     all_fe_err = []
     all_fe_sys_err = []
+    
+    if all_e is not None:
+        print('switch to test integral mode by yuanfengbo')
+        array_e = np.asarray(all_e, dtype='float64')
+        array_t = np.asarray(all_t, dtype='float64')
+        array_t_delta = array_t[1:] - array_t[:-1]
+        array_e_delta = array_e[1:] - array_e[:-1]
+        array_b = array_e_delta / array_t_delta
+        array_a = array_e[:-1] - array_t[:-1] * array_b 
+        array_diff_e = array_a * (array_t[1:] - array_t[:-1])/(array_t[1:]*array_t[:-1]) + array_b * np.log(array_t[1:]/array_t[:-1])
+        
+        print('!!!', array_a, array_b, all_e , array_t_delta, array_e_delta, array_diff_e)
+        
+        # for ii in range(0, len(array_t)):
+        for ii in range(len(array_t)-1, -1, -1):
+            e1 = (Eo / (array_t[-1]) + np.sum(array_diff_e[ii:])) * array_t[ii]
+            # e1 = (Eo / (array_t[0]) - np.sum(array_diff_e[0:ii])) * array_t[ii]
+            all_temps.append(array_t[ii])
+            err = 0
+            sys_err = 0
+            all_press.append(jdata['press'])
+            all_fe.append(e1)
+            all_fe_err.append(err)
+            all_fe_sys_err.append(sys_err)
 
+        return np.asarray(all_temps), np.asarray(all_press), np.asarray(all_fe), np.asarray(all_fe_err), np.asarray(all_fe_sys_err)
+            
+            
+        
     all_t, inte, inte_e, stat_e = integrate_range(all_t, integrand, integrand_err, scheme)
     for ii in range(0, len(all_t)):
         diff_e = inte[ii]
@@ -281,7 +330,7 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's
         all_fe_sys_err.append(sys_err)
     return all_temps, all_press, all_fe, all_fe_err, all_fe_sys_err
 
-def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, scheme = 's', shift = 0.0) :
+def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, scheme = 'simpson', shift = 0.0) :
     equi_conf = get_task_file_abspath(iter_name, jdata['equi_conf'])
     if natoms == None :        
         natoms = get_natoms(equi_conf)
@@ -301,6 +350,8 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
     all_e_err = []
     integrand = []
     integrand_err = []
+    all_enthalpy = []
+    all_msd_xyz = []
     if 'nvt' in ens and path == 't' :
         # TotEng
         stat_col = 3
@@ -329,9 +380,12 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
         ea, ee = block_avg(data[:, stat_col], 
                            skip = stat_skip, 
                            block_size = stat_bsize)
+        enthalpy, _ = block_avg(data[:, 5], skip = stat_skip, block_size = stat_bsize)
+        msd_xyz = data[-1, -1]
         # COM corr
         if path == 't' or path == 't-ginv' :
             ea += 1.5 * pc.Boltzmann * tt / pc.electron_volt
+            # print('~~', tt, ea, 1.5 * pc.Boltzmann * tt / pc.electron_volt)
         elif path == 'p' :
             temp = jdata['temps']
             ea += 1.5 * pc.Boltzmann * temp / pc.electron_volt
@@ -344,6 +398,8 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
         ee /= np.sqrt(natoms)
         all_e.append(ea)
         all_e_err.append(ee)
+        all_enthalpy.append(enthalpy)
+        all_msd_xyz.append(msd_xyz)
         # gen integrand
         if path == 't' or path == 't-ginv':
             integrand.append(ea / (tt * tt))
@@ -361,11 +417,13 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
     all_print.append(integrand)
     all_print.append(all_e)
     all_print.append(all_e_err)
+    all_print.append(all_enthalpy)
+    all_print.append(all_msd_xyz)
     all_print = np.array(all_print)
     np.savetxt(os.path.join(iter_name, 'ti.out'), 
                all_print.T, 
                fmt = '%.8e', 
-               header = 't/p Integrand U/V U/V_err')
+               header = 't/p Integrand U/V U/V_err enthalpy msd_xyz')
 
     info0 = _compute_thermo(os.path.join(all_tasks[ 0], 'log.lammps'), natoms, stat_skip, stat_bsize)
     info1 = _compute_thermo(os.path.join(all_tasks[-1], 'log.lammps'), natoms, stat_skip, stat_bsize)
@@ -404,18 +462,37 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
         all_fe_sys_err = np.append(all_fe_sys_err_1, all_fe_sys_err_2[1:])
     else :    
         all_temps, all_press, all_fe, all_fe_err, all_fe_sys_err \
-            = _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = scheme)
+            = _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = scheme, all_e=all_e)
 
+    # print('ti.py:debug:data', data)
+    result = ""
+    # result_file = open(f"{iter_name}/../result", 'w')
     if 'nvt' == ens :
         print('#%8s  %20s  %9s  %9s  %9s' % ('T(ctrl)', 'F', 'stat_err', 'inte_err', 'err'))
+        result += ('#%8s  %20s  %9s  %9s  %9s\n' % ('T(ctrl)', 'F', 'stat_err', 'inte_err', 'err'))
         for ii in range(len(all_temps)) :
             print ('%9.2f  %20.12f  %9.2e  %9.2e  %9.2e' 
                    % (all_temps[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]])))
+            result += ('%9.2f  %20.12f  %9.2e  %9.2e  %9.2e\n' 
+                   % (all_temps[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]])))
     elif 'npt' in ens :
         print('#%8s  %15s  %20s  %9s  %9s  %9s' % ('T(ctrl)', 'P(ctrl)', 'F', 'stat_err', 'inte_err', 'err'))
+        result += ('#%8s  %15s  %20s  %9s  %9s  %9s\n' % ('T(ctrl)', 'P(ctrl)', 'F', 'stat_err', 'inte_err', 'err'))
         for ii in range(len(all_temps)) :
             print ('%9.2f  %15.8e  %20.12f  %9.2e  %9.2e  %9.2e' 
                    % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]])))
+            result += ('%9.2f  %15.8e  %20.12f  %9.2e  %9.2e  %9.2e\n'
+                   % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]])))
+            # print(all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]))
+    # result_file.close()
+    data = [all_temps.tolist(), all_press.tolist(), 
+        all_fe.tolist(), all_fe_err.tolist(), all_fe_sys_err.tolist(), 
+        np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist()]
+    info = dict(start_point_info=info0, end_point_info=info1, data=data)
+    print('result', result)
+    open(os.path.join(iter_name, '../', 'result'), 'w').write(result)
+    open(os.path.join(iter_name, 'result.json'), 'w').write(json.dumps(info))
+    return info
 
 
 def post_tasks_mbar(iter_name, jdata, Eo, natoms = None) :
@@ -536,6 +613,10 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms = None) :
         for ii in range(len(all_temps)) :
             print ('%9.2f  %15.8e  %20.12f  %9.2e  %9.2e' 
                    % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii]))
+    # info = dict(start_point_info=info0, end_point_info=info1, all_temps=list(all_temps), all_press=list(all_press),
+    #              all_fe=list(all_fe), all_fe_err=list(all_fe_err), all_fe_sys_err=list(all_fe_sys_err))
+    # open(os.path.join(iter_name, 'result.json'), 'w').write(json.dumps(info))
+    # return info
 
 
 def refine_task (from_task, to_task, err) :
@@ -611,6 +692,16 @@ def refine_task (from_task, to_task, err) :
         with open(os.path.join(to_task_list[ii], 'from.dir'), 'w') as fp:
             fp.write(from_task_list[back_map[ii]])
             
+def compute_task(job, inte_method, Eo, Eo_err, To, scheme='simpson'):
+    # job = args.JOB
+    jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
+    if inte_method == 'inte' :
+        info = post_tasks(job, jdata, Eo=Eo, Eo_err=Eo_err, To=To, scheme=scheme)
+    elif inte_method == 'mbar' :
+        info = post_tasks_mbar(job, jdata, args.Eo)
+    else :
+        raise RuntimeError('unknow integration method')
+    
 
 def _main ():
     parser = argparse.ArgumentParser(
@@ -622,6 +713,7 @@ def _main ():
                             help='json parameter file')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
+    parser_gen.add_argument("-z", "--meam", help="whether use meam instead of dp", action="store_true")
 
     parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
     parser_comp.add_argument('JOB', type=str ,
@@ -653,16 +745,17 @@ def _main ():
     if args.command == 'gen' :
         output = args.output
         jdata = json.load(open(args.PARAM, 'r'))
-        make_tasks(output, jdata)
+        make_tasks(output, jdata, if_meam=args.meam)
     elif args.command == 'compute' :
-        job = args.JOB
-        jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
-        if args.inte_method == 'inte' :
-            post_tasks(job, jdata, args.Eo, Eo_err = args.Eo_err, To = args.To, scheme = args.scheme)
-        elif args.inte_method == 'mbar' :
-            post_tasks_mbar(job, jdata, args.Eo)
-        else :
-            raise RuntimeError('unknow integration method')
+        compute_task(args.JOB, inte_method=args.inte_method, Eo=args.Eo, Eo_err=args.Eo_err, To=args.To, scheme=args.scheme)
+    #     job = args.JOB
+    #     jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
+    #     if args.inte_method == 'inte' :
+    #         post_tasks(job, jdata, args.Eo, Eo_err = args.Eo_err, To = args.To, scheme = args.scheme)
+    #     elif args.inte_method == 'mbar' :
+    #         post_tasks_mbar(job, jdata, args.Eo)
+    #     else :
+    #         raise RuntimeError('unknow integration method')
     elif args.command == 'refine' :
         refine_task(args.input, args.output, args.error)
 
