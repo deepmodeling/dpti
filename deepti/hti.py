@@ -5,17 +5,18 @@ import numpy as np
 import scipy.constants as pc
 import pymbar
 
-import einstein
-from lib.utils import create_path
-from lib.utils import copy_file_list
-from lib.utils import block_avg
-from lib.utils import integrate_range
+from . import einstein
+from deepti.lib.utils import create_path
+from deepti.lib.utils import copy_file_list
+from deepti.lib.utils import block_avg
+from deepti.lib.utils import integrate_range
+from deepti.lib.utils import integrate_range_hti
 # from lib.utils import integrate_sys_err
-from lib.utils import compute_nrefine
-from lib.utils import parse_seq
-from lib.utils import get_task_file_abspath
-from lib.lammps import get_thermo
-from lib.lammps import get_natoms
+from deepti.lib.utils import compute_nrefine
+from deepti.lib.utils import parse_seq
+from deepti.lib.utils import get_task_file_abspath
+from deepti.lib.lammps import get_thermo
+from deepti.lib.lammps import get_natoms
 
 def make_iter_name (iter_index) :
     return "task_hti." + ('%04d' % iter_index)
@@ -35,7 +36,7 @@ def _ff_lj_on(lamb,
     activation = sparam['activation']
     ret = ''
     ret += 'variable        EPSILON equal %f\n' % epsilon
-    ret += 'pair_style      lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
+    ret += 'pair_style      lj/cut/soft %f %f %f\n' % (nn, alpha_lj, rcut)
 
     element_num=sparam.get('element_num', 1)
     sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
@@ -72,10 +73,10 @@ def _ff_deep_on(lamb,
     #     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
     #     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn \n'
     if if_meam:
-        ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
-        ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
+        ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f\n' % (nn, alpha_lj, rcut)
+        ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
     else:
-        ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
+        ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f\n' % (model, nn, alpha_lj, rcut)
         ret += 'pair_coeff      * * deepmd\n'
 
     element_num=sparam.get('element_num', 1)
@@ -152,10 +153,11 @@ def _ff_lj_off(lamb,
     #     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n'  % (nn, alpha_lj, rcut)
     #     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
     if if_meam:
-        ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n'  % (nn, alpha_lj, rcut)
-        ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
+        ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f\n'  % (nn, alpha_lj, rcut)
+        ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
+        # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
-        ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
+        ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f\n' % (model, nn, alpha_lj, rcut)
         ret += 'pair_coeff      * * deepmd\n'
         
 
@@ -793,7 +795,7 @@ def post_tasks(iter_name, jdata, natoms = None, method = 'inte', scheme = 's'):
             raise RuntimeError('unknow method for integration')
         print('# fe of spring_off: %20.12f  %10.3e %10.3e' % (e2, err2[0], err2[1]))
         de = e0 + e1 + e2
-        print(f'# HTI three-step error [stt_err, sys_err] {err0} {err1} {err2}')
+        print(f'# HTI three-step error err0 err1 err2 [stt_err, sys_err] {err0} {err1} {err2}')
         stt_err = np.sqrt(np.square(err0[0]) + np.square(err1[0]) + np.square(err2[0]))
         sys_err = ((err0[1]) + (err1[1]) + (err2[1]))
         err = [stt_err, sys_err]
@@ -907,19 +909,20 @@ def _post_tasks(iter_name, jdata, natoms = None, scheme = 's', switch = 'one-ste
                fmt = '%.8e', 
                header = 'lmbda dU dU_err Ud Us Ud_err Us_err etot spring_eng enthalpy msd_xyz')
 
-    new_lambda, i, i_e, s_e = integrate_range(all_lambda, de, all_err, scheme = scheme)
-    if new_lambda[-1] != all_lambda[-1] :
-        if new_lambda[-1] == all_lambda[-2]:
-            _, i1, i_e1, s_e1 = integrate_range(all_lambda[-2:], de[-2:], all_err[-2:], scheme='t')
-            diff_e = i[-1] + i1[-1]
-            err = np.linalg.norm([s_e[-1], s_e1[-1]])
-            sys_err = i_e[-1] + i_e1[-1]
-        else :
-            raise RuntimeError("lambda does not match!")
-    else:
-        diff_e = i[-1]
-        err = s_e[-1]
-        sys_err = i_e[-1]
+    diff_e, err, sys_err = integrate_range_hti(all_lambda, de, all_err, scheme=scheme)
+    # new_lambda, i, i_e, s_e = integrate_range(all_lambda, de, all_err, scheme = scheme)
+    # if new_lambda[-1] != all_lambda[-1] :
+    #     if new_lambda[-1] == all_lambda[-2]:
+    #         _, i1, i_e1, s_e1 = integrate_range(all_lambda[-2:], de[-2:], all_err[-2:], scheme='t')
+    #         diff_e = i[-1] + i1[-1]
+    #         err = np.linalg.norm([s_e[-1], s_e1[-1]])
+    #         sys_err = i_e[-1] + i_e1[-1]
+    #     else :
+    #         raise RuntimeError("lambda does not match!")
+    # else:
+    #     diff_e = i[-1]
+    #     err = s_e[-1]
+    #     sys_err = i_e[-1]
     
     # diff_e, err = integrate(all_lambda, de, all_err)
     # sys_err = integrate_sys_err(all_lambda, de)

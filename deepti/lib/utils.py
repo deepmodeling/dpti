@@ -83,7 +83,7 @@ def _parse_one_str(in_s) :
                          float(fmt_s[1]) - float_protect, 
                          float(fmt_s[2]))
 
-def parse_seq(in_s) :
+def parse_seq(in_s, *, protect_eps=None):
     all_l = []
     if type(in_s) == list and type(in_s[0]) == str :
         for ii in in_s :
@@ -99,6 +99,12 @@ def parse_seq(in_s) :
         all_l = _parse_one_str(in_s)
     else :
         raise RuntimeError("the type of seq should be one of: string, list_of_strings, list_of_floats")
+    if protect_eps is not None:
+        if all_l[0] == 0 :
+            all_l[0] += protect_eps
+        if all_l[-1] == 1 :
+            all_l[-1] -= protect_eps
+    # return all_l
     return np.array(all_l)
 
 # def integrate(xx, yy) :
@@ -334,6 +340,23 @@ def get_task_file_abspath(task_name, file_name):
     equi_conf = os.path.abspath(equi_conf)
     os.chdir(cwd)
     return equi_conf
+
+def integrate_range_hti(all_lambda, de, de_err, scheme='s'):
+    new_lambda, i, i_e, s_e = integrate_range(all_lambda, de, de_err, scheme='s')
+    # print('debug:range_hti', new_lambda[-1], all_lambda[-1])
+    if new_lambda[-1] != all_lambda[-1] :
+        if new_lambda[-1] == all_lambda[-2]:
+            _, i1, i_e1, s_e1 = integrate_range(all_lambda[-2:], de[-2:], de_err[-2:], scheme='t')
+            diff_e = i[-1] + i1[-1]
+            stt_err = np.linalg.norm([s_e[-1], s_e1[-1]])
+            sys_err = i_e[-1] + i_e1[-1]
+        else :
+            raise RuntimeError("lambda does not match!")
+    else:
+        diff_e = i[-1]
+        stt_err = s_e[-1]
+        sys_err = i_e[-1]
+    return diff_e, stt_err, sys_err
 
 
 if __name__ == '__main__':

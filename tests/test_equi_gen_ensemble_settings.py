@@ -1,4 +1,4 @@
-import os
+import os, textwrap
 import numpy as np
 import unittest
 from unittest.mock import MagicMock, patch, PropertyMock
@@ -11,15 +11,16 @@ class TestEquiEnsembleSetting(unittest.TestCase):
     @patch('numpy.random')
     def test_gen_equi_ensemble_settings_nvt(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        ret1 = """fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}
-fix             mzero all momentum 10 linear 1 1 1
-# --------------------- INITIALIZE -----------------------
-velocity        all create ${TEMP} 7858
-velocity        all zero linear
-# --------------------- RUN ------------------------------
-run             ${NSTEPS}
-write_data      out.lmp
-"""
+        ret1 = textwrap.dedent("""\
+        fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}
+        fix             mzero all momentum 10 linear 1 1 1
+        # --------------------- INITIALIZE -----------------------
+        velocity        all create ${TEMP} 7858
+        velocity        all zero linear
+        # --------------------- RUN ------------------------------
+        run             ${NSTEPS}
+        write_data      out.lmp
+        """)
         ret2 = deepti.equi.gen_equi_ensemble_settings(equi_settings=dict(ens='nvt'))
         self.assertEqual(ret1, ret2)
 
@@ -31,14 +32,15 @@ write_data      out.lmp
         ret_ensemble_npt_xy = "fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P} couple xy\n"
         ret_ensemble_npt_tri = "fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} tri ${PRES} ${PRES} ${TAU_P}\n"
         ret_ensemble_nve = "fix             1 all nve\n"
-        ret_other = """fix             mzero all momentum 10 linear 1 1 1
-# --------------------- INITIALIZE -----------------------
-velocity        all create ${TEMP} 7858
-velocity        all zero linear
-# --------------------- RUN ------------------------------
-run             ${NSTEPS}
-write_data      out.lmp
-"""
+        ret_other = textwrap.dedent("""\
+        fix             mzero all momentum 10 linear 1 1 1
+        # --------------------- INITIALIZE -----------------------
+        velocity        all create ${TEMP} 7858
+        velocity        all zero linear
+        # --------------------- RUN ------------------------------
+        run             ${NSTEPS}
+        write_data      out.lmp
+        """)
         ret_npt = ret_ensemble_npt + ret_other
         ret_npt_aniso = ret_ensemble_npt_aniso + ret_other
         ret_npt_xy = ret_ensemble_npt_xy + ret_other

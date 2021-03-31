@@ -4,7 +4,7 @@ import os, sys, json, argparse, glob
 import numpy as np
 import scipy.constants as pc
 # from . import lib
-from lib import lmp
+from deepti.lib import lmp
 # from lib import lmp
 
 def compute_lambda(temp, mass) :

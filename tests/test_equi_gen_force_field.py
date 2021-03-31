@@ -38,7 +38,7 @@ class TestEquiForceField(unittest.TestCase):
             meam_element='Sn', 
             meam_library='library_18Metals.meam', 
             meam_potential='Sn_18Metals.meam', 
-            )
+        )
         ret1 = textwrap.dedent("""\
         # --------------------- FORCE FIELDS ---------------------
         pair_style      meam
