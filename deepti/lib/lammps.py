@@ -9,7 +9,7 @@ def get_natoms(filename) :
         if 'atoms' in ii:
             natoms = int(ii.split()[0])
             return natoms
-    raise RuntimeError("cannot find key word \'atoms\' in "+conf)
+    raise RuntimeError("cannot find key word \'atoms\' in " + filename)
 
 def _is_n_number(inputs, nn) :
     words = inputs.split()
