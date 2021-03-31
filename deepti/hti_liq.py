@@ -55,8 +55,9 @@ def _ff_deep_on(lamb,
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'variable        ONE equal 1\n'
     if if_meam:
-        ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
-        ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]} \n'
+        ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f\n' % (nn, alpha_lj, rcut)
+        ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
+        # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
         ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
         ret += 'pair_coeff      * * deepmd\n'
@@ -92,7 +93,8 @@ def _ff_soft_off(lamb,
     ret += 'variable        INV_EPSILON equal -${EPSILON}\n'
     if if_meam:
         ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
-        ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1} {meam_model[2]} \n'
+        ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
+        # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1} {meam_model[2]} \n'
     else:
         ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
         ret += 'pair_coeff      * * deepmd\n'
@@ -124,7 +126,7 @@ def _gen_lammps_input_ideal (step,
                              copies = None,
                              norm_style = 'first',
                              if_meam = False,
-                             meam_model = meam_model) :
+                             meam_model = None) :
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
@@ -185,7 +187,7 @@ def _gen_lammps_input_ideal (step,
     return ret
 
 
-def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=meam_model) :
+def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None) :
     if step == 'soft_on' :
         all_lambda = parse_seq(jdata['lambda_soft_on'])
     elif step == 'deep_on' :
