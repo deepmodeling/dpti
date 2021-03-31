@@ -151,12 +151,12 @@ class TestFfSpring(unittest.TestCase):
         variable        l_spring equal f_l_spring_1
         """)
         ret2 = deepti.hti._ff_soft_lj(**input)
-        print('--------')
+        # print('--------')
         # print(ret1)
-        print('--------')
-        print(ret2)
-        print('--------')
-        # self.assertEqual(ret1, ret2)
+        # print('--------')
+        # print(ret2)
+        # print('--------')
+        self.assertEqual(ret1, ret2)
 
 
 #     def test_spring_var_spring(self):
