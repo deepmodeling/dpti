@@ -9,7 +9,7 @@ today = datetime.date.today().strftime("%b-%d-%Y")
 # with open(path.join(NAME, '_date.py'), 'w') as fp :
 #     fp.write('date = \'%s\'' % today)
 
-install_requires=['apache-airflow>2.0', 'scipy', 'numpy']
+install_requires=['apache-airflow>2.0', 'scipy', 'numpy', 'pymbar']
 
 setuptools.setup(
     name='deepti',
