@@ -5,3 +5,8 @@ task*
 !tests/graph.pb
 __pycache__
 tests/origin_files/
+_version.py
+deepti.egg-info/
+build/
+dist/
+.eggs/
