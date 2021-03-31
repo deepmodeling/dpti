@@ -83,7 +83,7 @@ def _parse_one_str(in_s) :
                          float(fmt_s[1]) - float_protect, 
                          float(fmt_s[2]))
 
-def parse_seq(in_s) :
+def parse_seq(in_s, *, protect_eps=None):
     all_l = []
     if type(in_s) == list and type(in_s[0]) == str :
         for ii in in_s :
@@ -99,6 +99,11 @@ def parse_seq(in_s) :
         all_l = _parse_one_str(in_s)
     else :
         raise RuntimeError("the type of seq should be one of: string, list_of_strings, list_of_floats")
+    if protect_eps is not None:
+        if all_l[0] == 0 :
+            all_l[0] += protect_eps
+        if all_l[-1] == 1 :
+            all_l[-1] -= protect_eps
     return np.array(all_l)
 
 # def integrate(xx, yy) :
