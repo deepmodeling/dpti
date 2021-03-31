@@ -4,7 +4,7 @@ import unittest
 from context import deepti
 from potential_common import soft_param, soft_param_three_element, meam_model
 
-class TestFfSpring(unittest.TestCase):
+class TestHtiFfSpring(unittest.TestCase):
     def setUp(self) :
         self.maxDiff = None
 

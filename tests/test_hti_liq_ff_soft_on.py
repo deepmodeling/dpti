@@ -3,14 +3,14 @@ import numpy as np
 import unittest
 from context import deepti
 from potential_common import soft_param, soft_param_three_element
-# print(deepti.equi)
+from deepti.hti_liq import _ff_soft_on
 
-class TestEquiForceField(unittest.TestCase):
+class TestFfSpring(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
 
-    def test_normal(self):
-        input = dict(lamb=0.075, model=None, sparam=soft_param)
+    def test_one_element(self):
+        input = dict(lamb=0.075, sparam=soft_param)
         ret1 = textwrap.dedent("""\
         variable        EPSILON equal 0.030000
         pair_style      lj/cut/soft 1.000000 0.500000 6.000000
@@ -18,16 +18,11 @@ class TestEquiForceField(unittest.TestCase):
         fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_LAMBDA scale yes
         compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_EPSILON
         """)
-        # ret1 = textwrap.dedent(ret1_raw)
-        ret2 = deepti.hti._ff_lj_on(**input)
-        # print('------')
-        # print(ret1)
-        # print('--------')
-        # print(ret2)
+        ret2 = _ff_soft_on(**input)
         self.assertEqual(ret1, ret2)
 
     def test_three_element(self):
-        input = dict(lamb=0.075, model=None, sparam=soft_param_three_element)
+        input = dict(lamb=0.075, sparam=soft_param_three_element)
         ret1 = textwrap.dedent("""\
         variable        EPSILON equal 0.030000
         pair_style      lj/cut/soft 1.000000 0.600000 6.000000
@@ -40,8 +35,17 @@ class TestEquiForceField(unittest.TestCase):
         fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_LAMBDA scale yes
         compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_EPSILON
         """)
-        ret2 = deepti.hti._ff_lj_on(**input)
+        ret2 = _ff_soft_on(**input)
         self.assertEqual(ret1, ret2)
-
-if __name__ == '__main__':
-    unittest.main()
+        # print(ret2)
+        # pass
+        # input = dict(lamb=0.075, m_spring_k=[118.71],
+        #     var_spring=False)
+        # ret1 = textwrap.dedent("""\
+        # group           type_1 type 1
+        # fix             l_spring_1 type_1 spring/self 1.1871000000e+02
+        # fix_modify      l_spring_1 energy yes
+        # variable        l_spring equal f_l_spring_1
+        # """)
+        # ret2 = deepti.hti._ff_spring(**input)
+        # self.assertEqual(ret1, ret2)

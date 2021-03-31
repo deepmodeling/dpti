@@ -4,16 +4,16 @@ import os, sys, json, argparse, glob, shutil
 import numpy as np
 import scipy.constants as pc
 
-import einstein
-import lib.lmp as lmp
-from lib.utils import create_path
-from lib.utils import copy_file_list
-from lib.utils import block_avg
-from lib.utils import integrate
-from lib.utils import integrate_sys_err
-from lib.utils import parse_seq
-from lib.lammps import get_thermo
-from lib.lammps import get_natoms
+from . import einstein
+import deepti.lib.lmp as lmp
+from deepti.lib.utils import create_path
+from deepti.lib.utils import copy_file_list
+from deepti.lib.utils import block_avg
+from deepti.lib.utils import integrate
+from deepti.lib.utils import integrate_sys_err
+from deepti.lib.utils import parse_seq
+from deepti.lib.lammps import get_thermo
+from deepti.lib.lammps import get_natoms
 
 def make_iter_name (iter_index) :
     return "task_hti." + ('%04d' % iter_index)
@@ -28,7 +28,7 @@ def _ff_soft_on(lamb,
     activation = sparam['activation']
     ret = ''
     ret += 'variable        EPSILON equal %f\n' % epsilon
-    ret += 'pair_style      lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
+    ret += 'pair_style      lj/cut/soft %f %f %f\n' % (nn, alpha_lj, rcut)
 
     element_num=sparam.get('element_num', 1)
     sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
@@ -59,7 +59,7 @@ def _ff_deep_on(lamb,
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
-        ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
+        ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f\n' % (model, nn, alpha_lj, rcut)
         ret += 'pair_coeff      * * deepmd\n'
 
     element_num=sparam.get('element_num', 1)
@@ -92,11 +92,11 @@ def _ff_soft_off(lamb,
     ret += 'variable        EPSILON equal %f\n' % epsilon
     ret += 'variable        INV_EPSILON equal -${EPSILON}\n'
     if if_meam:
-        ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
+        ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f\n' % (nn, alpha_lj, rcut)
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1} {meam_model[2]} \n'
     else:
-        ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n' % (model, nn, alpha_lj, rcut)
+        ret += 'pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f\n' % (model, nn, alpha_lj, rcut)
         ret += 'pair_coeff      * * deepmd\n'
 
     element_num=sparam.get('element_num', 1)
