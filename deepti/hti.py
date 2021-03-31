@@ -10,6 +10,7 @@ from deepti.lib.utils import create_path
 from deepti.lib.utils import copy_file_list
 from deepti.lib.utils import block_avg
 from deepti.lib.utils import integrate_range
+from deepti.lib.utils import integrate_range_hti
 # from lib.utils import integrate_sys_err
 from deepti.lib.utils import compute_nrefine
 from deepti.lib.utils import parse_seq
@@ -794,7 +795,7 @@ def post_tasks(iter_name, jdata, natoms = None, method = 'inte', scheme = 's'):
             raise RuntimeError('unknow method for integration')
         print('# fe of spring_off: %20.12f  %10.3e %10.3e' % (e2, err2[0], err2[1]))
         de = e0 + e1 + e2
-        print(f'# HTI three-step error [stt_err, sys_err] {err0} {err1} {err2}')
+        print(f'# HTI three-step error err0 err1 err2 [stt_err, sys_err] {err0} {err1} {err2}')
         stt_err = np.sqrt(np.square(err0[0]) + np.square(err1[0]) + np.square(err2[0]))
         sys_err = ((err0[1]) + (err1[1]) + (err2[1]))
         err = [stt_err, sys_err]
@@ -908,19 +909,20 @@ def _post_tasks(iter_name, jdata, natoms = None, scheme = 's', switch = 'one-ste
                fmt = '%.8e', 
                header = 'lmbda dU dU_err Ud Us Ud_err Us_err etot spring_eng enthalpy msd_xyz')
 
-    new_lambda, i, i_e, s_e = integrate_range(all_lambda, de, all_err, scheme = scheme)
-    if new_lambda[-1] != all_lambda[-1] :
-        if new_lambda[-1] == all_lambda[-2]:
-            _, i1, i_e1, s_e1 = integrate_range(all_lambda[-2:], de[-2:], all_err[-2:], scheme='t')
-            diff_e = i[-1] + i1[-1]
-            err = np.linalg.norm([s_e[-1], s_e1[-1]])
-            sys_err = i_e[-1] + i_e1[-1]
-        else :
-            raise RuntimeError("lambda does not match!")
-    else:
-        diff_e = i[-1]
-        err = s_e[-1]
-        sys_err = i_e[-1]
+    diff_e, err, sys_err = integrate_range_hti(all_lambda, de, all_err, scheme=scheme)
+    # new_lambda, i, i_e, s_e = integrate_range(all_lambda, de, all_err, scheme = scheme)
+    # if new_lambda[-1] != all_lambda[-1] :
+    #     if new_lambda[-1] == all_lambda[-2]:
+    #         _, i1, i_e1, s_e1 = integrate_range(all_lambda[-2:], de[-2:], all_err[-2:], scheme='t')
+    #         diff_e = i[-1] + i1[-1]
+    #         err = np.linalg.norm([s_e[-1], s_e1[-1]])
+    #         sys_err = i_e[-1] + i_e1[-1]
+    #     else :
+    #         raise RuntimeError("lambda does not match!")
+    # else:
+    #     diff_e = i[-1]
+    #     err = s_e[-1]
+    #     sys_err = i_e[-1]
     
     # diff_e, err = integrate(all_lambda, de, all_err)
     # sys_err = integrate_sys_err(all_lambda, de)
