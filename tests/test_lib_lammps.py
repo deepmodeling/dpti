@@ -52,30 +52,21 @@ class TestGetThermo(unittest.TestCase):
 class TestGetLastDump(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
+        self.last_dump_file = os.path.join(
+            'lammps_test_files',
+            'test_get_last_dump.dump.equi.lastdump'
+        )
         self.dump_file = os.path.join(
             'lammps_test_files', 
             'test_get_last_dump.dump.equi'
-            )
+        )
 
     def test_normal(self):
-        pass
-        # a = get_last_dump(self.dump_file)
-        # last_dump = get_last_dump(self.dump_file).split('\n')
-        # # from_system_data(a)
-        # sys_data = system_data(last_dump)
-        # sys_data['cell'][0][0] = lx
-        # sys_data['cell'][1][1] = ly
-        # sys_data['cell'][2][2] = lz
-        # sys_data['cell'][1][0] = xy
-        # sys_data['cell'][2][0] = xz
-        # sys_data['cell'][2][1] = yz
-
-        # conf_lmp = from_system_data(sys_data)
-        # print(conf_lmp)
-        # data1 = get_thermo(self.log_file)
-        # data2 = np.loadtxt(self.data_file)
-        # assert_almost_equal(data1, data2, decimal=8)
-    
+        with open(self.last_dump_file, 'r') as f:
+            ret1_with_ending_newline = f.read()
+        ret1 = ret1_with_ending_newline.strip('\n')
+        ret2 = get_last_dump(self.dump_file)
+        self.assertEqual(ret1, ret2)
 
 
 if __name__ == '__main__':
