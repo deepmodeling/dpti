@@ -1,5 +1,5 @@
 {
-    "equi_conf": "./conf.lmp",
+    "equi_conf": "conf.lmp",
     "mass_map": [
         118.71
     ],
@@ -16,7 +16,7 @@
     "stat_skip": 30000,
     "stat_bsize": 1000,
     "if_dump_avg_posi": false,
-    "model": "./graph.pb",
-    "if_meam":false,
-    "meam_model":{}
+    "model": "graph.pb",
+    "if_meam": false,
+    "meam_model": {}
 }
