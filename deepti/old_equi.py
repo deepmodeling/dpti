@@ -5,7 +5,7 @@ import numpy as np
 import scipy.constants as pc
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
-from deepti.lib.utils import create_path, relative_link_file
+from deepti.lib.utils import create_path
 from deepti.lib.utils import block_avg
 from deepti.lib.water import compute_bonds
 from deepti.lib.water import posi_diff
@@ -20,96 +20,68 @@ from deepti.lib.dump import system_data
 # from .lib import dump
 # from .lib import lmp
 
-# def _gen_lammps_input
-# def gen_equi_header(nsteps, prt_freq, dump_freq, temp, pres, tau_t, tau_p, mass_map, conf_file):
-# def gen_equi_header(nsteps, prt_freq, dump_freq, temp, pres, tau_t, tau_p, mass_map, conf_file):
-def gen_equi_header(nsteps, 
-        thermo_freq, 
-        dump_freq,
-        mass_map,
-        temp,
-        tau_t,
-        tau_p,
-        equi_conf,
-        pres=None
-    ):
+np.random.seed(0)
+
+def _gen_lammps_input (conf_file, 
+                       mass_map,
+                       model,
+                       nsteps,
+                       dt,
+                       ens,
+                       temp,
+                       pres = 1.0, 
+                       tau_t = 0.1,
+                       tau_p = 0.5,
+                       prt_freq = 100, 
+                       dump_freq = 1000, 
+                       dump_ave_posi = False,
+                       if_meam = False,
+                       meam_model=None) :
     ret = ''
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
     ret += 'variable        NSTEPS          equal %d\n' % nsteps
-    ret += 'variable        THERMO_FREQ     equal %d\n' % thermo_freq
+    ret += 'variable        THERMO_FREQ     equal %d\n' % prt_freq
     ret += 'variable        DUMP_FREQ       equal %d\n' % dump_freq
     ret += 'variable        NREPEAT         equal ${NSTEPS}/${DUMP_FREQ}\n'
-    ret += 'variable        TEMP            equal %.6f\n' % temp
-    # if equi_settings['pres'] is not None :
-    if pres is not None:
-        ret += 'variable        PRES            equal %.6f\n' % pres
-    ret += 'variable        TAU_T           equal %.6f\n' % tau_t
-    ret += 'variable        TAU_P           equal %.6f\n' % tau_p
+    ret += 'variable        TEMP            equal %f\n' % temp
+    if pres is not None :
+        ret += 'variable        PRES            equal %f\n' % pres
+    ret += 'variable        TAU_T           equal %f\n' % tau_t
+    ret += 'variable        TAU_P           equal %f\n' % tau_p
     ret += '# ---------------------- INITIALIZAITION ------------------\n'
     ret += 'units           metal\n'
     ret += 'boundary        p p p\n'
     ret += 'atom_style      atomic\n'
     ret += '# --------------------- ATOM DEFINITION ------------------\n'
     ret += 'box             tilt large\n'
-    ret += 'read_data       %s\n' % equi_conf
+    ret += 'read_data       %s\n' % conf_file
     ret += 'change_box      all triclinic\n'
-    for jj in range(len(mass_map)):
-        ret+= "mass            %d %.6f\n" %(jj+1, mass_map[jj])
-    return ret
-    
-# def gen_equi_force_field(model, if_meam=None):
-def gen_equi_force_field(model, if_meam=False, meam_model=None):
-    # equi_settings =
-    # model = equi_settings['model']
-    # assert type(model) is dict, f"equi_settings['model] must be a dict. model:{model}"
-    # model_type = equi_settings.get('model_type', None)
-    # if model_type == 'deepmd':
-    #     assert 'deepmd_model' in equi_settings, f" 'deepmd_model' must be in equi_settings. {equi_settings}"
-    # elif model_type == 'meam':
-    #     assert 'meam_library' in equi_settings, f" 'meam_library' must be in equi_settings. {equi_settings}"
-    #     assert 'meam_potential' in equi_settings, f" 'meam_potential' must be in equi_settings. {equi_settings}"
-    #     assert 'meam_element' in equi_settings, f" 'meam_element' must be in equi_settings. {equi_settings}"
-    # else: 
-    #     raise ValueError(f" model_type:{model_type} must be in ['deepmd', 'meam'];"
-    #         f"equi_settings:{equi_settings}")
-
-    ret = ''
+    for jj in range(len(mass_map)) :
+        ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
-    if not if_meam:
+    if if_meam:
+        ret += 'pair_style      meam\n'
+        ret += f'pair_coeff      * * {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
+    else:
         ret += 'pair_style      deepmd %s\n' % model
         ret += 'pair_coeff\n'
-    else:
-        meam_library = meam_model['library']
-        meam_potential = meam_model['potential']
-        meam_element = meam_model['element']
-        ret += 'pair_style      meam\n'
-        ret += 'pair_coeff      * * %s %s %s %s\n' % (meam_library,
-            meam_element, meam_potential, meam_element)
-    return ret
-
-def gen_equi_thermo_settings(timestep):
-    ret = ''
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
     ret += 'neighbor        1.0 bin\n'
-    ret += 'timestep        %.6f\n' % timestep
+    ret += 'timestep        %s\n' % dt
     ret += 'thermo          ${THERMO_FREQ}\n'
     ret += 'compute         allmsd all msd\n'
-    ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz c_allmsd[*]\n'
-    return ret
-
-def gen_equi_dump_settings(if_dump_avg_posi):
-    ret = ''
-    if if_dump_avg_posi:
+    if ens == 'nvt' :        
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz c_allmsd[*]\n'
+    elif 'npt' in ens :
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz c_allmsd[*]\n'
+    else :	
+        raise RuntimeError('unknow ensemble %s\n' % ens)
+    if dump_ave_posi: 
         ret += 'compute         ru all property/atom xu yu zu\n'
         ret += 'fix             ap all ave/atom ${DUMP_FREQ} ${NREPEAT} ${NSTEPS} c_ru[1] c_ru[2] c_ru[3]\n'
         ret += 'dump            fp all custom ${NSTEPS} dump.avgposi id type f_ap[1] f_ap[2] f_ap[3]\n'
     ret += 'dump            1 all custom ${DUMP_FREQ} dump.equi id type x y z vx vy vz\n'
-    return ret
-
-def gen_equi_ensemble_settings(ens):
-    # ens = equi_settings['ens']
-    ret = ''
     if ens == 'nvt' :
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
     elif ens == 'npt-iso' or ens == 'npt':
@@ -131,133 +103,8 @@ def gen_equi_ensemble_settings(ens):
     ret += '# --------------------- RUN ------------------------------\n'    
     ret += 'run             ${NSTEPS}\n'
     ret += 'write_data      out.lmp\n'
+    
     return ret
-
-def gen_equi_lammps_input(nsteps, 
-        thermo_freq, 
-        dump_freq,
-        mass_map,
-        temp,
-        tau_t,
-        tau_p,
-        equi_conf,
-        model,
-        timestep,
-        if_dump_avg_posi,
-        ens,
-        pres=None,
-        if_meam=False, 
-        meam_model=None
-    ):
-    equi_header = gen_equi_header(nsteps, 
-        thermo_freq=thermo_freq, 
-        dump_freq=dump_freq,
-        mass_map=mass_map,
-        temp=temp,
-        tau_t=tau_t,
-        tau_p=tau_p,
-        equi_conf=equi_conf,
-        pres=pres
-    )
-    equi_force_field = gen_equi_force_field(
-        model, if_meam=if_meam, meam_model=meam_model
-    )
-    equi_thermo_settings = gen_equi_thermo_settings(
-        timestep=timestep
-    )
-    equi_dump_settings = gen_equi_dump_settings(
-        if_dump_avg_posi=if_dump_avg_posi
-    )
-    equi_ensemble_settings = gen_equi_ensemble_settings(
-        ens=ens
-    )
-
-    equi_lammps_input = (equi_header + equi_force_field
-        + equi_thermo_settings + equi_dump_settings + equi_ensemble_settings)
-    return equi_lammps_input
-# def 
-
-# def _gen_lammps_input (conf_file, 
-#                        mass_map,
-#                        model,
-#                        nsteps,
-#                        dt,
-#                        ens,
-#                        temp,
-#                        pres = 1.0, 
-#                        tau_t = 0.1,
-#                        tau_p = 0.5,
-#                        prt_freq = 100, 
-#                        dump_freq = 1000, 
-#                        dump_ave_posi = False,
-#                        if_meam = False) :
-#     ret = ''
-#     ret += 'clear\n'
-#     ret += '# --------------------- VARIABLES-------------------------\n'
-#     ret += 'variable        NSTEPS          equal %d\n' % nsteps
-#     ret += 'variable        THERMO_FREQ     equal %d\n' % prt_freq
-#     ret += 'variable        DUMP_FREQ       equal %d\n' % dump_freq
-#     ret += 'variable        NREPEAT         equal ${NSTEPS}/${DUMP_FREQ}\n'
-#     ret += 'variable        TEMP            equal %f\n' % temp
-#     if pres is not None :
-#         ret += 'variable        PRES            equal %f\n' % pres
-#     ret += 'variable        TAU_T           equal %f\n' % tau_t
-#     ret += 'variable        TAU_P           equal %f\n' % tau_p
-#     ret += '# ---------------------- INITIALIZAITION ------------------\n'
-#     ret += 'units           metal\n'
-#     ret += 'boundary        p p p\n'
-#     ret += 'atom_style      atomic\n'
-#     ret += '# --------------------- ATOM DEFINITION ------------------\n'
-#     ret += 'box             tilt large\n'
-#     ret += 'read_data       %s\n' % conf_file
-#     ret += 'change_box      all triclinic\n'
-#     for jj in range(len(mass_map)) :
-#         ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
-#     ret += '# --------------------- FORCE FIELDS ---------------------\n'
-#     if if_meam:
-#         ret += 'pair_style      meam\n'
-#         ret += 'pair_coeff      * * /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
-#     else:
-#         ret += 'pair_style      deepmd %s\n' % model
-#         ret += 'pair_coeff\n'
-#     ret += '# --------------------- MD SETTINGS ----------------------\n'    
-#     ret += 'neighbor        1.0 bin\n'
-#     ret += 'timestep        %s\n' % dt
-#     ret += 'thermo          ${THERMO_FREQ}\n'
-#     ret += 'compute         allmsd all msd\n'
-#     if ens == 'nvt' :        
-#         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz c_allmsd[*]\n'
-#     elif 'npt' in ens :
-#         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz c_allmsd[*]\n'
-#     else :	
-#         raise RuntimeError('unknow ensemble %s\n' % ens)
-#     if dump_ave_posi: 
-#         ret += 'compute         ru all property/atom xu yu zu\n'
-#         ret += 'fix             ap all ave/atom ${DUMP_FREQ} ${NREPEAT} ${NSTEPS} c_ru[1] c_ru[2] c_ru[3]\n'
-#         ret += 'dump            fp all custom ${NSTEPS} dump.avgposi id type f_ap[1] f_ap[2] f_ap[3]\n'
-#     ret += 'dump            1 all custom ${DUMP_FREQ} dump.equi id type x y z vx vy vz\n'
-#     if ens == 'nvt' :
-#         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
-#     elif ens == 'npt-iso' or ens == 'npt':
-#         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}\n'
-#     elif ens == 'npt-xy' :
-#         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P} couple xy\n'
-#     elif ens == 'npt-aniso' :
-#         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P}\n'
-#     elif ens == 'npt-tri' :
-#         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} tri ${PRES} ${PRES} ${TAU_P}\n'
-#     elif ens == 'nve' :
-#         ret += 'fix             1 all nve\n'
-#     else :
-#         raise RuntimeError('unknow ensemble %s\n' % ens)        
-#     ret += 'fix             mzero all momentum 10 linear 1 1 1\n'
-#     ret += '# --------------------- INITIALIZE -----------------------\n'    
-#     ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(1, 2**16))
-#     ret += 'velocity        all zero linear\n'
-#     ret += '# --------------------- RUN ------------------------------\n'    
-#     ret += 'run             ${NSTEPS}\n'
-#     ret += 'write_data      out.lmp\n'
-#     return ret
 
 def npt_equi_conf(npt_name) :
     thermo_file = os.path.join(npt_name, 'log.lammps')
@@ -306,89 +153,76 @@ def extract(job_dir, output) :
         last_dump[idx] = ii
     sys_data = system_data(last_dump)
     conf_lmp = from_system_data(sys_data)
-    with open(output, 'w') as f:
-        f.write(conf_lmp)
-    # open(output, 'w').write(conf_lmp)
+    open(output, 'w').write(conf_lmp)
 
-def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi=None, equi_conf=None):
-    task_abs_dir = create_path(iter_name)
-    equi_cli_settings = {}
-    for k in ['ens', 'temp', 'pres', 'if_dump_avg_posi', 'equi_conf']:
-        if eval(k) is None:
-            assert k in jdata, f"kv-pair:{k} must in jdata:{jdata}"
-        else:
-            equi_cli_settings[k] = eval(k)
-    
-
-    equi_settings = jdata.copy()
-    equi_settings.update(equi_cli_settings)
-
-    # for k in ['iter_name']:
-    #     if equi_cli_settings.get(k, None):
-    #         equi_settings[k] = os.path.abspath(equi_cli_settings[k])
-    #     else:
-    #         equi_settings[k] = os.path.abspath(jdata[k])
-
-
-    # link_file_key_list = ["equi_conf", ]
-
-    for k in ["equi_conf", "model"]:
-        file_path = jdata.get(k, None)
-        if file_path is not None:
-            target_linkfile_path = relative_link_file(
-                file_path=file_path,
-                target_abs_dir=task_abs_dir
-            )
-            v = os.path.basename(target_linkfile_path)
-            equi_settings[k] = v
-
+def make_task(iter_name, jdata, ens=None, temp=None, pres=None, avg_posi=None, npt_conf=None, if_meam=None):
+    equi_conf = jdata['equi_conf']
+    equi_conf = os.path.abspath(equi_conf)
+    if npt_conf is not None :
+        npt_conf = os.path.abspath(npt_conf)
+    model = jdata['model']
     meam_model = jdata.get('meam_model', None)
-    if meam_model:
-        for k in ["library", "potential"]:
-            file_path = meam_model.get(k, None)
-            if file_path is not None:
-                target_linkfile_path = relative_link_file(
-                    file_path=file_path,
-                    target_abs_dir=task_abs_dir
-                )
-                v = os.path.basename(target_linkfile_path)
-                meam_model[k] = v
+    model = os.path.abspath(model)
+    model_mass_map = jdata['model_mass_map']
+    nsteps = jdata['nsteps']
+    dt = jdata['dt']
+    stat_freq = jdata['stat_freq']
+    dump_freq = jdata['dump_freq']
+    tau_t = jdata['tau_t']
+    tau_p = jdata['tau_p']
 
+    if ens is None :
+        ens = jdata['ens']
+    elif 'ens' in jdata :
+        print('ens = %s overrides the ens in json data' % ens)
+    jdata['ens'] = ens
+    if temp is None :
+        temp = jdata['temp']
+    elif 'temp' in jdata :
+        print('T = %f overrides the temp in json data' % temp)
+    jdata['temp'] = temp
+    if 'npt' in ens :
+        if pres == None :
+            pres = jdata['pres']
+        elif 'pres' in jdata :
+            print('P = %f overrides the pres in json data' % pres)
+        jdata['pres'] = pres    
+    if if_meam is None:
+        if_meam = jdata.get('if_meam', False)
 
-    with open(os.path.join(task_abs_dir, 'jdata.json'), 'w') as f:
-        json.dump(jdata, f, indent=4)
-    with open(os.path.join(task_abs_dir, 'equi_cli_setting.json'), 'w') as f:
-        json.dump(equi_cli_settings, f, indent=4)
-    with open(os.path.join(task_abs_dir, 'equi_settings.json'), 'w') as f:
-        json.dump(equi_settings, f, indent=4)
-
-    lmp_str = gen_equi_lammps_input(nsteps=equi_settings['nsteps'], 
-        thermo_freq=equi_settings['thermo_freq'], 
-        dump_freq=equi_settings['dump_freq'],
-        mass_map=equi_settings['mass_map'],
-        temp=equi_settings['temp'],
-        tau_t=equi_settings['tau_t'],
-        tau_p=equi_settings['tau_p'],
-        equi_conf=equi_settings['equi_conf'],
-        model=equi_settings['model'],
-        timestep=equi_settings['timestep'],
-        if_dump_avg_posi=equi_settings['if_dump_avg_posi'],
-        ens=equi_settings['ens'],
-        pres=equi_settings['pres'],
-        if_meam=equi_settings['if_meam'], 
-        meam_model=equi_settings['meam_model'])
-
-
-    with open(os.path.join(task_abs_dir, 'in.lammps'), 'w') as fp :
+    create_path(iter_name)
+    cwd = os.getcwd()
+    os.chdir(iter_name)
+    with open('in.json', 'w') as fp:
+        json.dump(jdata, fp, indent=4)
+    if npt_conf is None :
+        os.symlink(os.path.realpath(equi_conf), 'conf.lmp')
+    else :        
+        open('conf.lmp', 'w').write(npt_equi_conf(npt_conf))
+    os.symlink(os.path.realpath(model), 'graph.pb')
+    lmp_str \
+            = _gen_lammps_input('conf.lmp',
+                            model_mass_map, 
+                            'graph.pb',
+                            nsteps, 
+                            dt, 
+                            ens, 
+                            temp,
+                            pres, 
+                            tau_t = tau_t,
+                            tau_p = tau_p,
+                            prt_freq = stat_freq, 
+                            dump_freq = dump_freq, 
+                            dump_ave_posi = avg_posi,
+                            if_meam = if_meam,
+                            meam_model = meam_model)
+    with open('in.lammps', 'w') as fp :
         fp.write(lmp_str)
-    return equi_settings
-
+    os.chdir(cwd)
 
 def water_bond(iter_name, skip = 1) :
     fdump = os.path.join(iter_name, 'dump.equi')
-    with open(fdump, 'r') as f:
-        lines = f.read().split('\n')
-    # lines = open(fdump).read().split('\n')
+    lines = open(fdump).read().split('\n')
     sections = []
     for ii in range(len(lines)) :
         if 'ITEM: TIMESTEP' in lines[ii] :
@@ -506,17 +340,15 @@ def _print_thermo_info(info, more_head = '') :
     ptr += '# Pxy     [bar]:  %20.8f %20.8f\n' % (info['pxy'], info['pxy_err'])
     ptr += '# Pxz     [bar]:  %20.8f %20.8f\n' % (info['pxz'], info['pxz_err'])
     ptr += '# Pyz     [bar]:  %20.8f %20.8f\n' % (info['pyz'], info['pyz_err'])
-    # rho = (18 * 1e-3 / (info['v'] * pc.Avogadro * pc.angstrom**3))
-    # rho_err = (info['v'] / (info['v'] - info['v_err'] ) - 1) * rho
-    # ptr += '# water density [kg/m^3] : %10.5f (%10.5f)' % (rho, rho_err)
+    rho = (18 * 1e-3 / (info['v'] * pc.Avogadro * pc.angstrom**3))
+    rho_err = (info['v'] / (info['v'] - info['v_err'] ) - 1) * rho
+    ptr += '# water density [kg/m^3] : %10.5f (%10.5f)' % (rho, rho_err)
     print(ptr)
     return ptr
 
 def post_task(iter_name, natoms = None, is_water = False) :
-    # j_file = os.path.join(iter_name, 'in.json')
-    j_file = os.path.join(iter_name, 'equi_settings.json')
-    with open(j_file, 'r') as f:
-        jdata = json.load(f)
+    j_file = os.path.join(iter_name, 'in.json')
+    jdata = json.load(open(j_file))
     if natoms == None :
         equi_conf = get_task_file_abspath(iter_name, jdata['equi_conf'])
         natoms = get_natoms(equi_conf)
@@ -534,13 +366,8 @@ def post_task(iter_name, natoms = None, is_water = False) :
     log_file = os.path.join(iter_name, 'log.lammps')
     info = _compute_thermo(log_file, nmols, stat_skip, stat_bsize)
     ptr = _print_thermo_info(info)
-    with open(os.path.join(iter_name, 'result'), 'w') as f:
-        f.write(ptr)
-    # open(').write(ptr).close()
-    with open(os.path.join(iter_name, 'result.json'), 'w') as f:
-        json.dump(info, f, indent=4)
-        # f.write(json.dump(info))
-    # open(, 'w').write(json.dumps(info)).close()
+    open(os.path.join(iter_name, 'result'), 'w').write(ptr)
+    open(os.path.join(iter_name, 'result.json'), 'w').write(json.dumps(info))
     return info
 
 def _main ():
@@ -589,7 +416,7 @@ def _main ():
         exit
     if args.command == 'gen' :
         jdata = json.load(open(args.PARAM, 'r'))        
-        make_task(args.output, jdata, args.ensemble, args.temperature, args.pressure, args.avg_posi, args.conf_npt)
+        make_task(args.output, jdata, args.ensemble, args.temperature, args.pressure, args.avg_posi, args.conf_npt, if_meam=args.meam)
     elif args.command == 'extract' :
         extract(args.JOB, args.output)
     elif args.command == 'stat-bond' :
