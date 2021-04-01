@@ -17,6 +17,6 @@
     "stat_bsize": 1000,
     "if_dump_avg_posi": false,
     "model": "./graph.pb",
-    "if_meam":false,
-    "meam_model":{}
+    "if_meam": false,
+    "meam_model": {}
 }

@@ -1,8 +1,8 @@
 *~
 iter*
 task*
-*.pb
-!tests/graph.pb
+# *.pb
+# !tests/graph.pb
 __pycache__
 tests/origin_files/
 _version.py

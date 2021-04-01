@@ -3,6 +3,7 @@
 import os, re, shutil, logging
 import numpy as np
 import subprocess as sp
+import hashlib, pathlib
 
 iter_format = "%06d"
 task_format = "%02d"
@@ -12,18 +13,49 @@ float_protect = 1e-14
 def make_iter_name (iter_index) :
     return "iter." + (iter_format % iter_index)
 
+# def create_path (path) :
+#     path += '/'
+#     if os.path.isdir(path) : 
+#         dirname = os.path.dirname(path)        
+#         counter = 0
+#         while True :
+#             bk_dirname = dirname + ".bk%03d" % counter
+#             if not os.path.isdir(bk_dirname) : 
+#                 shutil.move (dirname, bk_dirname) 
+#                 break
+#             counter += 1
+#     os.makedirs (path)
+
 def create_path (path) :
     path += '/'
-    if os.path.isdir(path) : 
-        dirname = os.path.dirname(path)        
+    if os.path.isdir(path) :
+        dirname = os.path.dirname(path)
         counter = 0
         while True :
             bk_dirname = dirname + ".bk%03d" % counter
-            if not os.path.isdir(bk_dirname) : 
-                shutil.move (dirname, bk_dirname) 
+            if not os.path.isdir(bk_dirname) :
+                shutil.move (dirname, bk_dirname)
                 break
             counter += 1
     os.makedirs (path)
+    abs_path = os.path.abspath(path)
+    return abs_path
+
+
+def relative_link_file(file_path, target_abs_dir):
+    if not os.path.isfile(file_path):
+        raise RuntimeError(f"file_path:{file_path} must be a file")
+    file_abs_path = os.path.abspath(file_path)
+    basename = os.path.basename(file_abs_path)
+    relative_path = os.path.relpath(file_abs_path, start=target_abs_dir)
+    # print(989, relative_path, file_abs_path, task_abs_dir)
+    target_linkfile_path = os.path.join(target_abs_dir, basename)
+    # equi_settings[k] = basename
+    os.symlink(src=relative_path, dst=target_linkfile_path)
+    return target_linkfile_path
+
+def get_file_md5(file_path):
+    return hashlib.md5(pathlib.Path(file_path).read_bytes()).hexdigest()
 
 def copy_file_list (file_list, from_path, to_path) :
     for jj in file_list : 

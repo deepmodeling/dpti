@@ -16,10 +16,11 @@
     "stat_skip": 30000,
     "stat_bsize": 1000,
     "if_dump_avg_posi": false,
-    "model_type": "meam",
-    "deepmd_model": null,
-    "meam_library": "library_18Metals.meam",
-    "meam_potential": "Sn_18Metals.meam",
-    "meam_element": "Sn",
-    "is_water": false
+    "model": null,
+    "if_meam": true,
+    "meam_model": {
+        "library": "library_18Metals.meam",
+        "potential": "Sn_18Metals.meam",
+        "element": "Sn"
+    }
 }

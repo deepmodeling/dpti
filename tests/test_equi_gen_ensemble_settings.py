@@ -11,6 +11,7 @@ class TestEquiEnsembleSetting(unittest.TestCase):
     @patch('numpy.random')
     def test_gen_equi_ensemble_settings_nvt(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
+        input = dict(ens='nvt')
         ret1 = textwrap.dedent("""\
         fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}
         fix             mzero all momentum 10 linear 1 1 1
@@ -21,7 +22,7 @@ class TestEquiEnsembleSetting(unittest.TestCase):
         run             ${NSTEPS}
         write_data      out.lmp
         """)
-        ret2 = deepti.equi.gen_equi_ensemble_settings(equi_settings=dict(ens='nvt'))
+        ret2 = deepti.equi.gen_equi_ensemble_settings(**input)
         self.assertEqual(ret1, ret2)
 
     @patch('numpy.random')
@@ -46,12 +47,12 @@ class TestEquiEnsembleSetting(unittest.TestCase):
         ret_npt_xy = ret_ensemble_npt_xy + ret_other
         ret_npt_tri = ret_ensemble_npt_tri + ret_other
         ret_nve = ret_ensemble_nve + ret_other
-        ret2 = deepti.equi.gen_equi_ensemble_settings(equi_settings=dict(ens='npt'))
-        ret3 = deepti.equi.gen_equi_ensemble_settings(equi_settings=dict(ens='npt-iso'))
-        ret4 = deepti.equi.gen_equi_ensemble_settings(equi_settings=dict(ens='npt-aniso'))
-        ret5 = deepti.equi.gen_equi_ensemble_settings(equi_settings=dict(ens='npt-xy'))
-        ret6 = deepti.equi.gen_equi_ensemble_settings(equi_settings=dict(ens='npt-tri'))
-        ret7 = deepti.equi.gen_equi_ensemble_settings(equi_settings=dict(ens='nve'))
+        ret2 = deepti.equi.gen_equi_ensemble_settings(ens='npt')
+        ret3 = deepti.equi.gen_equi_ensemble_settings(ens='npt-iso')
+        ret4 = deepti.equi.gen_equi_ensemble_settings(ens='npt-aniso')
+        ret5 = deepti.equi.gen_equi_ensemble_settings(ens='npt-xy')
+        ret6 = deepti.equi.gen_equi_ensemble_settings(ens='npt-tri')
+        ret7 = deepti.equi.gen_equi_ensemble_settings(ens='nve')
         self.assertEqual(ret_npt, ret2)
         self.assertEqual(ret_npt, ret3)
         self.assertEqual(ret_npt_aniso, ret4)
@@ -59,7 +60,7 @@ class TestEquiEnsembleSetting(unittest.TestCase):
         self.assertEqual(ret_npt_tri, ret6)
         self.assertEqual(ret_nve, ret7)
         with self.assertRaises(RuntimeError):
-            deepti.equi.gen_equi_ensemble_settings(equi_settings=dict(ens='foo'))
+            deepti.equi.gen_equi_ensemble_settings(ens='foo')
 
 
 if __name__ == '__main__':

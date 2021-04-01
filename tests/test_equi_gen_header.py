@@ -6,13 +6,13 @@ from context import deepti
 
 class TestEquiHeader(unittest.TestCase):
     def setUp(self) :
-        # kwargs={'nsteps':100000, prt_freq, dump_freq, temp, pres, tau_t, tau_p, conf_file}
         self.maxDiff = None
 
     def test_equi_header_npt(self):
-        equi_settings = dict(nsteps=1000000, thermo_freq=10, dump_freq=100000, 
-            temp=400, pres=200000, tau_t=0.2, 
-            tau_p=2.0, mass_map=[118.71], equi_conf='conf.lmp')
+        input = dict(nsteps=1000000, thermo_freq=10, dump_freq=100000, 
+            temp=400, tau_t=0.2, 
+            tau_p=2.0, mass_map=[118.71], 
+            equi_conf='conf.lmp', pres=200000)
 
         ret1 = textwrap.dedent("""\
         clear
@@ -35,13 +35,14 @@ class TestEquiHeader(unittest.TestCase):
         change_box      all triclinic
         mass            1 118.710000
         """)
-        ret2 = deepti.equi.gen_equi_header(equi_settings=equi_settings)
+        ret2 = deepti.equi.gen_equi_header(**input)
         self.assertEqual(ret1, ret2)
 
     def test_equi_header_nvt(self):
-        equi_settings = dict(nsteps=1000000, thermo_freq=10, dump_freq=100000, 
-            temp=400, pres=None, tau_t=0.2, 
-            tau_p=2.0, mass_map=[118.71], equi_conf='conf.lmp')
+        input = dict(nsteps=1000000, thermo_freq=10, dump_freq=100000, 
+            temp=400, tau_t=0.2, 
+            tau_p=2.0, mass_map=[118.71], 
+            equi_conf='conf.lmp', pres=None)
         ret1 = textwrap.dedent("""\
         clear
         # --------------------- VARIABLES-------------------------
@@ -62,14 +63,15 @@ class TestEquiHeader(unittest.TestCase):
         change_box      all triclinic
         mass            1 118.710000
         """)
-        ret2 = deepti.equi.gen_equi_header(equi_settings=equi_settings)
+        ret2 = deepti.equi.gen_equi_header(**input)
         self.assertEqual(ret1, ret2)
 
 
     def test_equi_header_npt_multi_element(self):
-        equi_settings = dict(nsteps=1000000, thermo_freq=10, dump_freq=100000, 
-            temp=400, pres=None, tau_t=0.2, 
-            tau_p=2.0, mass_map=[118.71, 196.97], equi_conf='conf.lmp')
+        input = dict(nsteps=1000000, thermo_freq=10, dump_freq=100000, 
+            temp=400, tau_t=0.2, 
+            tau_p=2.0, mass_map=[118.71, 196.97],
+            equi_conf='conf.lmp', pres=None)
         ret1 = textwrap.dedent("""\
         clear
         # --------------------- VARIABLES-------------------------
@@ -91,7 +93,7 @@ class TestEquiHeader(unittest.TestCase):
         mass            1 118.710000
         mass            2 196.970000
         """)
-        ret2 = deepti.equi.gen_equi_header(equi_settings=equi_settings)
+        ret2 = deepti.equi.gen_equi_header(**input)
         self.assertEqual(ret1, ret2)
 
 if __name__ == '__main__':
