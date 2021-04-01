@@ -8,7 +8,7 @@ class TestEquiThermoSetting(unittest.TestCase):
         self.maxDiff = None
 
     def test_gen_equi_thermo_settings(self):
-        equi_settings = dict(timestep=0.002)
+        input = dict(timestep=0.002)
         ret1 = textwrap.dedent("""\
         # --------------------- MD SETTINGS ----------------------
         neighbor        1.0 bin
@@ -17,7 +17,7 @@ class TestEquiThermoSetting(unittest.TestCase):
         compute         allmsd all msd
         thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz c_allmsd[*]
         """)
-        ret2 = deepti.equi.gen_equi_thermo_settings(equi_settings=equi_settings)
+        ret2 = deepti.equi.gen_equi_thermo_settings(**input)
         self.assertEqual(ret1, ret2)
 
 if __name__ == '__main__':

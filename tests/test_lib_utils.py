@@ -1,8 +1,9 @@
 import os, textwrap
 import numpy as np
 import unittest
+import shutil
 from context import deepti
-from deepti.lib.utils import parse_seq, block_avg
+from deepti.lib.utils import parse_seq, block_avg, relative_link_file
 from deepti.lib.utils import integrate_simpson, integrate_range_hti
 from numpy.testing import assert_almost_equal
 
@@ -94,7 +95,35 @@ class TestIntegrateRangeHti(unittest.TestCase):
         self.assertAlmostEqual(stt_err1, stt_err2, places=8)
         self.assertAlmostEqual(sys_err2, sys_err2, places=8)
 
-    # de
+class TestRelativeLinkFile(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        os.mkdir('relative_link_file_test_dir/')
+        pass
+
+    def test_normal(self):
+        relative_link_file('graph.pb', 'relative_link_file_test_dir/')
+
+    def test_other_place(self):
+        relative_link_file('../setup.py', 'relative_link_file_test_dir/')
+
+    def test_abs_path(self):
+        abs_path = os.path.abspath(__file__)
+        relative_link_file(abs_path, 'relative_link_file_test_dir/')
+
+    def test_abs_path_2(self):
+        abs_path = os.path.abspath('../README.md')
+        relative_link_file(abs_path, 'relative_link_file_test_dir/')
+
+    def test_raise_err(self):
+        with self.assertRaises(RuntimeError):
+            relative_link_file('../deepti/', 
+            'relative_link_file_test_dir/')
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree('relative_link_file_test_dir/')
 
 
 
