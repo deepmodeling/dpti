@@ -306,7 +306,9 @@ def extract(job_dir, output) :
         last_dump[idx] = ii
     sys_data = system_data(last_dump)
     conf_lmp = from_system_data(sys_data)
-    open(output, 'w').write(conf_lmp)
+    with open(output, 'w') as f:
+        f.write(conf_lmp)
+    # open(output, 'w').write(conf_lmp)
 
 def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi=None, equi_conf=None):
     task_abs_dir = create_path(iter_name)
@@ -384,7 +386,9 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi
 
 def water_bond(iter_name, skip = 1) :
     fdump = os.path.join(iter_name, 'dump.equi')
-    lines = open(fdump).read().split('\n')
+    with open(fdump, 'r') as f:
+        lines = f.read().split('\n')
+    # lines = open(fdump).read().split('\n')
     sections = []
     for ii in range(len(lines)) :
         if 'ITEM: TIMESTEP' in lines[ii] :
@@ -510,7 +514,8 @@ def _print_thermo_info(info, more_head = '') :
 
 def post_task(iter_name, natoms = None, is_water = False) :
     j_file = os.path.join(iter_name, 'in.json')
-    jdata = json.load(open(j_file))
+    with open(j_file, 'r') as f:
+        jdata = json.load(f)
     if natoms == None :
         equi_conf = get_task_file_abspath(iter_name, jdata['equi_conf'])
         natoms = get_natoms(equi_conf)
@@ -528,8 +533,13 @@ def post_task(iter_name, natoms = None, is_water = False) :
     log_file = os.path.join(iter_name, 'log.lammps')
     info = _compute_thermo(log_file, nmols, stat_skip, stat_bsize)
     ptr = _print_thermo_info(info)
-    open(os.path.join(iter_name, 'result'), 'w').write(ptr).close()
-    open(os.path.join(iter_name, 'result.json'), 'w').write(json.dumps(info)).close()
+    with open(os.path.join(iter_name, 'result'), 'w') as f:
+        f.write(ptr)
+    # open(').write(ptr).close()
+    with open(os.path.join(iter_name, 'result.json')) as f:
+        json.dump(info, f, indent=4)
+        # f.write(json.dump(info))
+    # open(, 'w').write(json.dumps(info)).close()
     return info
 
 def _main ():

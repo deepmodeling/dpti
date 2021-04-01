@@ -5,16 +5,16 @@ import numpy as np
 import scipy.constants as pc
 import pymbar
 
-from lib.utils import create_path
-from lib.utils import copy_file_list
-from lib.utils import block_avg
-from lib.utils import integrate_range
+from deepti.lib.utils import create_path
+from deepti.lib.utils import copy_file_list
+from deepti.lib.utils import block_avg
+from deepti.lib.utils import integrate_range
 # from lib.utils import integrate_sys_err
-from lib.utils import compute_nrefine
-from lib.utils import parse_seq
-from lib.utils import get_task_file_abspath
-from lib.lammps import get_thermo
-from lib.lammps import get_natoms
+from deepti.lib.utils import compute_nrefine
+from deepti.lib.utils import parse_seq
+from deepti.lib.utils import get_task_file_abspath
+from deepti.lib.lammps import get_thermo
+from deepti.lib.lammps import get_natoms
 
 def make_iter_name (iter_index) :
     return "task_ti." + ('%04d' % iter_index)
@@ -29,87 +29,87 @@ def parse_seq_ginv (seq) :
     inv_grid = 1./inv_grid
     return inv_grid
 
-def _gen_lammps_input (conf_file, 
-                       mass_map,
-                       model,
-                       nsteps,
-                       dt,
-                       ens,
-                       temp,
-                       pres = 1.0, 
-                       tau_t = 0.1,
-                       tau_p = 0.5,
-                       prt_freq = 100,
-                       copies = None,
-                       if_meam = False,
-                       meam_model = None):
-    ret = ''
-    ret += 'clear\n'
-    ret += '# --------------------- VARIABLES-------------------------\n'
-    ret += 'variable        NSTEPS          equal %d\n' % nsteps
-    ret += 'variable        THERMO_FREQ     equal %d\n' % prt_freq
-    ret += 'variable        DUMP_FREQ       equal %d\n' % prt_freq
-    ret += 'variable        TEMP            equal %f\n' % temp
-    ret += 'variable        PRES            equal %f\n' % pres
-    ret += 'variable        TAU_T           equal %f\n' % tau_t
-    ret += 'variable        TAU_P           equal %f\n' % tau_p
-    ret += '# ---------------------- INITIALIZAITION ------------------\n'
-    ret += 'units           metal\n'
-    ret += 'boundary        p p p\n'
-    ret += 'atom_style      atomic\n'
-    ret += '# --------------------- ATOM DEFINITION ------------------\n'
-    ret += 'box             tilt large\n'
-    ret += 'read_data       %s\n' % conf_file
-    if copies is not None :
-        ret += 'replicate       %d %d %d\n' % (copies[0], copies[1], copies[2])
-    ret += 'change_box      all triclinic\n'
-    for jj in range(len(mass_map)) :
-        ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
-    ret += '# --------------------- FORCE FIELDS ---------------------\n'
-    # if if_meam:
-    #     ret += 'pair_style      meam \n'
-    #     ret += 'pair_coeff      * * /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
-    if if_meam:
-        ret += 'pair_style      meam \n'
-        ret += f'pair_coeff      * * {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
-    else:
-        ret += 'pair_style      deepmd %s\n' % model
-        ret += 'pair_coeff\n'
-    ret += '# --------------------- MD SETTINGS ----------------------\n'    
-    ret += 'neighbor        1.0 bin\n'
-    ret += 'timestep        %s\n' % dt
-    ret += 'thermo          ${THERMO_FREQ}\n'
-    ret += 'compute         allmsd all msd\n'
-    if ens == 'nvt' :        
-        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
-    elif 'npt' in ens :
-        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
-    else :
-        raise RuntimeError('unknow ensemble %s\n' % ens)                
-    ret += '# dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z\n'
-    if ens == 'nvt' :
-        ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
-    elif ens == 'npt-iso' or ens == 'npt':
-        ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}\n'
-    elif ens == 'npt-aniso' :
-        ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P}\n'
-    elif ens == 'npt-tri' :
-        ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} tri ${PRES} ${PRES} ${TAU_P}\n'
-    elif ens == 'npt-xy' :
-        ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P} couple xy\n'
-    elif ens == 'nve' :
-        ret += 'fix             1 all nve\n'
-    else :
-        raise RuntimeError('unknow ensemble %s\n' % ens)        
-    ret += 'fix             mzero all momentum 10 linear 1 1 1\n'
-    ret += '# --------------------- INITIALIZE -----------------------\n'    
-    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(1, 2**16))
-    ret += 'velocity        all zero linear\n'
-    ret += '# --------------------- RUN ------------------------------\n'    
-    ret += 'run             ${NSTEPS}\n'
-    ret += 'write_data      out.lmp\n'
+# def _gen_lammps_input (conf_file, 
+#                        mass_map,
+#                        model,
+#                        nsteps,
+#                        dt,
+#                        ens,
+#                        temp,
+#                        pres = 1.0, 
+#                        tau_t = 0.1,
+#                        tau_p = 0.5,
+#                        prt_freq = 100,
+#                        copies = None,
+#                        if_meam = False,
+#                        meam_model = None):
+#     ret = ''
+#     ret += 'clear\n'
+#     ret += '# --------------------- VARIABLES-------------------------\n'
+#     ret += 'variable        NSTEPS          equal %d\n' % nsteps
+#     ret += 'variable        THERMO_FREQ     equal %d\n' % prt_freq
+#     ret += 'variable        DUMP_FREQ       equal %d\n' % prt_freq
+#     ret += 'variable        TEMP            equal %f\n' % temp
+#     ret += 'variable        PRES            equal %f\n' % pres
+#     ret += 'variable        TAU_T           equal %f\n' % tau_t
+#     ret += 'variable        TAU_P           equal %f\n' % tau_p
+#     ret += '# ---------------------- INITIALIZAITION ------------------\n'
+#     ret += 'units           metal\n'
+#     ret += 'boundary        p p p\n'
+#     ret += 'atom_style      atomic\n'
+#     ret += '# --------------------- ATOM DEFINITION ------------------\n'
+#     ret += 'box             tilt large\n'
+#     ret += 'read_data       %s\n' % conf_file
+#     if copies is not None :
+#         ret += 'replicate       %d %d %d\n' % (copies[0], copies[1], copies[2])
+#     ret += 'change_box      all triclinic\n'
+#     for jj in range(len(mass_map)) :
+#         ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
+#     ret += '# --------------------- FORCE FIELDS ---------------------\n'
+#     # if if_meam:
+#     #     ret += 'pair_style      meam \n'
+#     #     ret += 'pair_coeff      * * /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
+#     if if_meam:
+#         ret += 'pair_style      meam \n'
+#         ret += f'pair_coeff      * * {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
+#     else:
+#         ret += 'pair_style      deepmd %s\n' % model
+#         ret += 'pair_coeff\n'
+#     ret += '# --------------------- MD SETTINGS ----------------------\n'    
+#     ret += 'neighbor        1.0 bin\n'
+#     ret += 'timestep        %s\n' % dt
+#     ret += 'thermo          ${THERMO_FREQ}\n'
+#     ret += 'compute         allmsd all msd\n'
+#     if ens == 'nvt' :        
+#         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
+#     elif 'npt' in ens :
+#         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
+#     else :
+#         raise RuntimeError('unknow ensemble %s\n' % ens)                
+#     ret += '# dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z\n'
+#     if ens == 'nvt' :
+#         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
+#     elif ens == 'npt-iso' or ens == 'npt':
+#         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}\n'
+#     elif ens == 'npt-aniso' :
+#         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P}\n'
+#     elif ens == 'npt-tri' :
+#         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} tri ${PRES} ${PRES} ${TAU_P}\n'
+#     elif ens == 'npt-xy' :
+#         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P} couple xy\n'
+#     elif ens == 'nve' :
+#         ret += 'fix             1 all nve\n'
+#     else :
+#         raise RuntimeError('unknow ensemble %s\n' % ens)        
+#     ret += 'fix             mzero all momentum 10 linear 1 1 1\n'
+#     ret += '# --------------------- INITIALIZE -----------------------\n'    
+#     ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(1, 2**16))
+#     ret += 'velocity        all zero linear\n'
+#     ret += '# --------------------- RUN ------------------------------\n'    
+#     ret += 'run             ${NSTEPS}\n'
+#     ret += 'write_data      out.lmp\n'
     
-    return ret
+#     return ret
 
 
 def make_tasks(iter_name, jdata, if_meam=None) :
