@@ -506,14 +506,15 @@ def _print_thermo_info(info, more_head = '') :
     ptr += '# Pxy     [bar]:  %20.8f %20.8f\n' % (info['pxy'], info['pxy_err'])
     ptr += '# Pxz     [bar]:  %20.8f %20.8f\n' % (info['pxz'], info['pxz_err'])
     ptr += '# Pyz     [bar]:  %20.8f %20.8f\n' % (info['pyz'], info['pyz_err'])
-    rho = (18 * 1e-3 / (info['v'] * pc.Avogadro * pc.angstrom**3))
-    rho_err = (info['v'] / (info['v'] - info['v_err'] ) - 1) * rho
-    ptr += '# water density [kg/m^3] : %10.5f (%10.5f)' % (rho, rho_err)
+    # rho = (18 * 1e-3 / (info['v'] * pc.Avogadro * pc.angstrom**3))
+    # rho_err = (info['v'] / (info['v'] - info['v_err'] ) - 1) * rho
+    # ptr += '# water density [kg/m^3] : %10.5f (%10.5f)' % (rho, rho_err)
     print(ptr)
     return ptr
 
 def post_task(iter_name, natoms = None, is_water = False) :
-    j_file = os.path.join(iter_name, 'in.json')
+    # j_file = os.path.join(iter_name, 'in.json')
+    j_file = os.path.join(iter_name, 'equi_settings.json')
     with open(j_file, 'r') as f:
         jdata = json.load(f)
     if natoms == None :
@@ -536,7 +537,7 @@ def post_task(iter_name, natoms = None, is_water = False) :
     with open(os.path.join(iter_name, 'result'), 'w') as f:
         f.write(ptr)
     # open(').write(ptr).close()
-    with open(os.path.join(iter_name, 'result.json')) as f:
+    with open(os.path.join(iter_name, 'result.json'), 'w') as f:
         json.dump(info, f, indent=4)
         # f.write(json.dump(info))
     # open(, 'w').write(json.dumps(info)).close()
