@@ -12,8 +12,11 @@ from deepti.lib.lammps import get_natoms
 from deepti import ti
 # from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
 # from dpgen.dispatcher.Dispatcher import Dispatcher
-from dpdispatcher.submission import Submission, Task, Resources
-from dpdispatcher.batch_object import BatchObject
+try:
+    from dpdispatcher.submission import Submission, Task, Resources
+    from dpdispatcher.batch_object import BatchObject
+except ImportError:
+    pass
 
 # def _group_slurm_jobs(ssh_sess,
 #                       resources,
