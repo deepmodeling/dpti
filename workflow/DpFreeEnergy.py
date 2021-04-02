@@ -22,45 +22,53 @@ import subprocess as sp
 def get_dag_work_dir(context):
     dag_run = context['params']
     work_base_dir = dag_run['work_base_dir']
-    tar_temp = int(dag_run['tar_temp'])
-    tar_press = int(dag_run['tar_press'])
-    structure = str(dag_run['structure'])
-    path = str(dag_run['path'])
+    target_temp = int(dag_run['target_temp'])
+    target_press = int(dag_run['target_press'])
+    conf_lmp = str(dag_run['conf_lmp'])
+    ti_path = str(dag_run['ti_path'])
 
-    dag_work_folder=str(tar_temp)+'K-'+str(tar_press)+'bar-'+str(structure)+'-'+str(path)
-    work_base_dir = os.path.realpath(work_base_dir)
-    dag_work_dir=os.path.join(work_base_dir, dag_work_folder)
+    dag_work_dirname=str(target_temp)+'K-'+str(target_press)+'bar-'+str(conf_lmp)
+
+    work_base_abs_dir = os.path.realpath(work_base_dir)
+
+    dag_work_dir=os.path.join(work_base_abs_dir, dag_work_dirname)
     return dag_work_dir
  
 @task()
 def all_start_check():
     context = get_current_context()
     print(context)
+
     dag_run = context['params']
     work_base_dir = dag_run['work_base_dir']
-    tar_temp = int(dag_run['tar_temp'])
-    tar_press = int(dag_run['tar_press'])
-    structure = str(dag_run['structure'])
-    path = str(dag_run['path'])
+    target_temp = int(dag_run['target_temp'])
+    target_press = int(dag_run['target_press'])
+    conf_lmp = str(dag_run['conf_lmp'])
+    ti_path = str(dag_run['ti_path'])
     ens = str(dag_run['ens'])
     if_meam = dag_run['if_meam']
     if_liquid = dag_run['if_liquid']
-    ti_begin_var = None
+
+    ti_begin_temp = None
+    ti_begin_pres = None
+
     equi_conf = None
     model = None
 
     work_base_dir = os.path.realpath(work_base_dir)
 
-    dag_work_folder=str(tar_temp)+'K-'+str(tar_press)+'bar-'+str(structure)+'-'+str(path)
-    dag_work_dir = get_dag_work_dir(context=get_current_context())
-    print(dag_work_dir)
+    # dag_work_folder=str(tar_temp)+'K-'+str(tar_press)+'bar-'+str(conf_lmp)
+    dag_work_dirname=str(target_temp)+'K-'+str(target_press)+'bar-'+str(conf_lmp)
+    work_base_abs_dir = os.path.realpath(work_base_dir)
+    dag_work_dir=os.path.join(work_base_abs_dir, dag_work_dirname)
+    
     # dag_work_dir=os.path.join(work_base_dir, dag_work_folder)
 
     # context['work_base_dir'] = work_base_dir
     # context['dag_work_dir'] = dag_work_dir
 
-    equi_conf = os.path.join(work_base_dir, structure + '.lmp')
-    model = os.path.join(work_base_dir, 'graph.pb')
+    # equi_conf = os.path.join(work_base_dir, structure + '.lmp')
+    #  model = os.path.join(work_base_dir, 'graph.pb')
 
     assert os.path.isdir(work_base_dir) is True,  f'work_base_dir {work_base_dir} must exist '
     # assert os.path.isdir(dag_work_dir) is False,  f'dag_work_folder dir {dag_work_dir} already exist'
@@ -70,25 +78,30 @@ def all_start_check():
     else:
         pass
 
-    assert os.path.isfile(equi_conf) is True,  f'structure file {equi_conf} must exist'
+    assert os.path.isfile(conf_lmp) is True,  f'structure file {equi_conf} must exist'
     assert str(path) in ["t", "p"], f'value for "path" must be "t" or "p" '
     assert type(if_meam) is bool
-    if path == "t": ti_begin_var = dag_run['tar_temp'] 
-    if path == "p": ti_begin_var = dag_run['tar_press']
+    if path == "t": ti_begin_temp = dag_run['tar_temp'] 
+    if path == "p": ti_begin_pres = dag_run['tar_pres']
     
     start_info = dict(work_base_dir=work_base_dir, tar_temp=tar_temp,
         tar_press=tar_press, structure=structure, path=path, 
          ens=ens, if_meam=if_meam, if_liquid=if_liquid, equi_conf=equi_conf, model=model,
-         dag_work_folder=dag_work_folder,
+         work_base_abs_dir=work_base_abs_dir
          dag_work_dir=dag_work_dir, ti_begin_var=ti_begin_var)
     return start_info
 
 @task()
 def NPT_start(start_info):
-    dag_work_dir = get_dag_work_dir(context=get_current_context())
-    sim_work_dir = os.path.join(dag_work_dir, 'NPT_sim', 'new_job')
-    if os.path.isfile(os.path.join(dag_work_dir, 'NPT_sim', 'new_job', 'result.json')):
-        return sim_work_dir
+    # dag_work_dir = get_dag_work_dir(context=get_current_context())
+    dag_work_dir = start_info.get('dag_work_dir')
+    work_base_dir = start_info.get('work_')
+
+    job_work_dir = os.path.join(dag_work_dir, 'NPT_sim', 'new_job')
+
+    result_json_file = os.path.join(dag_work_dir, 'NPT_sim', 'new_job', 'result.json')
+    if os.path.isfile(result_json_file):
+        return job_work_dir
     #     raise AirflowSkipException
     with open(os.path.join(dag_work_dir, '../', 'npt.json')) as j:
         npt_jdata = json.load(j)
