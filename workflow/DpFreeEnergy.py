@@ -15,7 +15,7 @@ from dpdispatcher.lazy_local_context import LazyLocalContext
 from dpdispatcher.submission import Submission, Job, Task, Resources
 from dpdispatcher.pbs import PBS
 # from functions import NPT_end_func
-sys.path.append("/home/fengbo/deepti-1-yfb-Sn/")
+# sys.path.append("/home/fengbo/deepti-1-yfb-Sn/")
 from deepti import equi, hti, hti_liq, ti
 import subprocess as sp
 

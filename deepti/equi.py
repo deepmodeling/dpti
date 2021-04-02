@@ -338,7 +338,7 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi
     dct1 = link_file_in_dict(
         dct=jdata,
         key_list=["equi_conf", "model"],
-        target_abs_dir=task_abs_dir
+        target_dir=task_abs_dir
     )
     equi_settings.update(dct1)
 
@@ -346,7 +346,7 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi
     dct2 = link_file_in_dict(
         dct=meam_model,
         key_list=["library", "potential"],
-        target_abs_dir=task_abs_dir
+        target_dir=task_abs_dir
     )
     equi_settings['meam_model'].update(dct2)
     # for k in ["equi_conf", "model"]:
