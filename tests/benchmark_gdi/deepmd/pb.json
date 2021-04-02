@@ -1,0 +1,22 @@
+{
+    "phase_i" : {
+	"name":		"PHASE_0",
+	"equi_conf":	"beta.lmp",
+        "ens":		"npt-xy"
+    },
+    "phase_ii" : {
+	"name":		"PHASE_1",
+	"equi_conf":	"alpha.lmp",
+        "ens":		"npt-iso"
+    },
+    "model":		"./graph.pb",
+    "mass_map":	[118.71],
+    "nsteps":		5000,
+    "timestep":		0.002,
+    "tau_t":		0.1,
+    "tau_p":		1.0,
+    "thermo_freq":	10,
+    "stat_skip":	100,
+    "stat_bsize":	10,
+    "_comment": "that's all"
+}
