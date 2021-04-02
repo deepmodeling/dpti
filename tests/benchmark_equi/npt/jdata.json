@@ -1,5 +1,5 @@
 {
-    "equi_conf": "./conf.lmp",
+    "equi_conf": "benchmark_equi/npt/conf.lmp",
     "mass_map": [
         118.71
     ],

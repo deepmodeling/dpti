@@ -27,13 +27,11 @@ class TestEquiMakeTask(unittest.TestCase):
             jdata = json.load(f)
         deepti.equi.make_task(iter_name=test_dir, jdata=jdata)
         check_file_list = ['in.lammps',  
-            'conf.lmp', 'equi_settings.json', 
-            'equi_cli_setting.json',
-            'jdata.json', 'graph.pb']
+            'conf.lmp',  'graph.pb']
         for file in check_file_list:
             f1 = os.path.join(benchmark_dir, file)
             f2 = os.path.join(test_dir, file)
-            self.assertEqual(get_file_md5(f1), get_file_md5(f2))
+            self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1,f2))
 
     @patch('numpy.random')
     def test_npt_meam(self, patch_random):
@@ -47,12 +45,11 @@ class TestEquiMakeTask(unittest.TestCase):
             jdata = json.load(f)
         deepti.equi.make_task(iter_name=test_dir, jdata=jdata)
         check_file_list = ['in.lammps', 'conf.lmp', 
-            'equi_settings.json', 'jdata.json', 'equi_cli_setting.json',
             'Sn_18Metals.meam', 'library_18Metals.meam']
         for file in check_file_list:
             f1 = os.path.join(benchmark_dir, file)
             f2 = os.path.join(test_dir, file)
-            self.assertEqual(get_file_md5(f1), get_file_md5(f2))
+            self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1,f2))
 
     @patch('numpy.random')
     def test_nvt(self, patch_random):
@@ -65,6 +62,12 @@ class TestEquiMakeTask(unittest.TestCase):
         with open(json_file) as f:
             jdata = json.load(f)
         deepti.equi.make_task(iter_name=test_dir, jdata=jdata)
+        check_file_list = ['in.lammps',  
+            'conf.lmp', 'graph.pb']
+        for file in check_file_list:
+            f1 = os.path.join(benchmark_dir, file)
+            f2 = os.path.join(test_dir, file)
+            self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1,f2))
 
     @classmethod
     def tearDownClass(cls):

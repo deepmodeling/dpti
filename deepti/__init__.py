@@ -1,3 +1,5 @@
 from . import lib
-from . import new_equi as equi
+from . import equi
 from . import hti
+from . import hti_liq
+from . import ti

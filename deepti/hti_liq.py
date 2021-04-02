@@ -4,9 +4,10 @@ import os, sys, json, argparse, glob, shutil
 import numpy as np
 import scipy.constants as pc
 
-from . import einstein
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
+from deepti import einstein
 import deepti.lib.lmp as lmp
-from deepti.lib.utils import create_path
+from deepti.lib.utils import create_path, relative_link_file
 from deepti.lib.utils import copy_file_list
 from deepti.lib.utils import block_avg
 from deepti.lib.utils import integrate
@@ -122,7 +123,7 @@ def _gen_lammps_input_ideal (step,
                              pres = 1.0, 
                              tau_t = 0.1,
                              tau_p = 0.5,
-                             prt_freq = 100, 
+                             thermo_freq = 100, 
                              copies = None,
                              norm_style = 'first',
                              if_meam = False,
@@ -131,8 +132,8 @@ def _gen_lammps_input_ideal (step,
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
     ret += 'variable        NSTEPS          equal %d\n' % nsteps
-    ret += 'variable        THERMO_FREQ     equal %d\n' % prt_freq
-    ret += 'variable        DUMP_FREQ       equal %d\n' % prt_freq
+    ret += 'variable        THERMO_FREQ     equal %d\n' % thermo_freq
+    # ret += 'variable        DUMP_FREQ       equal %d\n' % thermo_freq
     ret += 'variable        TEMP            equal %f\n' % temp
     ret += 'variable        PRES            equal %f\n' % pres
     ret += 'variable        TAU_T           equal %f\n' % tau_t
@@ -155,15 +156,15 @@ def _gen_lammps_input_ideal (step,
     if step == 'soft_on' :
         ret += _ff_soft_on(lamb, soft_param)
     elif step == 'deep_on' :
-        ret += _ff_deep_on(lamb, soft_param, model, if_meam=if_meam)
+        ret += _ff_deep_on(lamb, soft_param, model, if_meam=if_meam, meam_model=meam_model)
     elif step == 'soft_off' :
-        ret += _ff_soft_off(lamb, soft_param, model, if_meam=if_meam)
+        ret += _ff_soft_off(lamb, soft_param, model, if_meam=if_meam, meam_model=meam_model)
     else :
         raise RuntimeError('unknown step')
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % dt
-    ret += 'compute 	    allmsd all msd\n'
+    ret += 'compute         allmsd all msd\n'
     ret += 'thermo          ${THERMO_FREQ}\n'
     ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_diff[1] c_allmsd[*]\n'
     ret += 'thermo_modify   format 9 %.16e\n'
@@ -198,13 +199,14 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None) :
         raise RuntimeError('unknow step')
     equi_conf = jdata['equi_conf']
     equi_conf = os.path.abspath(equi_conf)
-    model_mass_map = jdata['model_mass_map']
-    model = jdata['model']
-    model = os.path.abspath(model)
+    mass_map = jdata['mass_map']
+    model = jdata.get('model', None)
+    if model:
+        model = os.path.abspath(model)
     soft_param = jdata['soft_param']
     nsteps = jdata['nsteps']
-    dt = jdata['dt']
-    stat_freq = jdata['stat_freq']
+    timestep = jdata['timestep']
+    thermo_freq = jdata['thermo_freq']
     copies = None
     if 'copies' in jdata :
         copies = jdata['copies']
@@ -218,35 +220,48 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None) :
         for sigma_key_name in sigma_key_name_list:
             assert sparam.get(sigma_key_name, None), 'there must be key-value for {sigma_key_name} in soft_param'.format(sigma_key_name=sigma_key_name)
 
+    job_abs_dir = create_path(iter_name)
 
-    create_path(iter_name)
+    if meam_model:
+        relative_link_file(os.path.abspath(meam_model['library']), job_abs_dir)
+        relative_link_file(os.path.abspath(meam_model['potential']), job_abs_dir)
+        # os.symlink(os.path.join('..', 'conf.lmp'), 'conf.lmp')
+        # os.symlink(os.path.join('..', 'graph.pb'), 'graph.pb')
+
     cwd = os.getcwd()
     os.chdir(iter_name)
     os.symlink(os.path.join('..', 'in.json'), 'in.json')
     os.symlink(os.path.join('..', 'conf.lmp'), 'conf.lmp')
     os.symlink(os.path.join('..', 'graph.pb'), 'graph.pb')
+
     os.chdir(cwd)
-    
+    # print(9898, meam_model)
     for idx,ii in enumerate(all_lambda) :
         work_path = os.path.join(iter_name, 'task.%06d' % idx)
         create_path(work_path)
         os.chdir(work_path)
         os.symlink(os.path.join('..', 'conf.lmp'), 'conf.lmp')
         os.symlink(os.path.join('..', 'graph.pb'), 'graph.pb')
+        if meam_model:
+            meam_library_basename = os.path.basename(meam_model['library'])
+            meam_potential_basename = os.path.basename(meam_model['potential'])
+            os.symlink(os.path.join('..', meam_library_basename), meam_library_basename)
+            os.symlink(os.path.join('..', meam_potential_basename), meam_potential_basename)
         lmp_str \
             = _gen_lammps_input_ideal(step, 
                                       'conf.lmp',
-                                      model_mass_map, 
+                                      mass_map, 
                                       ii, 
                                       soft_param,
                                       'graph.pb',
                                       nsteps, 
-                                      dt,
+                                      timestep,
                                       'nvt',
                                       temp,
-                                      prt_freq = stat_freq, 
+                                      thermo_freq = thermo_freq, 
                                       copies = copies,
-                                      if_meam = if_meam)
+                                      if_meam = if_meam,
+                                      meam_model=meam_model)
         with open('in.lammps', 'w') as fp :
             fp.write(lmp_str)
         with open('lambda.out', 'w') as fp :
@@ -254,20 +269,24 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None) :
         os.chdir(cwd)
 
 
-def make_tasks(iter_name, jdata, if_meam=False) :
-    if if_meam is None:
+def make_tasks(iter_name, jdata, if_meam=None) :
+    if not if_meam :
         if_meam = jdata['if_meam']
     equi_conf = os.path.abspath(jdata['equi_conf'])
-    model = os.path.abspath(jdata['model'])
+    if jdata.get('model', None):
+        model = os.path.abspath(jdata['model'])
+    else:
+        model = None
     meam_model = jdata.get('meam_model', None)
 
     create_path(iter_name)
     copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
     shutil.copyfile(equi_conf, copied_conf)
-    jdata['equi_conf'] = copied_conf
-    copied_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
-    shutil.copyfile(model, copied_model)
-    jdata['model'] = copied_model
+    # jdata['equi_conf'] = copied_conf
+    if model:
+        copied_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
+        shutil.copyfile(model, copied_model)
+    # jdata['model'] = copied_model
 
     cwd = os.getcwd()
     os.chdir(iter_name)    

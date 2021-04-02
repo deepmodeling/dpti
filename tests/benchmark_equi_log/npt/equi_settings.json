@@ -1,0 +1,21 @@
+{
+    "equi_conf": "conf.lmp",
+    "model": "graph.pb",
+    "mass_map": [
+        118.71
+    ],
+    "nsteps": 1000,
+    "timestep": 0.002,
+    "ens": "npt-xy",
+    "temp": 400,
+    "pres": 200000,
+    "tau_t": 0.2,
+    "tau_p": 2,
+    "thermo_freq": 10,
+    "dump_freq": 100,
+    "stat_skip": 30,
+    "stat_bsize": 10,
+    "if_meam": false,
+    "meam_model": {},
+    "if_dump_avg_posi": false
+}
