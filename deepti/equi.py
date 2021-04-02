@@ -326,6 +326,21 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi
     equi_settings = jdata.copy()
     equi_settings.update(equi_cli_settings)
 
+    equi_conf = equi_settings['equi_conf']
+    relative_link_file(equi_conf, task_abs_dir)
+    equi_settings['equi_conf'] = os.path.basename(equi_conf)
+
+    model = equi_settings['model']
+    if model:
+        relative_link_file(model, task_abs_dir)
+        equi_settings['model'] = os.path.basename(model)
+
+    meam_model = equi_settings['meam_model']
+    if meam_model:
+        relative_link_file(meam_model['library'], task_abs_dir)
+        relative_link_file(meam_model['potential'], task_abs_dir)
+
+
     # for k in ['iter_name']:
     #     if equi_cli_settings.get(k, None):
     #         equi_settings[k] = os.path.abspath(equi_cli_settings[k])
@@ -335,20 +350,20 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi
 
     # link_file_key_list = ["equi_conf", ]
 
-    dct1 = link_file_in_dict(
-        dct=jdata,
-        key_list=["equi_conf", "model"],
-        target_dir=task_abs_dir
-    )
-    equi_settings.update(dct1)
+    # dct1 = link_file_in_dict(
+    #     dct=jdata,
+    #     key_list=["equi_conf", "model"],
+    #     target_dir=task_abs_dir
+    # )
+    # equi_settings.update(dct1)
 
-    meam_model = jdata.get('meam_model', None)
-    dct2 = link_file_in_dict(
-        dct=meam_model,
-        key_list=["library", "potential"],
-        target_dir=task_abs_dir
-    )
-    equi_settings['meam_model'].update(dct2)
+    # meam_model = jdata.get('meam_model', None)
+    # dct2 = link_file_in_dict(
+    #     dct=meam_model,
+    #     key_list=["library", "potential"],
+    #     target_dir=task_abs_dir
+    # )
+    # equi_settings['meam_model'].update(dct2)
     # for k in ["equi_conf", "model"]:
     #     file_path = jdata.get(k, None)
     #     if file_path is not None:
@@ -551,14 +566,19 @@ def post_task(iter_name, natoms = None, is_water = False) :
     log_file = os.path.join(iter_name, 'log.lammps')
     info = _compute_thermo(log_file, nmols, stat_skip, stat_bsize)
     ptr = _print_thermo_info(info)
+
+    info_dict = info.copy()
+    out_lmp = os.path.abspath(os.path.join(iter_name, 'out.lmp'))
+    info_dict['out_lmp'] = out_lmp
+
     with open(os.path.join(iter_name, 'result'), 'w') as f:
         f.write(ptr)
     # open(').write(ptr).close()
     with open(os.path.join(iter_name, 'result.json'), 'w') as f:
-        json.dump(info, f, indent=4)
+        json.dump(info_dict, f, indent=4)
         # f.write(json.dump(info))
     # open(, 'w').write(json.dumps(info)).close()
-    return info
+    return info_dict
 
 def _main ():
     parser = argparse.ArgumentParser(
@@ -580,7 +600,7 @@ def _main ():
                             help='use conf computed from NPT simulation')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
-    parser_gen.add_argument("-z", "--meam", help="whether use meam instead of dp", action="store_true")
+    # parser_gen.add_argument("-z", "--meam", help="whether use meam instead of dp", action="store_true")
 
     parser_comp = subparsers.add_parser('extract', help= 'Extract the conf')
     parser_comp.add_argument('JOB', type=str ,
@@ -607,7 +627,7 @@ def _main ():
     if args.command == 'gen' :
         jdata = json.load(open(args.PARAM, 'r'))
         # jfile = os.path.abspath(args.PARAM)
-        make_task(args.output, jdata, args.ensemble, args.temperature, args.pressure, args.avg_posi, args.conf_npt)
+        make_task(args.output, jdata, args.ensemble, args.temperature, args.pressure, args.avg_posi, args.conf_npt,)
     elif args.command == 'extract' :
         extract(args.JOB, args.output)
     elif args.command == 'stat-bond' :
