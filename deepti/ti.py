@@ -5,16 +5,19 @@ import numpy as np
 import scipy.constants as pc
 import pymbar
 
-from deepti.lib.utils import create_path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
+from deepti.lib.utils import create_path, relative_link_file
 from deepti.lib.utils import copy_file_list
 from deepti.lib.utils import block_avg
 from deepti.lib.utils import integrate_range
 # from lib.utils import integrate_sys_err
 from deepti.lib.utils import compute_nrefine
-from deepti.lib.utils import parse_seq
+from deepti.lib.utils import parse_seq, link_file_in_dict
 from deepti.lib.utils import get_task_file_abspath
 from deepti.lib.lammps import get_thermo
 from deepti.lib.lammps import get_natoms
+
+# from deepti.equi import gen_equi_lammps_input
 
 def make_iter_name (iter_index) :
     return "task_ti." + ('%04d' % iter_index)
@@ -29,92 +32,93 @@ def parse_seq_ginv (seq) :
     inv_grid = 1./inv_grid
     return inv_grid
 
-# def _gen_lammps_input (conf_file, 
-#                        mass_map,
-#                        model,
-#                        nsteps,
-#                        dt,
-#                        ens,
-#                        temp,
-#                        pres = 1.0, 
-#                        tau_t = 0.1,
-#                        tau_p = 0.5,
-#                        prt_freq = 100,
-#                        copies = None,
-#                        if_meam = False,
-#                        meam_model = None):
-#     ret = ''
-#     ret += 'clear\n'
-#     ret += '# --------------------- VARIABLES-------------------------\n'
-#     ret += 'variable        NSTEPS          equal %d\n' % nsteps
-#     ret += 'variable        THERMO_FREQ     equal %d\n' % prt_freq
-#     ret += 'variable        DUMP_FREQ       equal %d\n' % prt_freq
-#     ret += 'variable        TEMP            equal %f\n' % temp
-#     ret += 'variable        PRES            equal %f\n' % pres
-#     ret += 'variable        TAU_T           equal %f\n' % tau_t
-#     ret += 'variable        TAU_P           equal %f\n' % tau_p
-#     ret += '# ---------------------- INITIALIZAITION ------------------\n'
-#     ret += 'units           metal\n'
-#     ret += 'boundary        p p p\n'
-#     ret += 'atom_style      atomic\n'
-#     ret += '# --------------------- ATOM DEFINITION ------------------\n'
-#     ret += 'box             tilt large\n'
-#     ret += 'read_data       %s\n' % conf_file
-#     if copies is not None :
-#         ret += 'replicate       %d %d %d\n' % (copies[0], copies[1], copies[2])
-#     ret += 'change_box      all triclinic\n'
-#     for jj in range(len(mass_map)) :
-#         ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
-#     ret += '# --------------------- FORCE FIELDS ---------------------\n'
-#     # if if_meam:
-#     #     ret += 'pair_style      meam \n'
-#     #     ret += 'pair_coeff      * * /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
-#     if if_meam:
-#         ret += 'pair_style      meam \n'
-#         ret += f'pair_coeff      * * {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
-#     else:
-#         ret += 'pair_style      deepmd %s\n' % model
-#         ret += 'pair_coeff\n'
-#     ret += '# --------------------- MD SETTINGS ----------------------\n'    
-#     ret += 'neighbor        1.0 bin\n'
-#     ret += 'timestep        %s\n' % dt
-#     ret += 'thermo          ${THERMO_FREQ}\n'
-#     ret += 'compute         allmsd all msd\n'
-#     if ens == 'nvt' :        
-#         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
-#     elif 'npt' in ens :
-#         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
-#     else :
-#         raise RuntimeError('unknow ensemble %s\n' % ens)                
-#     ret += '# dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z\n'
-#     if ens == 'nvt' :
-#         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
-#     elif ens == 'npt-iso' or ens == 'npt':
-#         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}\n'
-#     elif ens == 'npt-aniso' :
-#         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P}\n'
-#     elif ens == 'npt-tri' :
-#         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} tri ${PRES} ${PRES} ${TAU_P}\n'
-#     elif ens == 'npt-xy' :
-#         ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P} couple xy\n'
-#     elif ens == 'nve' :
-#         ret += 'fix             1 all nve\n'
-#     else :
-#         raise RuntimeError('unknow ensemble %s\n' % ens)        
-#     ret += 'fix             mzero all momentum 10 linear 1 1 1\n'
-#     ret += '# --------------------- INITIALIZE -----------------------\n'    
-#     ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(1, 2**16))
-#     ret += 'velocity        all zero linear\n'
-#     ret += '# --------------------- RUN ------------------------------\n'    
-#     ret += 'run             ${NSTEPS}\n'
-#     ret += 'write_data      out.lmp\n'
+def _gen_lammps_input (conf_file, 
+                       mass_map,
+                       model,
+                       nsteps,
+                       timestep,
+                       ens,
+                       temp,
+                       pres=1.0, 
+                       tau_t=0.1,
+                       tau_p=0.5,
+                       thermo_freq=100,
+                       copies=None,
+                       if_meam=False,
+                       meam_model=None):
+    ret = ''
+    ret += 'clear\n'
+    ret += '# --------------------- VARIABLES-------------------------\n'
+    ret += 'variable        NSTEPS          equal %d\n' % nsteps
+    ret += 'variable        THERMO_FREQ     equal %d\n' % thermo_freq
+    # ret += 'variable        DUMP_FREQ       equal %d\n' % thermo_freq
+    ret += 'variable        TEMP            equal %f\n' % temp
+    ret += 'variable        PRES            equal %f\n' % pres
+    ret += 'variable        TAU_T           equal %f\n' % tau_t
+    ret += 'variable        TAU_P           equal %f\n' % tau_p
+    ret += '# ---------------------- INITIALIZAITION ------------------\n'
+    ret += 'units           metal\n'
+    ret += 'boundary        p p p\n'
+    ret += 'atom_style      atomic\n'
+    ret += '# --------------------- ATOM DEFINITION ------------------\n'
+    ret += 'box             tilt large\n'
+    ret += 'read_data       %s\n' % conf_file
+    if copies is not None :
+        ret += 'replicate       %d %d %d\n' % (copies[0], copies[1], copies[2])
+    ret += 'change_box      all triclinic\n'
+    for jj in range(len(mass_map)) :
+        ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
+    ret += '# --------------------- FORCE FIELDS ---------------------\n'
+    # if if_meam:
+    #     ret += 'pair_style      meam \n'
+    #     ret += 'pair_coeff      * * /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
+    if if_meam:
+        ret += 'pair_style      meam\n'
+        ret += f'pair_coeff      * * {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
+    else:
+        ret += 'pair_style      deepmd %s\n' % model
+        ret += 'pair_coeff\n'
+    ret += '# --------------------- MD SETTINGS ----------------------\n'    
+    ret += 'neighbor        1.0 bin\n'
+    ret += 'timestep        %s\n' % timestep
+    ret += 'thermo          ${THERMO_FREQ}\n'
+    ret += 'compute         allmsd all msd\n'
+    if ens == 'nvt' :        
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
+    elif 'npt' in ens :
+        ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
+    else :
+        raise RuntimeError('unknow ensemble %s\n' % ens)                
+    ret += '# dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z\n'
+    if ens == 'nvt' :
+        ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
+    elif ens == 'npt-iso' or ens == 'npt':
+        ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}\n'
+    elif ens == 'npt-aniso' :
+        ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P}\n'
+    elif ens == 'npt-tri' :
+        ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} tri ${PRES} ${PRES} ${TAU_P}\n'
+    elif ens == 'npt-xy' :
+        ret += 'fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P} couple xy\n'
+    elif ens == 'nve' :
+        ret += 'fix             1 all nve\n'
+    else :
+        raise RuntimeError('unknow ensemble %s\n' % ens)        
+    ret += 'fix             mzero all momentum 10 linear 1 1 1\n'
+    ret += '# --------------------- INITIALIZE -----------------------\n'    
+    ret += 'velocity        all create ${TEMP} %d\n' % (np.random.randint(1, 2**16))
+    ret += 'velocity        all zero linear\n'
+    ret += '# --------------------- RUN ------------------------------\n'    
+    ret += 'run             ${NSTEPS}\n'
+    ret += 'write_data      out.lmp\n'
     
-#     return ret
+    return ret
 
 
-def make_tasks(iter_name, jdata, if_meam=None) :
+def make_tasks(iter_name, jdata, if_meam=None):
+    ti_settings = jdata.copy()
     if if_meam is None:
-        if_meam = jdata['if_meam']
+        if_meam = jdata.get('if_meam', None)
     equi_conf = jdata['equi_conf']
     equi_conf = os.path.abspath(equi_conf)
     copies = None
@@ -122,11 +126,11 @@ def make_tasks(iter_name, jdata, if_meam=None) :
         copies = jdata['copies']
     model = jdata['model']
     meam_model = jdata.get('meam_model', None)
-    model = os.path.abspath(model)
-    model_mass_map = jdata['model_mass_map']
+    # model = os.path.abspath(model)
+    mass_map = jdata['mass_map']
     nsteps = jdata['nsteps']
-    dt = jdata['dt']
-    stat_freq = jdata['stat_freq']
+    timestep = jdata['timestep']
+    thermo_freq = jdata['thermo_freq']
     # thermos = jdata['thermos']
     ens = jdata['ens']
     path = jdata['path']
@@ -157,83 +161,120 @@ def make_tasks(iter_name, jdata, if_meam=None) :
     else :
         raise RuntimeError('invalid ens')
 
-    create_path(iter_name)
-    copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
-    shutil.copyfile(equi_conf, copied_conf)
-    jdata['equi_conf'] = 'conf.lmp'
-    linked_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
-    shutil.copyfile(model, linked_model)
-    jdata['model'] = 'graph.pb'
+    job_abs_dir = create_path(iter_name)
 
-    cwd = os.getcwd()
-    os.chdir(iter_name)
-    with open('in.json', 'w') as fp:
-        json.dump(jdata, fp, indent=4)
-    os.chdir(cwd)
+    dct1 = link_file_in_dict(
+        dct=jdata,
+        key_list=["equi_conf", "model"],
+        target_abs_dir=job_abs_dir
+    )
+    ti_settings.update(dct1)
+
+    meam_model = jdata.get('meam_model', None)
+    dct2 = link_file_in_dict(
+        dct=meam_model,
+        key_list=["library", "potential"],
+        target_abs_dir=job_abs_dir
+    )
+    if meam_model:
+        ti_settings['meam_model'].update(dct2)
+
+    link_file_dict = {}
+    link_file_dict.update(dct1)
+    link_file_dict.update(dct2)
+
+
+    # copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
+    # shutil.copyfile(equi_conf, copied_conf)
+    # jdata['equi_conf'] = 'conf.lmp'
+    # linked_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
+    # shutil.copyfile(model, linked_model)
+    # jdata['model'] = 'graph.pb'
+
+    # cwd = os.getcwd()
+    # os.chdir(iter_name)
+    with open(os.path.join(job_abs_dir, 
+        'ti_settings.json'), 'w') as fp:
+        json.dump(ti_settings, fp, indent=4)
+
+    with open(os.path.join(job_abs_dir, 'ti_settings.json'),'w') as f:
+            json.dump(ti_settings, f, indent=4)
+
     for ii in range(ntasks) :
-        work_path = os.path.join(iter_name, 'task.%06d' % ii)
-        create_path(work_path)
-        os.chdir(work_path)
-        os.symlink(os.path.relpath(copied_conf), 'conf.lmp')
-        os.symlink(os.path.relpath(linked_model), 'graph.pb')
+        task_dir = os.path.join(job_abs_dir, 'task.%06d' % ii)
+        task_abs_dir = create_path(task_dir)
+        # os.chdir(work_path)
+        for file in list(link_file_dict.values()):
+            file_path = os.path.join(job_abs_dir, file)
+            relative_link_file(file_path, task_abs_dir)
+            # os.symlink()
+        # os.symlink(os.path.relpath(copied_conf), 'conf.lmp')
+        # os.symlink(os.path.relpath(linked_model), 'graph.pb')
         if 'nvt' in ens and path == 't' :
             lmp_str \
                 = _gen_lammps_input('conf.lmp',
-                                    model_mass_map, 
-                                    'graph.pb',
+                                    mass_map, 
+                                    model,
                                     nsteps, 
-                                    dt,
+                                    timestep,
                                     ens,
                                     temps[ii],
                                     tau_t = tau_t,
-                                    prt_freq = stat_freq, 
+                                    thermo_freq = thermo_freq, 
                                     copies = copies,
                                     if_meam=if_meam,
-                                    meam_model=meam_model)
-            with open('thermo.out', 'w') as fp :
-                fp.write('%f' % temps[ii])
+                                    meam_model=meam_model
+                                    )
+            thermo_out = temps[ii]
+            # with open('thermo.out', 'w') as fp :
+            #     fp.write('%f' % temps[ii])
         elif 'npt' in ens and (path == 't' or path == 't-ginv'):
             lmp_str \
                 = _gen_lammps_input('conf.lmp',
-                                    model_mass_map, 
+                                    mass_map, 
                                     'graph.pb',
                                     nsteps, 
-                                    dt,
+                                    timestep,
                                     ens,
                                     temps[ii],
                                     press,
                                     tau_t = tau_t,
                                     tau_p = tau_p,
-                                    prt_freq = stat_freq, 
+                                    thermo_freq = thermo_freq, 
                                     copies = copies,
                                     if_meam=if_meam,
-                                    meam_model=meam_model)
-            with open('thermo.out', 'w') as fp :
-                fp.write('%f' % (temps[ii]))
+                                    meam_model=meam_model
+                                    )
+            thermo_out = temps[ii]
+            # with open('thermo.out', 'w') as fp :
+            #     fp.write('%f' % (temps[ii]))
         elif 'npt' in ens and path == 'p' :
             lmp_str \
                 = _gen_lammps_input('conf.lmp',
-                                    model_mass_map, 
+                                    mass_map, 
                                     'graph.pb',
                                     nsteps, 
-                                    dt,
+                                    timestep,
                                     ens,
                                     temps,
                                     press[ii],
                                     tau_t = tau_t,
                                     tau_p = tau_p,
-                                    prt_freq = stat_freq, 
+                                    thermo_freq = thermo_freq, 
                                     copies = copies,
                                     if_meam=if_meam,
-                                    meam_model=meam_model)
-            with open('thermo.out', 'w') as fp :
-                fp.write('%f' % (press[ii]))
+                                    meam_model=meam_model
+                                )
+            thermo_out = press[ii]
         else:
             raise RuntimeError('invalid ens or path setting' )
-
-        with open('in.lammps', 'w') as fp :
+        
+        with open(os.path.join(task_abs_dir, 'thermo.out'), 'w') as fp:
+            fp.write('%f' % (thermo_out))
+        with open(os.path.join(task_abs_dir, 'in.lammps'), 'w') as fp:
             fp.write(lmp_str)
-        os.chdir(cwd)
+        
+        # os.chdir(cwd)
 
 def _compute_thermo (lmplog, natoms, stat_skip, stat_bsize) :
     data = get_thermo(lmplog)

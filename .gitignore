@@ -1,6 +1,10 @@
 *~
 iter*
 task*
+!tests/benchmark_hti/*/*/task*
+!tests/benchmark_hti/*/task*
+!tests/benchmark_ti/*/task*
+!tests/benchmark_hti_liq/*/*/task*/
 # *.pb
 # !tests/graph.pb
 __pycache__
@@ -10,3 +14,4 @@ deepti.egg-info/
 build/
 dist/
 .eggs/
+tests/tmp

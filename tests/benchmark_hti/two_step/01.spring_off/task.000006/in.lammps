@@ -1,0 +1,47 @@
+clear
+# --------------------- VARIABLES-------------------------
+variable        NSTEPS          equal 500000
+variable        THERMO_FREQ     equal 10
+variable        DUMP_FREQ       equal 10
+variable        TEMP            equal 400.000000
+variable        PRES            equal 1.000000
+variable        TAU_T           equal 0.100000
+variable        TAU_P           equal 0.500000
+variable        LAMBDA          equal 7.5000000000e-01
+variable        INV_LAMBDA      equal 2.5000000000e-01
+# ---------------------- INITIALIZAITION ------------------
+units           metal
+boundary        p p p
+atom_style      atomic
+# --------------------- ATOM DEFINITION ------------------
+box             tilt large
+read_data       conf.lmp
+change_box      all triclinic
+mass            1 118.710000
+# --------------------- FORCE FIELDS ---------------------
+pair_style      deepmd graph.pb
+pair_coeff
+group           type_1 type 1
+fix             l_spring_1 type_1 spring/self 5.9355000000e-01
+fix_modify      l_spring_1 energy yes
+variable        l_spring equal f_l_spring_1
+compute         e_deep all pe pair
+# --------------------- MD SETTINGS ----------------------
+neighbor        1.0 bin
+timestep        0.002
+thermo          ${THERMO_FREQ}
+compute         allmsd all msd
+thermo_style    custom step ke pe etotal enthalpy temp press vol v_l_spring c_e_deep c_allmsd[*]
+thermo_modify   format 9 %.16e
+thermo_modify   format 10 %.16e
+# dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz
+fix             1 all nve
+fix             2 all langevin ${TEMP} ${TEMP} ${TAU_T} 7858 zero yes
+# --------------------- INITIALIZE -----------------------
+velocity        all create ${TEMP} 7858
+fix             fc all recenter INIT INIT INIT
+fix             fm all momentum 1 linear 1 1 1
+velocity        all zero linear
+# --------------------- RUN ------------------------------
+run             ${NSTEPS}
+write_data      out.lmp
