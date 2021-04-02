@@ -9,8 +9,10 @@ from scipy.integrate import solve_ivp
 from lib.utils import create_path
 from lib.utils import block_avg
 from lib.lammps import get_natoms
-from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
-from dpgen.dispatcher.Dispatcher import Dispatcher
+# from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
+# from dpgen.dispatcher.Dispatcher import Dispatcher
+from dpdispatcher.submission import Submission, Task, Resources
+from dpdispatcher.batch_object import BatchObject
 
 def _group_slurm_jobs(ssh_sess,
                       resources,
@@ -220,21 +222,54 @@ def make_dpdt (temp,
                              meam_model=meam_model)
         # submit new task
         resources = mdata['resources']
-        lmp_exec = mdata['command']
-        command = lmp_exec + " -i in.lammps"
+        machine = mdata['machine']
+        resources = Resources(**resources)
+        batch = BatchObject(jdata=machine)
+        command = 'lmp -i in.lammps'
+        # resources = mdata['resources']
+        # lmp_exec = mdata['command']
+        # command = lmp_exec + " -i in.lammps"
         forward_files = ['conf.lmp', 'in.lammps', 'graph.pb']
+        if meam_model:
+            meam_library_basename = os.path.basename('library')
+            meam_potential_basename = os.path.basename('potential')
+            forward_files.extend([meam_library_basename, meam_potential_basename])
         backward_files = ['log.lammps', 'out.lmp']
-        run_tasks = ['0', '1']        
 
-        dispatcher.run_jobs(resources,
-                            command,
-                            work_path,
-                            run_tasks,
-                            1,
-                            [],
-                            forward_files,
-                            backward_files,
-                            forward_task_deference = False)
+        task1 = Task(
+            command=command,
+            task_work_path='./',
+            forward_files=forward_files,
+            backward_files=backward_files
+        )
+        task2 = Task(
+            command=command,
+            task_work_path='./',
+            forward_files=forward_files,
+            backward_files=backward_files
+        )
+
+        submission = Submission(
+            work_base='./',
+            resources=resources,
+            forward_common_files=[],
+            backward_common_files=[],
+            batch=batch,
+            task_list=[task1, task2])
+        
+        submission.run_submission()
+
+        # run_tasks = ['0', '1']        
+
+        # dispatcher.run_jobs(resources,
+        #                     command,
+        #                     work_path,
+        #                     run_tasks,
+        #                     1,
+        #                     [],
+        #                     forward_files,
+        #                     backward_files,
+        #                     forward_task_deference = False)
         # _group_slurm_jobs(ssh_sess,
         #                   resources,
         #                   command,
