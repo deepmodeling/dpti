@@ -25,7 +25,7 @@ class TestEquiMakeTask(unittest.TestCase):
         link_file_list = ['log.lammps', 'equi_settings.json', 'conf.lmp']
         for file in link_file_list:
             src = os.path.join(benchmark_dir, file)
-            relative_link_file(file_path=src, target_abs_dir=test_dir)
+            relative_link_file(file_path=src, target_dir=test_dir)
 
         post_task(test_dir)
         patch_print.assert_called_once()
