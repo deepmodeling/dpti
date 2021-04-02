@@ -10,3 +10,4 @@ deepti.egg-info/
 build/
 dist/
 .eggs/
+tests/tmp

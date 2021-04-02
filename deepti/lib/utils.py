@@ -26,6 +26,10 @@ def make_iter_name (iter_index) :
 #             counter += 1
 #     os.makedirs (path)
 
+
+
+
+
 def create_path (path) :
     path += '/'
     if os.path.isdir(path) :
@@ -44,7 +48,7 @@ def create_path (path) :
 
 def relative_link_file(file_path, target_abs_dir):
     if not os.path.isfile(file_path):
-        raise RuntimeError(f"file_path:{file_path} must be a file")
+        raise RuntimeError(f"file_path:{file_path} must be a file. cwd:{os.getcwd()}")
     file_abs_path = os.path.abspath(file_path)
     basename = os.path.basename(file_abs_path)
     relative_path = os.path.relpath(file_abs_path, start=target_abs_dir)
@@ -53,6 +57,24 @@ def relative_link_file(file_path, target_abs_dir):
     # equi_settings[k] = basename
     os.symlink(src=relative_path, dst=target_linkfile_path)
     return target_linkfile_path
+
+def link_file_in_dict(dct, 
+        key_list, 
+        target_abs_dir
+    ):
+    if not dct:
+        return {}
+    return_dict = {}
+    for k in key_list:
+        file_path = dct.get(k, None)
+        if file_path is not None:
+            target_linkfile_path = relative_link_file(
+                file_path=file_path,
+                target_abs_dir=target_abs_dir
+            )
+            v = os.path.basename(target_linkfile_path)
+            return_dict[k] = v
+    return return_dict
 
 def get_file_md5(file_path):
     return hashlib.md5(pathlib.Path(file_path).read_bytes()).hexdigest()

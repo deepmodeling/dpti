@@ -5,8 +5,10 @@ import numpy as np
 import scipy.constants as pc
 import pymbar
 
-from . import einstein
-from deepti.lib.utils import create_path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
+# from .einstein import free_energy
+from deepti import einstein
+from deepti.lib.utils import create_path, relative_link_file
 from deepti.lib.utils import copy_file_list
 from deepti.lib.utils import block_avg
 from deepti.lib.utils import integrate_range
@@ -468,25 +470,38 @@ def _gen_lammps_input (conf_file,
 #     return ret
 
 
-def make_tasks(iter_name, jdata, ref, switch = 'one-step', if_meam=None):
+def make_tasks(iter_name, jdata, ref='einstein', switch = 'one-step', if_meam=None):
     print('make_tasks: iter_name', iter_name)
     if if_meam is None:
         if_meam = jdata['if_meam']
     equi_conf = os.path.abspath(jdata['equi_conf'])
     meam_model = jdata.get('meam_model', None)
     model = os.path.abspath(jdata['model'])
+
     if if_meam is None:
         if_meam = jdata.get('if_meam', None)
 
     if switch == 'one-step':
         subtask_name = iter_name
         _make_tasks(subtask_name, jdata, ref, step = 'both', if_meam=if_meam,  meam_model=meam_model)
+        if meam_model:
+            relative_link_file(meam_model['library'], iter_name)
+            relative_link_file(meam_model['potential'], iter_name)
+        else:
+            pass
     elif switch == 'two-step' or switch == 'three-step':
-        create_path(iter_name)
+        job_abs_dir = create_path(iter_name)
         copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
         shutil.copyfile(equi_conf, copied_conf)
         jdata['equi_conf'] = 'conf.lmp'
         linked_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
+
+        if meam_model:
+            relative_link_file(meam_model['library'], job_abs_dir)
+            relative_link_file(meam_model['potential'], job_abs_dir)
+        else:
+            pass
+
         shutil.copyfile(model, linked_model)
         jdata['model'] = 'graph.pb'
         cwd = os.getcwd()
@@ -519,6 +534,8 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
     crystal = jdata['crystal']
     protect_eps = jdata['protect_eps']
 
+    
+
     if switch == 'one-step':
         all_lambda = parse_seq(jdata['lambda'])
     elif switch == 'two-step' or switch == 'three-step':
@@ -540,7 +557,7 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
     equi_conf = os.path.abspath(equi_conf)
     model = jdata['model']
     model = os.path.abspath(model)
-    model_mass_map = jdata['model_mass_map']
+    mass_map = jdata['mass_map']
     nsteps = jdata['nsteps']
     dt = jdata['dt']
     spring_k = jdata['spring_k']
@@ -555,11 +572,11 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
 
     if crystal == 'frenkel' :
         m_spring_k = []
-        for ii in model_mass_map :
+        for ii in mass_map :
             m_spring_k.append(spring_k * ii)
     if crystal == 'vega' :
         m_spring_k = []
-        for ii in model_mass_map :
+        for ii in mass_map :
             m_spring_k.append(spring_k * ii)
     stat_freq = jdata['stat_freq']
     copies = None
@@ -603,6 +620,11 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
         os.chdir(work_path)
         os.symlink(os.path.relpath(copied_conf), 'conf.lmp')
         os.symlink(os.path.relpath(linked_model), 'graph.pb')
+        if meam_model:
+            meam_library_basename = os.path.basename(meam_model['library'])
+            meam_potential_basename = os.path.basename(meam_model['potential'])
+            relative_link_file(os.path.join('../../', meam_library_basename), './')
+            relative_link_file(os.path.join('../../', meam_potential_basename), './')
         if idx == 0:
             ens = 'nvt-langevin'
         else :
@@ -614,7 +636,7 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
         if ref == 'einstein' :
             lmp_str \
                 = _gen_lammps_input('conf.lmp',
-                                    model_mass_map, 
+                                    mass_map, 
                                     ii, 
                                     'graph.pb',
                                     m_spring_k, 
