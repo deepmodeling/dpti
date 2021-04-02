@@ -46,21 +46,19 @@ def create_path (path) :
     return abs_path
 
 
-def relative_link_file(file_path, target_abs_dir):
+def relative_link_file(file_path, target_dir):
     if not os.path.isfile(file_path):
         raise RuntimeError(f"file_path:{file_path} must be a file. cwd:{os.getcwd()}")
     file_abs_path = os.path.abspath(file_path)
     basename = os.path.basename(file_abs_path)
-    relative_path = os.path.relpath(file_abs_path, start=target_abs_dir)
-    # print(989, relative_path, file_abs_path, task_abs_dir)
-    target_linkfile_path = os.path.join(target_abs_dir, basename)
-    # equi_settings[k] = basename
+    relative_path = os.path.relpath(file_abs_path, start=target_dir)
+    target_linkfile_path = os.path.join(target_dir, basename)
     os.symlink(src=relative_path, dst=target_linkfile_path)
     return target_linkfile_path
 
 def link_file_in_dict(dct, 
         key_list, 
-        target_abs_dir
+        target_dir
     ):
     if not dct:
         return {}
@@ -70,7 +68,7 @@ def link_file_in_dict(dct,
         if file_path is not None:
             target_linkfile_path = relative_link_file(
                 file_path=file_path,
-                target_abs_dir=target_abs_dir
+                target_dir=target_dir
             )
             v = os.path.basename(target_linkfile_path)
             return_dict[k] = v

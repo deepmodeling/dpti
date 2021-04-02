@@ -166,7 +166,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
     dct1 = link_file_in_dict(
         dct=jdata,
         key_list=["equi_conf", "model"],
-        target_abs_dir=job_abs_dir
+        target_dir=job_abs_dir
     )
     ti_settings.update(dct1)
 
@@ -174,7 +174,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
     dct2 = link_file_in_dict(
         dct=meam_model,
         key_list=["library", "potential"],
-        target_abs_dir=job_abs_dir
+        target_dir=job_abs_dir
     )
     if meam_model:
         ti_settings['meam_model'].update(dct2)
