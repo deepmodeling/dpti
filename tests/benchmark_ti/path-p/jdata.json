@@ -13,8 +13,8 @@
     "timestep": 0.002,
     "ens": "npt-xy",
     "path": "p",
-    "temps": 200,
-    "press": [
+    "temp": 200,
+    "pres_seq": [
         "0:100000:10000",
         "100000"
     ],

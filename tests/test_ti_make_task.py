@@ -29,8 +29,8 @@ class TestEquiMakeTask(unittest.TestCase):
         # print(dir(deepti.ti))
         deepti.ti.make_tasks(iter_name=test_dir, jdata=jdata)
         check_file_list = [ 
-            'conf.lmp', 
-            'graph.pb',
+            # 'conf.lmp', 
+            # 'graph.pb',
             'task.000006/conf.lmp',
             'task.000006/graph.pb',
             'task.000006/thermo.out'
@@ -55,7 +55,7 @@ class TestEquiMakeTask(unittest.TestCase):
         # print(dir(deepti.ti))
         deepti.ti.make_tasks(iter_name=test_dir, jdata=jdata)
         check_file_list = [ 
-            'conf.lmp', 
+            # 'conf.lmp', 
             'task.000006/conf.lmp',
             'task.000006/in.lammps',
             'task.000006/library_18Metals.meam',

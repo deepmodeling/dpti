@@ -244,10 +244,10 @@ def make_dpdt (temp,
                              if_meam=if_meam,
                              meam_model=meam_model)
         # submit new task
-        resources = mdata['resources']
-        batch = mdata['batch']
-        resources = Resources(**resources)
-        batch = BatchObject(jdata=batch)
+        resources_dict = mdata['resources']
+        batch_dict = mdata['batch']
+        resources = Resources(**resources_dict)
+        batch = BatchObject(jdata=batch_dict)
         command = 'lmp -i in.lammps'
         # resources = mdata['resources']
         # lmp_exec = mdata['command']
