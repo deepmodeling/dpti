@@ -6,7 +6,7 @@ import scipy.constants as pc
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 from deepti.lib.utils import create_path, relative_link_file
-from deepti.lib.utils import block_avg
+from deepti.lib.utils import block_avg, link_file_in_dict
 from deepti.lib.water import compute_bonds
 from deepti.lib.water import posi_diff
 from deepti.lib.utils import get_task_file_abspath
@@ -311,6 +311,9 @@ def extract(job_dir, output) :
     # open(output, 'w').write(conf_lmp)
 
 def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi=None, equi_conf=None):
+    # jfile_path = os.path.abspath(jfile)
+    # with open(jfile, 'r') as f:
+    #     jdata = json.load(f)
     task_abs_dir = create_path(iter_name)
     equi_cli_settings = {}
     for k in ['ens', 'temp', 'pres', 'if_dump_avg_posi', 'equi_conf']:
@@ -332,27 +335,41 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi
 
     # link_file_key_list = ["equi_conf", ]
 
-    for k in ["equi_conf", "model"]:
-        file_path = jdata.get(k, None)
-        if file_path is not None:
-            target_linkfile_path = relative_link_file(
-                file_path=file_path,
-                target_abs_dir=task_abs_dir
-            )
-            v = os.path.basename(target_linkfile_path)
-            equi_settings[k] = v
+    dct1 = link_file_in_dict(
+        dct=jdata,
+        key_list=["equi_conf", "model"],
+        target_abs_dir=task_abs_dir
+    )
+    equi_settings.update(dct1)
 
     meam_model = jdata.get('meam_model', None)
-    if meam_model:
-        for k in ["library", "potential"]:
-            file_path = meam_model.get(k, None)
-            if file_path is not None:
-                target_linkfile_path = relative_link_file(
-                    file_path=file_path,
-                    target_abs_dir=task_abs_dir
-                )
-                v = os.path.basename(target_linkfile_path)
-                meam_model[k] = v
+    dct2 = link_file_in_dict(
+        dct=meam_model,
+        key_list=["library", "potential"],
+        target_abs_dir=task_abs_dir
+    )
+    equi_settings['meam_model'].update(dct2)
+    # for k in ["equi_conf", "model"]:
+    #     file_path = jdata.get(k, None)
+    #     if file_path is not None:
+    #         target_linkfile_path = relative_link_file(
+    #             file_path=file_path,
+    #             target_abs_dir=task_abs_dir
+    #         )
+    #         v = os.path.basename(target_linkfile_path)
+    #         equi_settings[k] = v
+
+    # meam_model = jdata.get('meam_model', None)
+    # if meam_model:
+    #     for k in ["library", "potential"]:
+    #         file_path = meam_model.get(k, None)
+    #         if file_path is not None:
+    #             target_linkfile_path = relative_link_file(
+    #                 file_path=file_path,
+    #                 target_abs_dir=task_abs_dir
+    #             )
+    #             v = os.path.basename(target_linkfile_path)
+    #             meam_model[k] = v
 
 
     with open(os.path.join(task_abs_dir, 'jdata.json'), 'w') as f:
@@ -588,7 +605,8 @@ def _main ():
         parser.print_help()
         exit
     if args.command == 'gen' :
-        jdata = json.load(open(args.PARAM, 'r'))        
+        jdata = json.load(open(args.PARAM, 'r'))
+        # jfile = os.path.abspath(args.PARAM)
         make_task(args.output, jdata, args.ensemble, args.temperature, args.pressure, args.avg_posi, args.conf_npt)
     elif args.command == 'extract' :
         extract(args.JOB, args.output)
