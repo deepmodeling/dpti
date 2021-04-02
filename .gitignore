@@ -2,6 +2,7 @@
 iter*
 task*
 !tests/benchmark_hti/*/*/task*
+!tests/benchmark_hti/*/task*
 !tests/benchmark_ti/*/task*
 # *.pb
 # !tests/graph.pb
