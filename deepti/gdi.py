@@ -23,7 +23,7 @@ def _group_slurm_jobs(ssh_sess,
                       forward_common_files,
                       forward_task_files,
                       backward_task_files,
-                      remote_job = PBSJob) :
+                      remote_job = None) :
     task_chunks = [
         [os.path.basename(j) for j in tasks[i:i + group_size]] \
         for i in range(0, len(tasks), group_size)
@@ -57,7 +57,7 @@ def _make_tasks_onephase(temp,
                          conf_file = 'conf.lmp', 
                          graph_file = 'graph.pb',
                          if_meam=False,
-                         meam_model=meam_model):
+                         meam_model=None):
     # assume that model and conf.lmp exist in the current dir
     assert(os.path.isfile(conf_file))
     assert(os.path.isfile(graph_file))
@@ -135,7 +135,7 @@ def make_dpdt (temp,
                inte_dir,
                task_path,
                mdata,
-               dispatcher,
+ #               dispatcher,
                natoms = None,
                shift = [0, 0],
                verbose = False,
@@ -222,7 +222,7 @@ def make_dpdt (temp,
                              meam_model=meam_model)
         # submit new task
         resources = mdata['resources']
-        machine = mdata['machine']
+        batch = mdata['batch']
         resources = Resources(**resources)
         batch = BatchObject(jdata=machine)
         command = 'lmp -i in.lammps'
@@ -321,7 +321,7 @@ class GibbsDuhemFunc (object):
         self.if_meam = if_meam
         self.meam_model = meam_model
         
-        self.dispatcher = Dispatcher(mdata['machine'], context_type = 'lazy-local', batch_type = 'pbs')
+        # self.dispatcher = Dispatcher(mdata['machine'], context_type = 'lazy-local', batch_type = 'pbs')
         if os.path.isdir(task_path) :
             print('find path ' + task_path + ' use it. The user should guarantee the consistency between the jdata and the found work path ')
         else :
@@ -334,21 +334,23 @@ class GibbsDuhemFunc (object):
             # x: temp, y: pres
             [dv, dh] = make_dpdt(x, y,
                                  self.inte_dir,
-                                 self.task_path, self.mdata, self.dispatcher, self.natoms,
+                                 self.task_path, self.mdata,
+                                 self.natoms,
                                  self.shift,
                                  self.verbose,
                                  if_meam=self.if_meam,
-                                 meam_model=meam_model)
+                                 meam_model=self.meam_model)
             return [dh / (x * dv) * self.ev2bar * self.pref]
         elif self.inte_dir == 'p' :
             # x: pres, y: temp
             [dv, dh] = make_dpdt(y, x,
                                  self.inte_dir,
-                                 self.task_path, self.mdata, self.dispatcher, self.natoms,
+                                 self.task_path, self.mdata,
+                                 self.natoms,
                                  self.shift,
                                  self.verbose,
                                  if_meam=self.if_meam,
-                                 meam_model=meam_model)
+                                 meam_model=self.meam_model)
             return [(y * dv) / dh / self.ev2bar * (1/self.pref)]
 
 
