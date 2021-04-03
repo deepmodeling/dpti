@@ -77,12 +77,12 @@ class TestEquiMakeTask(unittest.TestCase):
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)
         test_dir = os.path.join(self.test_dir, test_name)
 
-        npt_name = os.path.join('benchmark_equi_log', 'npt')
+        npt_dir = os.path.join('benchmark_equi_log', 'npt')
 
         json_file = os.path.join(benchmark_dir, 'jdata.json')
         with open(json_file) as f:
             jdata = json.load(f)
-        deepti.equi.make_task(iter_name=test_dir, jdata=jdata, npt_name=npt_name)
+        deepti.equi.make_task(iter_name=test_dir, jdata=jdata, npt_dir=npt_dir)
 
         check_file_list = ['in.lammps',  
             'npt_avg.lmp', 'graph.pb']
