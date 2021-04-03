@@ -63,7 +63,7 @@ def _make_tasks_onephase(temp,
                          if_meam=False,
                          meam_model=None):
     # assume that model and conf.lmp exist in the current dir
-    assert(os.path.isfile(conf_file), (conf_file, os.getcwd()))
+    assert os.path.isfile(conf_file), (conf_file, os.getcwd())
     # assert(os.path.isfile(graph_file))
     conf_file = os.path.abspath(conf_file)
     if graph_file:
@@ -88,7 +88,7 @@ def _make_tasks_onephase(temp,
         if not os.path.exists('graph.pb'):
             os.symlink(os.path.relpath(graph_abs_file), 'graph.pb')
 
-    if meam_model:
+    if if_meam:
         relative_link_file(meam_model['library_abs_path'], './')
         relative_link_file(meam_model['potential_abs_path'], './')
         # meam_library_basename = os.path.basename(meam_model['library'])
@@ -160,7 +160,7 @@ def make_dpdt (temp,
                meam_model=None) :
     assert(os.path.isdir(task_path))    
 
-    if meam_model:
+    if if_meam:
         meam_model['library_abs_path'] = os.path.abspath(meam_model['library'])
         meam_model['potential_abs_path'] = os.path.abspath(meam_model['potential'])
         # relative_link_file(), task_path)
@@ -253,7 +253,7 @@ def make_dpdt (temp,
         # lmp_exec = mdata['command']
         # command = lmp_exec + " -i in.lammps"
         forward_files = ['conf.lmp', 'in.lammps', 'graph.pb']
-        if meam_model:
+        if if_meam:
             meam_library_basename = os.path.basename(meam_model['library'])
             meam_potential_basename = os.path.basename(meam_model['potential'])
             forward_files.extend([meam_library_basename, meam_potential_basename])

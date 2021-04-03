@@ -218,7 +218,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
             # equi_settings['model'] = os.path.basename(model)
 
         # meam_model = equi_settings['meam_model']
-        if meam_model:
+        if if_meam:
             relative_link_file(meam_model['library'], task_abs_dir)
             relative_link_file(meam_model['potential'], task_abs_dir)
 
@@ -757,7 +757,7 @@ def compute_task(job, inte_method, Eo, Eo_err, To, scheme='simpson'):
     if inte_method == 'inte' :
         info = post_tasks(job, jdata, Eo=Eo, Eo_err=Eo_err, To=To, scheme=scheme)
     elif inte_method == 'mbar' :
-        info = post_tasks_mbar(job, jdata, args.Eo)
+        post_tasks_mbar(job, jdata, Eo)
     else :
         raise RuntimeError('unknow integration method')
     
