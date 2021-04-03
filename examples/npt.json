@@ -1,0 +1,25 @@
+{
+    "equi_conf": "conf.lmp",
+    "model": "graph.pb",
+    "mass_map": [
+        118.71
+    ],
+    "nsteps": 10000,
+    "timestep": 0.002,
+    "ens": null,
+    "temp": null,
+    "pres": null,
+    "tau_t": 0.2,
+    "tau_p": 2.0,
+    "thermo_freq": 10,
+    "dump_freq": 1000,
+    "stat_skip": 300,
+    "stat_bsize": 10,
+    "if_meam": false,
+    "if_dump_avg_posi": false,
+    "meam_model": {
+        "library": "library_18Metals.meam",
+        "potential": "Sn_18Metals.meam",
+        "element": "Sn"
+    }
+}
