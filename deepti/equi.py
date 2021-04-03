@@ -4,7 +4,8 @@ import os, sys, json, argparse, glob
 import numpy as np
 import scipy.constants as pc
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
+# sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
+import deepti
 from deepti.lib.utils import create_path, relative_link_file
 from deepti.lib.utils import block_avg, link_file_in_dict
 from deepti.lib.water import compute_bonds
