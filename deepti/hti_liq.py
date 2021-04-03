@@ -163,7 +163,7 @@ def _gen_lammps_input_ideal (step,
         raise RuntimeError('unknown step')
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
     ret += 'neighbor        1.0 bin\n'
-    ret += 'timestep        %s\n' % dt
+    ret += 'timestep        %s\n' % timestep
     ret += 'compute         allmsd all msd\n'
     ret += 'thermo          ${THERMO_FREQ}\n'
     ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_diff[1] c_allmsd[*]\n'

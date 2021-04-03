@@ -293,7 +293,7 @@ def _gen_lammps_input (conf_file,
                        model,
                        m_spring_k,
                        nsteps,
-                       dt,
+                       timestep,
                        ens,
                        temp,
                        pres = 1.0, 
@@ -342,7 +342,7 @@ def _gen_lammps_input (conf_file,
 
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
     ret += 'neighbor        1.0 bin\n'
-    ret += 'timestep        %s\n' % dt
+    ret += 'timestep        %s\n' % timestep
     ret += 'thermo          ${THERMO_FREQ}\n'
     ret += 'compute         allmsd all msd\n'
     if 1 - lamb != 0 :
@@ -557,7 +557,7 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
     model = os.path.abspath(model)
     mass_map = jdata['mass_map']
     nsteps = jdata['nsteps']
-    dt = jdata['dt']
+    timestep = jdata['timestep']
     spring_k = jdata['spring_k']
 
     sparam = jdata.get('soft_param', {})
@@ -639,7 +639,7 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
                                     'graph.pb',
                                     m_spring_k, 
                                     nsteps, 
-                                    dt,
+                                    timestep,
                                     ens,
                                     temp,
                                     prt_freq = stat_freq, 
