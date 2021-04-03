@@ -107,6 +107,7 @@ def all_start_check():
         if_liquid=if_liquid, 
         work_base_abs_dir=work_base_abs_dir,
         dag_work_dir=dag_work_dir)
+    print('start_info:', start_info)
     return start_info
 
 @task()
@@ -256,7 +257,6 @@ def HTI_start(start_info, *, NVT_end_info={}):
 @task()
 def HTI_sim(job_work_dir):
     task_abs_dir_list = glob.glob(os.path.join(job_work_dir, './*/task*'))
-    print('debug898', task_abs_dir_list)
     task_dir_list = [os.path.relpath(ii, start=job_work_dir ) for ii in task_abs_dir_list]
     
     # task_dir_real_list = glob.glob(job_work_dir + '/*/task*')
@@ -284,6 +284,8 @@ def HTI_end(job_work_dir,
     result_file_path = os.path.join(job_work_dir, 'result.json')
     if os.path.isfile(result_file_path):
         info = json.load(open(result_file_path, 'r'))
+        return info
+
     if if_liquid:
         info = hti_liq.compute_task(
             job_work_dir, 

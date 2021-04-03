@@ -196,6 +196,13 @@ def make_tasks(iter_name, jdata, if_meam=None):
 
     # cwd = os.getcwd()
     # os.chdir(iter_name)
+    relative_link_file(equi_conf, job_abs_dir)
+    if model:
+        relative_link_file(model, job_abs_dir)
+    if if_meam:
+        relative_link_file(meam_model['library'], job_abs_dir)
+        relative_link_file(meam_model['potential'], job_abs_dir)
+
     with open(os.path.join(job_abs_dir, 
         'ti_settings.json'), 'w') as fp:
         json.dump(ti_settings, fp, indent=4)
@@ -208,16 +215,9 @@ def make_tasks(iter_name, jdata, if_meam=None):
         task_abs_dir = create_path(task_dir)
         # os.chdir(work_path)
 
-        # equi_conf = equi_settings['equi_conf']
         relative_link_file(equi_conf, task_abs_dir)
-        # equi_settings['equi_conf'] = os.path.basename(equi_conf)
-
-        # model = equi_settings['model']
         if model:
             relative_link_file(model, task_abs_dir)
-            # equi_settings['model'] = os.path.basename(model)
-
-        # meam_model = equi_settings['meam_model']
         if if_meam:
             relative_link_file(meam_model['library'], task_abs_dir)
             relative_link_file(meam_model['potential'], task_abs_dir)
@@ -356,7 +356,7 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's
             all_temps.append(array_t[ii])
             err = 0
             sys_err = 0
-            all_press.append(jdata['press'])
+            all_press.append(jdata['pres'])
             all_fe.append(e1)
             all_fe_err.append(err)
             all_fe_sys_err.append(sys_err)
@@ -379,11 +379,11 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's
             sys_err *= all_t[ii]
             all_temps.append(all_t[ii])
             if 'npt' in ens :
-                all_press.append(jdata['press'])
+                all_press.append(jdata['pres'])
         elif path == 'p':
             e1 = Eo + diff_e        
             err = np.sqrt(np.square(Eo_err) + np.square(err))
-            all_temps.append(jdata['temps'])
+            all_temps.append(jdata['temp'])
             all_press.append(all_t[ii])
         all_fe.append(e1)
         all_fe_err.append(err)
@@ -649,13 +649,13 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms = None) :
             sys_err = 0
             all_temps.append(all_t[ii])
             if 'npt' in ens :
-                all_press.append(jdata['press'])
+                all_press.append(jdata['pres'])
         elif path == 'p':
             kt_in_ev = jdata['temps'] * pc.Boltzmann / pc.electron_volt
             e1 = Eo + Deltaf_ij[0,ii] * kt_in_ev
             err = dDeltaf_ij[0,ii] * kt_in_ev
             sys_err = 0
-            all_temps.append(jdata['temps'])
+            all_temps.append(jdata['temp'])
             all_press.append(all_t[ii])            
         else :
             pass
@@ -754,7 +754,8 @@ def refine_task (from_task, to_task, err) :
             
 def compute_task(job, inte_method, Eo, Eo_err, To, scheme='simpson'):
     # job = args.JOB
-    jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
+    with open(os.path.join(job, 'ti_settings.json'), 'r') as f:
+        jdata = json.load(f)
     if inte_method == 'inte' :
         info = post_tasks(job, jdata, Eo=Eo, Eo_err=Eo_err, To=To, scheme=scheme)
     elif inte_method == 'mbar' :
