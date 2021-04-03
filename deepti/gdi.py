@@ -3,49 +3,55 @@
 import os, sys, json, argparse, glob, shutil, time
 import numpy as np
 import scipy.constants as pc
-import ti
 
 from scipy.integrate import solve_ivp
-from lib.utils import create_path
-from lib.utils import block_avg
-from lib.lammps import get_natoms
-from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
-from dpgen.dispatcher.Dispatcher import Dispatcher
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
+from deepti.lib.utils import create_path, relative_link_file
+from deepti.lib.utils import block_avg
+from deepti.lib.lammps import get_natoms
+from deepti import ti
+# from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
+# from dpgen.dispatcher.Dispatcher import Dispatcher
+try:
+    from dpdispatcher.submission import Submission, Task, Resources
+    from dpdispatcher.batch_object import BatchObject
+except ImportError:
+    pass
 
-def _group_slurm_jobs(ssh_sess,
-                      resources,
-                      command,
-                      work_path,
-                      tasks,
-                      group_size,
-                      forward_common_files,
-                      forward_task_files,
-                      backward_task_files,
-                      remote_job = PBSJob) :
-    task_chunks = [
-        [os.path.basename(j) for j in tasks[i:i + group_size]] \
-        for i in range(0, len(tasks), group_size)
-    ]
-    job_list = []
-    for chunk in task_chunks :
-        rjob = remote_job(ssh_sess, work_path)
-        rjob.upload('.',  forward_common_files)
-        rjob.upload(chunk, forward_task_files)
-        rjob.submit(chunk, command, resources = resources)
-        job_list.append(rjob)
+# def _group_slurm_jobs(ssh_sess,
+#                       resources,
+#                       command,
+#                       work_path,
+#                       tasks,
+#                       group_size,
+#                       forward_common_files,
+#                       forward_task_files,
+#                       backward_task_files,
+#                       remote_job = None) :
+#     task_chunks = [
+#         [os.path.basename(j) for j in tasks[i:i + group_size]] \
+#         for i in range(0, len(tasks), group_size)
+#     ]
+#     job_list = []
+#     for chunk in task_chunks :
+#         rjob = remote_job(ssh_sess, work_path)
+#         rjob.upload('.',  forward_common_files)
+#         rjob.upload(chunk, forward_task_files)
+#         rjob.submit(chunk, command, resources = resources)
+#         job_list.append(rjob)
 
-    job_fin = [False for ii in job_list]
-    while not all(job_fin) :
-        for idx,rjob in enumerate(job_list) :
-            if not job_fin[idx] :
-                status = rjob.check_status()
-                if status == JobStatus.terminated :
-                    raise RuntimeError("find unsuccessfully terminated job in %s" % rjob.get_job_root())
-                elif status == JobStatus.finished :
-                    rjob.download(task_chunks[idx], backward_task_files)
-                    rjob.clean()
-                    job_fin[idx] = True
-        time.sleep(30)
+#     job_fin = [False for ii in job_list]
+#     while not all(job_fin) :
+#         for idx,rjob in enumerate(job_list) :
+#             if not job_fin[idx] :
+#                 status = rjob.check_status()
+#                 if status == JobStatus.terminated :
+#                     raise RuntimeError("find unsuccessfully terminated job in %s" % rjob.get_job_root())
+#                 elif status == JobStatus.finished :
+#                     rjob.download(task_chunks[idx], backward_task_files)
+#                     rjob.clean()
+#                     job_fin[idx] = True
+#         time.sleep(30)
 
 def _make_tasks_onephase(temp, 
                          pres, 
@@ -55,42 +61,54 @@ def _make_tasks_onephase(temp,
                          conf_file = 'conf.lmp', 
                          graph_file = 'graph.pb',
                          if_meam=False,
-                         meam_model=meam_model):
+                         meam_model=None):
     # assume that model and conf.lmp exist in the current dir
-    assert(os.path.isfile(conf_file))
-    assert(os.path.isfile(graph_file))
+    assert(os.path.isfile(conf_file), (conf_file, os.getcwd()))
+    # assert(os.path.isfile(graph_file))
     conf_file = os.path.abspath(conf_file)
-    graph_file = os.path.abspath(graph_file)
-    model_mass_map = jdata['model_mass_map']
+    if graph_file:
+        graph_abs_file = os.path.abspath(graph_file)
+    
+    mass_map = jdata['mass_map']
     # MD simulation protocol
     nsteps = jdata['nsteps']
-    dt = jdata['dt']
-    stat_freq = jdata['stat_freq']
+    timestep = jdata['timestep']
+    thermo_freq = jdata['thermo_freq']
     tau_t = jdata['tau_t']
     tau_p = jdata['tau_p']
 
     cwd = os.getcwd()
     if not os.path.isdir(task_path):
         create_path(task_path)
+
     os.chdir(task_path)
     if not os.path.exists('conf.lmp'):
         os.symlink(os.path.relpath(conf_file), 'conf.lmp')
-    if not os.path.exists('graph.pb'):
-        os.symlink(os.path.relpath(graph_file), 'graph.pb')
+    if graph_file:
+        if not os.path.exists('graph.pb'):
+            os.symlink(os.path.relpath(graph_abs_file), 'graph.pb')
+
+    if meam_model:
+        relative_link_file(meam_model['library_abs_path'], './')
+        relative_link_file(meam_model['potential_abs_path'], './')
+        # meam_library_basename = os.path.basename(meam_model['library'])
+        # meam_potential_basename = os.path.basename(meam_model['potential'])
+        # os.symlink(os.path.join('../../../', meam_library_basename), meam_library_basename)
+        # os.symlink(os.path.join('../../../', meam_potential_basename), meam_potential_basename)
     
     # input for NPT MD
     lmp_str \
         = ti._gen_lammps_input('conf.lmp',
-                               model_mass_map, 
-                               'graph.pb',
+                               mass_map, 
+                               graph_file,
                                nsteps, 
-                               dt,
+                               timestep,
                                ens,
                                temp,
                                pres,
                                tau_t = tau_t,
                                tau_p = tau_p,
-                               prt_freq = stat_freq,
+                               thermo_freq = thermo_freq,
                                if_meam=if_meam,
                                meam_model=meam_model)
     with open('thermo.out', 'w') as fp :
@@ -110,9 +128,10 @@ def _setup_dpdt (task_path, jdata) :
     conf_0 = os.path.abspath(conf_0)
     conf_1 = os.path.abspath(conf_1)
     model = jdata['model']
-    model = os.path.abspath(model)
+    if model:
+        model = os.path.abspath(model)
 
-    create_path(task_path)
+    task_abs_dir = create_path(task_path)
     conf_0_name = 'conf.%s.lmp' % '0'
     conf_1_name = 'conf.%s.lmp' % '1'
     # conf_0_name = 'conf.%s.lmp' % name_0
@@ -121,8 +140,9 @@ def _setup_dpdt (task_path, jdata) :
     copied_conf_1 = os.path.join(os.path.abspath(task_path), conf_1_name)
     shutil.copyfile(conf_0, copied_conf_0)
     shutil.copyfile(conf_1, copied_conf_1)
-    linked_model = os.path.join(os.path.abspath(task_path), 'graph.pb')
-    shutil.copyfile(model, linked_model)
+    if model:
+        linked_model = os.path.join(os.path.abspath(task_path), 'graph.pb')
+        shutil.copyfile(model, linked_model)
 
     with open(os.path.join(os.path.abspath(task_path), 'in.json'), 'w') as fp:
         json.dump(jdata, fp, indent=4)
@@ -133,13 +153,18 @@ def make_dpdt (temp,
                inte_dir,
                task_path,
                mdata,
-               dispatcher,
                natoms = None,
                shift = [0, 0],
                verbose = False,
                if_meam=False,
                meam_model=None) :
     assert(os.path.isdir(task_path))    
+
+    if meam_model:
+        meam_model['library_abs_path'] = os.path.abspath(meam_model['library'])
+        meam_model['potential_abs_path'] = os.path.abspath(meam_model['potential'])
+        # relative_link_file(), task_path)
+        # relative_link_file(os.path.abspath(meam_model['potential']), task_path)
 
     cwd = os.getcwd()
     os.chdir(task_path)
@@ -219,22 +244,55 @@ def make_dpdt (temp,
                              if_meam=if_meam,
                              meam_model=meam_model)
         # submit new task
-        resources = mdata['resources']
-        lmp_exec = mdata['command']
-        command = lmp_exec + " -i in.lammps"
+        resources_dict = mdata['resources']
+        batch_dict = mdata['batch']
+        resources = Resources(**resources_dict)
+        batch = BatchObject(jdata=batch_dict)
+        command = 'lmp -i in.lammps'
+        # resources = mdata['resources']
+        # lmp_exec = mdata['command']
+        # command = lmp_exec + " -i in.lammps"
         forward_files = ['conf.lmp', 'in.lammps', 'graph.pb']
+        if meam_model:
+            meam_library_basename = os.path.basename(meam_model['library'])
+            meam_potential_basename = os.path.basename(meam_model['potential'])
+            forward_files.extend([meam_library_basename, meam_potential_basename])
         backward_files = ['log.lammps', 'out.lmp']
-        run_tasks = ['0', '1']        
 
-        dispatcher.run_jobs(resources,
-                            command,
-                            work_path,
-                            run_tasks,
-                            1,
-                            [],
-                            forward_files,
-                            backward_files,
-                            forward_task_deference = False)
+        task1 = Task(
+            command=command,
+            task_work_path='0/',
+            forward_files=forward_files,
+            backward_files=backward_files
+        )
+        task2 = Task(
+            command=command,
+            task_work_path='1/',
+            forward_files=forward_files,
+            backward_files=backward_files
+        )
+
+        submission = Submission(
+            work_base=work_path,
+            resources=resources,
+            forward_common_files=[],
+            backward_common_files=[],
+            batch=batch,
+            task_list=[task1, task2])
+        
+        submission.run_submission()
+
+        # run_tasks = ['0', '1']        
+
+        # dispatcher.run_jobs(resources,
+        #                     command,
+        #                     work_path,
+        #                     run_tasks,
+        #                     1,
+        #                     [],
+        #                     forward_files,
+        #                     backward_files,
+        #                     forward_task_deference = False)
         # _group_slurm_jobs(ssh_sess,
         #                   resources,
         #                   command,
@@ -286,7 +344,7 @@ class GibbsDuhemFunc (object):
         self.if_meam = if_meam
         self.meam_model = meam_model
         
-        self.dispatcher = Dispatcher(mdata['machine'], context_type = 'lazy-local', batch_type = 'pbs')
+        # self.dispatcher = Dispatcher(mdata['machine'], context_type = 'lazy-local', batch_type = 'pbs')
         if os.path.isdir(task_path) :
             print('find path ' + task_path + ' use it. The user should guarantee the consistency between the jdata and the found work path ')
         else :
@@ -299,21 +357,23 @@ class GibbsDuhemFunc (object):
             # x: temp, y: pres
             [dv, dh] = make_dpdt(x, y,
                                  self.inte_dir,
-                                 self.task_path, self.mdata, self.dispatcher, self.natoms,
+                                 self.task_path, self.mdata,
+                                 self.natoms,
                                  self.shift,
                                  self.verbose,
                                  if_meam=self.if_meam,
-                                 meam_model=meam_model)
+                                 meam_model=self.meam_model)
             return [dh / (x * dv) * self.ev2bar * self.pref]
         elif self.inte_dir == 'p' :
             # x: pres, y: temp
             [dv, dh] = make_dpdt(y, x,
                                  self.inte_dir,
-                                 self.task_path, self.mdata, self.dispatcher, self.natoms,
+                                 self.task_path, self.mdata,
+                                 self.natoms,
                                  self.shift,
                                  self.verbose,
                                  if_meam=self.if_meam,
-                                 meam_model=meam_model)
+                                 meam_model=self.meam_model)
             return [(y * dv) / dh / self.ev2bar * (1/self.pref)]
 
 
@@ -361,7 +421,7 @@ def _main () :
         natoms = [ii // 3  for ii in natoms]
     print ('# natoms: ', natoms)
     print ('# shifts: ', args.shift)
-    meam_model = jdata.get('meam_model')
+    meam_model = jdata.get('meam_model', None)
     gdf = GibbsDuhemFunc(jdata,
                          mdata,
                          args.output,

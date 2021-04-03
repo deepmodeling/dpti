@@ -1,0 +1,17 @@
+{
+    "batch": {
+        "context_type": "ssh",
+        "batch_type": "pbs",
+	"hostname": "39.106.84.25",
+	"username": "fengbo",
+        "local_root": "./",
+	"remote_root": "/home/fengbo/work_path_dpdispatcher_test/"
+    },
+    "resources": {
+        "number_node":1,
+        "cpu_per_node":4,
+        "gpu_per_node":1,
+        "queue_name":"T4_4_15",
+        "group_size":1
+    }
+}
