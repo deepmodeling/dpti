@@ -1,0 +1,9 @@
+{
+  "target_temp": 200, 
+  "target_pres": 50000,  
+  "work_base_dir": "/home/fengbo/4_Sn/14_free_energy_airflow_test",
+  "ti_path": "t",
+  "conf_lmp":"beta.lmp",
+  "ens": "npt-xy",
+  "if_liquid": false
+}
