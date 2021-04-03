@@ -4,7 +4,7 @@ import os, sys, json, argparse, glob, shutil
 import numpy as np
 import scipy.constants as pc
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
+# sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 from deepti import einstein
 import deepti.lib.lmp as lmp
 from deepti.lib.utils import create_path, relative_link_file

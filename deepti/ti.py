@@ -5,7 +5,7 @@ import numpy as np
 import scipy.constants as pc
 import pymbar
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
+# sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 from deepti.lib.utils import create_path, relative_link_file
 from deepti.lib.utils import copy_file_list
 from deepti.lib.utils import block_avg

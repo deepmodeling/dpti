@@ -5,11 +5,12 @@ import numpy as np
 import scipy.constants as pc
 
 from scipy.integrate import solve_ivp
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
+# sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 from deepti.lib.utils import create_path, relative_link_file
 from deepti.lib.utils import block_avg
 from deepti.lib.lammps import get_natoms
-from deepti import ti
+from deepti.ti import _gen_lammps_input
+# from deepti import ti
 # from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
 # from dpgen.dispatcher.Dispatcher import Dispatcher
 try:
@@ -98,7 +99,7 @@ def _make_tasks_onephase(temp,
     
     # input for NPT MD
     lmp_str \
-        = ti._gen_lammps_input('conf.lmp',
+        = _gen_lammps_input('conf.lmp',
                                mass_map, 
                                graph_file,
                                nsteps, 
