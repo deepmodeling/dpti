@@ -255,11 +255,15 @@ def HTI_start(start_info, *, NVT_end_info={}):
 
 @task()
 def HTI_sim(job_work_dir):
-    task_dir_real_list = glob.glob(os.path.join(job_work_dir, './*/task*'))
-    task_dir_real_list = glob.glob(os.path.join(job_work_dir, './task*'))
-    task_dir_list = [os.path.relpath(ii,
-        start=job_work_dir ) 
-        for ii in task_dir_real_list]
+    task_abs_dir_list = glob.glob(os.path.join(job_work_dir, './*/task*'))
+    print('debug898', task_abs_dir_list)
+    task_dir_list = [os.path.relpath(ii, start=job_work_dir ) for ii in task_abs_dir_list]
+    
+    # task_dir_real_list = glob.glob(job_work_dir + '/*/task*')
+    # task_dir_real_list = glob.glob(job_work_dir + '/task*')
+   #  task_dir_list = [os.path.relpath(ii,
+   #      start=job_work_dir ) 
+   #      for ii in task_dir_list]
     task_list = [ Task(command='lmp_serial -i in.lammps', 
         task_work_path=ii) 
         for ii in task_dir_list ]
@@ -321,7 +325,6 @@ def TI_start(start_info, *, HTI_end_info=None):
         raise RuntimeError(f'Error integration path. {ti_path}')
 
     job_work_dir = os.path.join(dag_work_dir, job_dir, 'new_job')
-    task_jdata['model'] = start_info['model']
     task_jdata['ens'] = start_info['ens']
     task_jdata['equi_conf'] = conf_lmp
 
@@ -333,8 +336,8 @@ def TI_start(start_info, *, HTI_end_info=None):
 
 @task()
 def TI_sim(job_work_dir):
-    task_dir_abs_list = glob.glob(os.path.join(job_work_dir, './task*'))
-    task_dir_list = [os.path.relpath(ii, start=job_work_dir ) for ii in task_dir_abs_list]
+    task_abs_dir_list = glob.glob(os.path.join(job_work_dir, './task*'))
+    task_dir_list = [os.path.relpath(ii, start=job_work_dir ) for ii in task_abs_dir_list]
     submission = get_empty_submission(job_work_dir)
     task_list = [ Task(command='lmp_serial -i in.lammps', task_work_path=ii) for ii in task_dir_list ]
     submission.register_task_list(task_list=task_list)

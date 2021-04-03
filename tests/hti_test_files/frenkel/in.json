@@ -27,7 +27,7 @@
     ],
     "protect_eps": 1e-06,
     "model": "graph.pb",
-    "model_mass_map": [
+    "mass_map": [
         118.71
     ],
     "spring_k": 0.02,
