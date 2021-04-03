@@ -335,8 +335,9 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi
         relative_link_file(model, task_abs_dir)
         equi_settings['model'] = os.path.basename(model)
 
-    meam_model = equi_settings['meam_model']
-    if meam_model:
+    if_meam = equi_settings.get('if_meam', None)
+    meam_model = equi_settings.get('meam_model', None)
+    if if_meam:
         relative_link_file(meam_model['library'], task_abs_dir)
         relative_link_file(meam_model['potential'], task_abs_dir)
 

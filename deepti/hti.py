@@ -483,7 +483,7 @@ def make_tasks(iter_name, jdata, ref='einstein', switch = 'one-step', if_meam=No
     if switch == 'one-step':
         subtask_name = iter_name
         _make_tasks(subtask_name, jdata, ref, step = 'both', if_meam=if_meam,  meam_model=meam_model)
-        if meam_model:
+        if if_meam:
             relative_link_file(meam_model['library'], iter_name)
             relative_link_file(meam_model['potential'], iter_name)
         else:
@@ -495,7 +495,7 @@ def make_tasks(iter_name, jdata, ref='einstein', switch = 'one-step', if_meam=No
         jdata['equi_conf'] = 'conf.lmp'
         linked_model = os.path.join(os.path.abspath(iter_name), 'graph.pb')
 
-        if meam_model:
+        if if_meam:
             relative_link_file(meam_model['library'], job_abs_dir)
             relative_link_file(meam_model['potential'], job_abs_dir)
         else:
@@ -619,7 +619,7 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
         os.chdir(work_path)
         os.symlink(os.path.relpath(copied_conf), 'conf.lmp')
         os.symlink(os.path.relpath(linked_model), 'graph.pb')
-        if meam_model:
+        if if_meam:
             meam_library_basename = os.path.basename(meam_model['library'])
             meam_potential_basename = os.path.basename(meam_model['potential'])
             relative_link_file(os.path.join('../../', meam_library_basename), './')
@@ -1021,7 +1021,7 @@ def _post_tasks_mbar(iter_name, jdata, natoms = None, switch = 'one-step', step 
                 for ll in all_lambda :
                     block_u.append(es * (1-ll))
             else:
-                raise RuntimeError('unknown switch_style', switch_style)
+                raise RuntimeError('unknown switch_style', switch)
         elif switch == 'three-step':
             if step == 'lj_on' or step == 'deep_on':
                 ed = this_ed
