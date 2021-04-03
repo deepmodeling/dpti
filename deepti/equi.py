@@ -329,9 +329,9 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi
 
     equi_settings = jdata.copy()
     equi_settings.update(equi_cli_settings)
-    print(equi_cli_settings)
-    print(equi_settings)
-    print(npt_dir)
+    # print(equi_cli_settings)
+    # print(equi_settings)
+    # print(npt_dir)
 
     if npt_dir is not None:
         npt_avg_conf_lmp = npt_equi_conf(npt_dir)
