@@ -136,24 +136,24 @@ def make_tasks(iter_name, jdata, if_meam=None):
     path = jdata['path']
     if 'nvt' in ens :
         if path == 't' :
-            temps = parse_seq(jdata['temps'])
+            temp_seq = parse_seq(jdata['temp_seq'])
             tau_t = jdata['tau_t']
-            ntasks = len(temps)
+            ntasks = len(temp_seq)
         else :
             raise RuntimeError('supported path of nvt ens is \'t\'')
     elif 'npt' in ens :
         if path == 't' :
-            temps = parse_seq(jdata['temps'])
-            press = jdata['press']
-            ntasks = len(temps)
+            temp_seq = parse_seq(jdata['temp_seq'])
+            pres = jdata['pres']
+            ntasks = len(temp_seq)
         elif path == 't-ginv' :
-            temps = parse_seq_ginv(jdata['temps'])
-            press = jdata['press']
-            ntasks = len(temps)
+            temp_seq = parse_seq_ginv(jdata['temp_seq'])
+            pres = jdata['pres']
+            ntasks = len(temp_seq)
         elif path == 'p' :
-            temps = jdata['temps']
-            press = parse_seq(jdata['press'])
-            ntasks = len(press)
+            temp = jdata['temp']
+            pres_seq = parse_seq(jdata['pres_seq'])
+            ntasks = len(pres_seq)
         else :
             raise RuntimeError('supported path of npt ens are \'t\' or \'p\'')
         tau_t = jdata['tau_t']
@@ -163,25 +163,28 @@ def make_tasks(iter_name, jdata, if_meam=None):
 
     job_abs_dir = create_path(iter_name)
 
-    dct1 = link_file_in_dict(
-        dct=jdata,
-        key_list=["equi_conf", "model"],
-        target_abs_dir=job_abs_dir
-    )
-    ti_settings.update(dct1)
 
-    meam_model = jdata.get('meam_model', None)
-    dct2 = link_file_in_dict(
-        dct=meam_model,
-        key_list=["library", "potential"],
-        target_abs_dir=job_abs_dir
-    )
-    if meam_model:
-        ti_settings['meam_model'].update(dct2)
 
-    link_file_dict = {}
-    link_file_dict.update(dct1)
-    link_file_dict.update(dct2)
+
+    # dct1 = link_file_in_dict(
+    #     dct=jdata,
+    #     key_list=["equi_conf", "model"],
+    #     target_dir=job_abs_dir
+    # )
+    # ti_settings.update(dct1)
+
+    # meam_model = jdata.get('meam_model', None)
+    # dct2 = link_file_in_dict(
+    #     dct=meam_model,
+    #     key_list=["library", "potential"],
+    #     target_dir=job_abs_dir
+    # )
+    # if meam_model:
+    #     ti_settings['meam_model'].update(dct2)
+
+    # link_file_dict = {}
+    # link_file_dict.update(dct1)
+    # link_file_dict.update(dct2)
 
 
     # copied_conf = os.path.join(os.path.abspath(iter_name), 'conf.lmp')
@@ -204,9 +207,24 @@ def make_tasks(iter_name, jdata, if_meam=None):
         task_dir = os.path.join(job_abs_dir, 'task.%06d' % ii)
         task_abs_dir = create_path(task_dir)
         # os.chdir(work_path)
-        for file in list(link_file_dict.values()):
-            file_path = os.path.join(job_abs_dir, file)
-            relative_link_file(file_path, task_abs_dir)
+
+        # equi_conf = equi_settings['equi_conf']
+        relative_link_file(equi_conf, task_abs_dir)
+        # equi_settings['equi_conf'] = os.path.basename(equi_conf)
+
+        # model = equi_settings['model']
+        if model:
+            relative_link_file(model, task_abs_dir)
+            # equi_settings['model'] = os.path.basename(model)
+
+        # meam_model = equi_settings['meam_model']
+        if meam_model:
+            relative_link_file(meam_model['library'], task_abs_dir)
+            relative_link_file(meam_model['potential'], task_abs_dir)
+
+        # for file in list(link_file_dict.values()):
+        #     file_path = os.path.join(job_abs_dir, file)
+        #     relative_link_file(file_path, task_abs_dir)
             # os.symlink()
         # os.symlink(os.path.relpath(copied_conf), 'conf.lmp')
         # os.symlink(os.path.relpath(linked_model), 'graph.pb')
@@ -218,14 +236,14 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     nsteps, 
                                     timestep,
                                     ens,
-                                    temps[ii],
+                                    temp_seq[ii],
                                     tau_t = tau_t,
                                     thermo_freq = thermo_freq, 
                                     copies = copies,
                                     if_meam=if_meam,
                                     meam_model=meam_model
                                     )
-            thermo_out = temps[ii]
+            thermo_out = temp_seq[ii]
             # with open('thermo.out', 'w') as fp :
             #     fp.write('%f' % temps[ii])
         elif 'npt' in ens and (path == 't' or path == 't-ginv'):
@@ -236,8 +254,8 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     nsteps, 
                                     timestep,
                                     ens,
-                                    temps[ii],
-                                    press,
+                                    temp_seq[ii],
+                                    pres,
                                     tau_t = tau_t,
                                     tau_p = tau_p,
                                     thermo_freq = thermo_freq, 
@@ -245,7 +263,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     if_meam=if_meam,
                                     meam_model=meam_model
                                     )
-            thermo_out = temps[ii]
+            thermo_out = temp_seq[ii]
             # with open('thermo.out', 'w') as fp :
             #     fp.write('%f' % (temps[ii]))
         elif 'npt' in ens and path == 'p' :
@@ -256,8 +274,8 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     nsteps, 
                                     timestep,
                                     ens,
-                                    temps,
-                                    press[ii],
+                                    temp,
+                                    pres_seq[ii],
                                     tau_t = tau_t,
                                     tau_p = tau_p,
                                     thermo_freq = thermo_freq, 
@@ -265,7 +283,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     if_meam=if_meam,
                                     meam_model=meam_model
                                 )
-            thermo_out = press[ii]
+            thermo_out = pres_seq[ii]
         else:
             raise RuntimeError('invalid ens or path setting' )
         
