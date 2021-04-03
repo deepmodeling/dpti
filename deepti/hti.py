@@ -299,7 +299,7 @@ def _gen_lammps_input (conf_file,
                        pres = 1.0, 
                        tau_t = 0.1,
                        tau_p = 0.5,
-                       prt_freq = 100, 
+                       thermo_freq = 100, 
                        copies = None,
                        crystal = 'vega', 
                        sparam = {},
@@ -311,8 +311,8 @@ def _gen_lammps_input (conf_file,
     ret += 'clear\n'
     ret += '# --------------------- VARIABLES-------------------------\n'
     ret += 'variable        NSTEPS          equal %d\n' % nsteps
-    ret += 'variable        THERMO_FREQ     equal %d\n' % prt_freq
-    ret += 'variable        DUMP_FREQ       equal %d\n' % prt_freq
+    ret += 'variable        THERMO_FREQ     equal %d\n' % thermo_freq
+    ret += 'variable        DUMP_FREQ       equal %d\n' % thermo_freq
     ret += 'variable        TEMP            equal %f\n' % temp
     ret += 'variable        PRES            equal %f\n' % pres
     ret += 'variable        TAU_T           equal %f\n' % tau_t
@@ -576,7 +576,7 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
         m_spring_k = []
         for ii in mass_map :
             m_spring_k.append(spring_k * ii)
-    stat_freq = jdata['stat_freq']
+    thermo_freq = jdata['thermo_freq']
     copies = None
     if 'copies' in jdata :
         copies = jdata['copies']
@@ -642,7 +642,7 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
                                     timestep,
                                     ens,
                                     temp,
-                                    prt_freq = stat_freq, 
+                                    thermo_freq = thermo_freq, 
                                     copies = copies,
                                     switch = switch,
                                     step = step,
