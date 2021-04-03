@@ -6,7 +6,7 @@ import scipy.constants as pc
 import pymbar
 
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
-# from .einstein import free_energy
+from deepti.einstein import free_energy, frenkel
 from deepti.lib.utils import create_path, relative_link_file
 from deepti.lib.utils import copy_file_list
 from deepti.lib.utils import block_avg
@@ -1079,9 +1079,9 @@ def compute_task(job, free_energy_type='helmholtz', method='inte', scheme='simps
     if 'reference' not in jdata:
         jdata['reference'] = 'einstein'
     if jdata['crystal'] == 'vega':
-        e0 = einstein.free_energy(job)
+        e0 = free_energy(job)
     if jdata['crystal'] == 'frenkel':
-        e0 = einstein.frenkel(job)
+        e0 = frenkel(job)
     de, de_err, thermo_info = post_tasks(job, jdata, method=method, scheme=scheme)
     # printing
     print_format = '%20.12f  %10.3e  %10.3e'

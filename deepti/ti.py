@@ -230,13 +230,14 @@ def make_tasks(iter_name, jdata, if_meam=None):
         # os.symlink(os.path.relpath(linked_model), 'graph.pb')
         if 'nvt' in ens and path == 't' :
             lmp_str \
-                = _gen_lammps_input('conf.lmp',
+                = _gen_lammps_input(os.path.basename(equi_conf),
                                     mass_map, 
                                     model,
                                     nsteps, 
                                     timestep,
                                     ens,
                                     temp_seq[ii],
+                                    pres=pres,
                                     tau_t = tau_t,
                                     thermo_freq = thermo_freq, 
                                     copies = copies,
@@ -248,9 +249,9 @@ def make_tasks(iter_name, jdata, if_meam=None):
             #     fp.write('%f' % temps[ii])
         elif 'npt' in ens and (path == 't' or path == 't-ginv'):
             lmp_str \
-                = _gen_lammps_input('conf.lmp',
+                = _gen_lammps_input(os.path.basename(equi_conf),
                                     mass_map, 
-                                    'graph.pb',
+                                    model,
                                     nsteps, 
                                     timestep,
                                     ens,
@@ -268,9 +269,9 @@ def make_tasks(iter_name, jdata, if_meam=None):
             #     fp.write('%f' % (temps[ii]))
         elif 'npt' in ens and path == 'p' :
             lmp_str \
-                = _gen_lammps_input('conf.lmp',
+                = _gen_lammps_input(os.path.basename(equi_conf),
                                     mass_map, 
-                                    'graph.pb',
+                                    model,
                                     nsteps, 
                                     timestep,
                                     ens,
