@@ -34,7 +34,6 @@ import subprocess as sp
 
 #     dag_work_dir=os.path.join(work_base_abs_dir, dag_work_dirname)
 #     return dag_work_dir
-
 def get_empty_submission(job_work_dir):
     context = get_current_context()
     dag_run = context['params']
