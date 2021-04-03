@@ -61,7 +61,7 @@ def all_start_check():
     dag_run = context['params']
     work_base_dir = dag_run['work_base_dir']
     target_temp = int(dag_run['target_temp'])
-    target_press = int(dag_run['target_press'])
+    target_pres = int(dag_run['target_pres'])
     conf_lmp = str(dag_run['conf_lmp'])
     ti_path = str(dag_run['ti_path'])
     ens = str(dag_run['ens'])
@@ -72,7 +72,7 @@ def all_start_check():
     work_base_abs_dir = os.path.realpath(work_base_dir)
 
     # dag_work_folder=str(tar_temp)+'K-'+str(tar_press)+'bar-'+str(conf_lmp)
-    dag_work_dirname=str(target_temp)+'K-'+str(target_press)+'bar-'+str(conf_lmp)
+    dag_work_dirname=str(target_temp)+'K-'+str(target_pres)+'bar-'+str(conf_lmp)
     dag_work_dir=os.path.join(work_base_abs_dir, dag_work_dirname)
     
     # dag_work_dir=os.path.join(work_base_dir, dag_work_folder)
@@ -91,7 +91,8 @@ def all_start_check():
     else:
         pass
 
-    assert os.path.isfile(conf_lmp) is True,  f'structure file {equi_conf} must exist'
+    conf_lmp_abs_path = os.path.join(work_base_abs_dir, conf_lmp)
+    assert os.path.isfile(conf_lmp_abs_path) is True,  f'structure file {conf_lmp_abs_path} must exist'
     assert str(ti_path) in ["t", "p"], f'value for "path" must be "t" or "p" '
     # assert type(if_meam) is bool
     # if path == "t": ti_begin_temp = dag_run['tar_temp'] 
@@ -99,20 +100,21 @@ def all_start_check():
     
     start_info = dict(work_base_dir=work_base_dir, 
         target_temp=target_temp,
-        target_press=target_press, 
+        target_pres=target_pres, 
         conf_lmp=conf_lmp, 
         ti_path=ti_path,
         ens=ens, 
         if_liquid=if_liquid, 
         work_base_abs_dir=work_base_abs_dir,
-        dag_work_abs_dir=dag_work_dir)
+        dag_work_dir=dag_work_dir)
     return start_info
 
 @task()
 def NPT_start(start_info):
+    print(start_info)
     # dag_work_dir = get_dag_work_dir(context=get_current_context())
-    work_base_abs_dir = start_info.get('work_base_abs_dir')
-    dag_work_dir = start_info.get('dag_work_dir')
+    work_base_abs_dir = start_info['work_base_abs_dir']
+    dag_work_dir = start_info['dag_work_dir']
     job_work_dir = os.path.join(dag_work_dir, 'NPT_sim', 'new_job')
 
     result_json_file = os.path.join(job_work_dir, 'result.json')
@@ -123,13 +125,16 @@ def NPT_start(start_info):
         npt_jdata = json.load(f)
 
     task_jdata = npt_jdata.copy()
-    task_jdata['conf_lmp'] = start_info['conf_lmp']
-    task_jdata['model'] = start_info['model']
+    task_jdata['equi_conf'] = start_info['conf_lmp']
     task_jdata['temp'] = start_info['target_temp']
-    task_jdata['pres'] = start_info['target_press']
+    task_jdata['pres'] = start_info['target_pres']
     task_jdata['ens'] = start_info['ens']
+    print(task_jdata)
     # task_jdata['if_meam'] = start_info['if_meam']
+    cwd = os.getcwd()
+    os.chdir(work_base_abs_dir)
     equi.make_task(job_work_dir, task_jdata)
+    os.chdir(cwd)
     return job_work_dir
 
 
@@ -154,14 +159,18 @@ def NPT_end(job_work_dir):
     return info
 
 @task()
-def NVT_start(start_info, *, conf_lmp=None):
+def NVT_start(start_info, *, NPT_end_info):
     # print(NVT_start_dict)
     #    work_base_dir = start_info['work_base_dir']
     # dag_work_dir = get_dag_work_dir(context=get_current_context())
 
+    print('NPT_end_info', NPT_end_info)
+    npt_dir = NPT_end_info['job_dir']
+    print('debug', npt_dir)
+    
     work_base_abs_dir = start_info.get('work_base_abs_dir')
     dag_work_dir = start_info.get('dag_work_dir')
-    job_work_dir = os.path.join(dag_work_dir, 'NPT_sim', 'new_job')
+    job_work_dir = os.path.join(dag_work_dir, 'NVT_sim', 'new_job')
 
     result_json_file = os.path.join(job_work_dir, 'result.json')
     if os.path.isfile(result_json_file):
@@ -171,15 +180,20 @@ def NVT_start(start_info, *, conf_lmp=None):
         nvt_jdata = json.load(f)
 
     task_jdata = nvt_jdata.copy()
-    if conf_lmp is not None:
-        task_jdata['conf_lmp'] = conf_lmp
-    else:
-        task_jdata['conf_lmp'] = start_info['conf_lmp']
+    # if npt_name is not None:
+   #      task_jdata['equi_conf'] = conf_lmp
+   #  else:
+   #      task_jdata['equi_conf'] = start_info['conf_lmp']
     task_jdata['temp'] = start_info['target_temp']
     task_jdata['pres'] = start_info['target_pres']
-    assert task_jdata['ens'] == 'nvt', task_jdata
-
-    equi.make_task(job_work_dir, task_jdata)
+    # assert task_jdata['ens'] == 'nvt', task_jdata
+    task_jdata['ens'] = 'nvt' 
+    print('debug', npt_dir)
+    
+    cwd = os.getcwd()
+    os.chdir(work_base_abs_dir)
+    equi.make_task(job_work_dir, task_jdata, npt_dir=npt_dir)
+    os.chdir(cwd)
     return job_work_dir
 
 @task(trigger_rule='none_failed_or_skipped')
@@ -202,10 +216,11 @@ def NVT_end(job_work_dir):
     return info
 
 @task()
-def HTI_start(start_info, *, conf_lmp=None):
+def HTI_start(start_info, *, NVT_end_info={}):
     work_base_abs_dir = start_info['work_base_abs_dir']
     dag_work_dir = start_info['dag_work_dir']
     if_liquid = start_info['if_liquid']
+    conf_lmp = NVT_end_info.get('out_lmp', None)
 
     job_work_dir = os.path.join(dag_work_dir, 'HTI_sim', 'new_job')
     if os.path.isfile(os.path.join(dag_work_dir, 'HTI_sim', 'new_job', 'result.json')):
@@ -222,17 +237,20 @@ def HTI_start(start_info, *, conf_lmp=None):
     # task_jdata['equi_conf'] = "../NVT_sim/new_job/out.lmp"
     # task_jdata['equi_conf'] = os.path.join(start_info['dag_work_dir'], 'NVT_sim', 'new_job', 'out.lmp')
     if conf_lmp is not None:
-        task_jdata['conf_lmp'] = os.path.join(conf_lmp)
+        task_jdata['equi_conf'] = conf_lmp
     else:
-        task_jdata['conf_lmp'] = start_info['conf_lmp']
+        task_jdata['equi_conf'] = start_info['conf_lmp']
 
     task_jdata['temp'] = start_info['target_temp']
     task_jdata['pres'] = start_info['target_pres']
 
+    cwd = os.getcwd()
+    os.chdir(work_base_abs_dir)
     if if_liquid:
         hti_liq.make_tasks(iter_name=job_work_dir, jdata=task_jdata)
     else:
         hti.make_tasks(iter_name=job_work_dir, jdata=task_jdata, ref='einstein', switch='three-step')
+    os.chdir(cwd)
     return job_work_dir
 
 @task()
@@ -253,10 +271,12 @@ def HTI_sim(job_work_dir):
 @task()
 def HTI_end(job_work_dir,
     start_info,
-    manual_pv=None, 
-    manual_pv_err=None
+    NPT_end_info={}
 ):
     if_liquid = start_info['if_liquid']
+    manual_pv = NPT_end_info.get('pv')
+    manual_pv_err = NPT_end_info.get('pv_err')
+
     result_file_path = os.path.join(job_work_dir, 'result.json')
     if os.path.isfile(result_file_path):
         info = json.load(open(result_file_path, 'r'))
@@ -283,6 +303,8 @@ def TI_start(start_info, *, HTI_end_info=None):
     dag_work_dir = start_info['dag_work_dir']
 
     ti_path = start_info['ti_path']
+    conf_lmp = start_info['conf_lmp']
+
     if ti_path == 't':
         with open(os.path.join(work_base_abs_dir, 'ti.t.json')) as j:
             ti_jdata = json.load(j)
@@ -301,7 +323,12 @@ def TI_start(start_info, *, HTI_end_info=None):
     job_work_dir = os.path.join(dag_work_dir, job_dir, 'new_job')
     task_jdata['model'] = start_info['model']
     task_jdata['ens'] = start_info['ens']
+    task_jdata['equi_conf'] = conf_lmp
+
+    cwd = os.getcwd()
+    os.chdir(work_base_abs_dir)
     ti.make_tasks(job_work_dir, task_jdata)
+    os.chdir(cwd)
     return job_work_dir
 
 @task()
@@ -363,17 +390,19 @@ def TI_taskflow():
     start_info = all_start_check()
     NPT_end_info = NPT_end(
         NPT_sim(NPT_start(start_info=start_info)))
+   
+    # print(NPT_end_info)
+    # print(NPT_end_info['job_dir'])
+    # npt_dir = NPT_end_info['job_dir']
 
     NVT_end_info = NVT_end(NVT_sim(NVT_start(
-        start_info=start_info, 
-        conf_lmp=NPT_end_info['out_lmp'])))
+        start_info=start_info, NPT_end_info=NPT_end_info)))
 
     HTI_end_info = HTI_end(HTI_sim(HTI_start(
             start_info=start_info, 
-            conf_lmp=NVT_end_info['out_lmp'])),
+            NVT_end_info=NVT_end_info)),
         start_info=start_info,
-        manual_pv=NPT_end_info['pv'],
-        manual_pv_err=NPT_end_info['pv_err'])
+        NPT_end_info=NPT_end_info)
 
     TI_end_info = TI_end(TI_sim(TI_start(
         start_info=start_info, 
