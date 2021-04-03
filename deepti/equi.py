@@ -260,11 +260,12 @@ def gen_equi_lammps_input(nsteps,
 #     ret += 'write_data      out.lmp\n'
 #     return ret
 
-def npt_equi_conf(npt_name) :
-    thermo_file = os.path.join(npt_name, 'log.lammps')
-    dump_file = os.path.join(npt_name, 'dump.equi')
-    j_file = os.path.join(npt_name, 'in.json')
-    jdata = json.load(open(j_file))
+def npt_equi_conf(npt_dir) :
+    thermo_file = os.path.join(npt_dir, 'log.lammps')
+    dump_file = os.path.join(npt_dir, 'dump.equi')
+    j_file = os.path.join(npt_dir, 'equi_settings.json')
+    with open(j_file, 'r') as f:
+        jdata = json.load(f)
     stat_skip = jdata['stat_skip']
     stat_bsize = jdata['stat_bsize']
 
@@ -275,7 +276,7 @@ def npt_equi_conf(npt_name) :
     xy, xye = block_avg(data[:,11], skip = stat_skip, block_size = stat_bsize)
     xz, xze = block_avg(data[:,12], skip = stat_skip, block_size = stat_bsize)
     yz, yze = block_avg(data[:,13], skip = stat_skip, block_size = stat_bsize)
-    print('~~~', lx , ly, lz , xy, xz, yz)
+    # print('~~~', lx , ly, lz , xy, xz, yz)
     
     last_dump = get_last_dump(dump_file).split('\n')
     sys_data = system_data(last_dump)
@@ -311,25 +312,33 @@ def extract(job_dir, output) :
         f.write(conf_lmp)
     # open(output, 'w').write(conf_lmp)
 
-def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi=None, equi_conf=None):
+def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi=None, npt_dir=None):
     # jfile_path = os.path.abspath(jfile)
     # with open(jfile, 'r') as f:
     #     jdata = json.load(f)
     task_abs_dir = create_path(iter_name)
     equi_cli_settings = {}
-    for k in ['ens', 'temp', 'pres', 'if_dump_avg_posi', 'equi_conf']:
+    for k in ['ens', 'temp', 'pres', 'if_dump_avg_posi']:
         if eval(k) is None:
             assert k in jdata, f"kv-pair:{k} must in jdata:{jdata}"
         else:
             equi_cli_settings[k] = eval(k)
-    
+
+    if npt_dir is not None:
+        equi_cli_settings['npt_dir'] = npt_dir
 
     equi_settings = jdata.copy()
     equi_settings.update(equi_cli_settings)
 
-    equi_conf = equi_settings['equi_conf']
-    relative_link_file(equi_conf, task_abs_dir)
-    equi_settings['equi_conf'] = os.path.basename(equi_conf)
+    if npt_dir is not None:
+        npt_avg_conf_lmp = npt_equi_conf(npt_dir)
+        with open(os.path.join(task_abs_dir, 'npt_avg.lmp'), 'w') as f:
+            f.write(npt_avg_conf_lmp)
+        equi_settings['equi_conf'] = 'npt_avg.lmp'
+    else:
+        equi_conf = equi_settings['equi_conf']
+        relative_link_file(equi_conf, task_abs_dir)
+        equi_settings['equi_conf'] = os.path.basename(equi_conf)
 
     model = equi_settings['model']
     if model:
@@ -341,52 +350,6 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi
     if if_meam:
         relative_link_file(meam_model['library'], task_abs_dir)
         relative_link_file(meam_model['potential'], task_abs_dir)
-
-
-    # for k in ['iter_name']:
-    #     if equi_cli_settings.get(k, None):
-    #         equi_settings[k] = os.path.abspath(equi_cli_settings[k])
-    #     else:
-    #         equi_settings[k] = os.path.abspath(jdata[k])
-
-
-    # link_file_key_list = ["equi_conf", ]
-
-    # dct1 = link_file_in_dict(
-    #     dct=jdata,
-    #     key_list=["equi_conf", "model"],
-    #     target_dir=task_abs_dir
-    # )
-    # equi_settings.update(dct1)
-
-    # meam_model = jdata.get('meam_model', None)
-    # dct2 = link_file_in_dict(
-    #     dct=meam_model,
-    #     key_list=["library", "potential"],
-    #     target_dir=task_abs_dir
-    # )
-    # equi_settings['meam_model'].update(dct2)
-    # for k in ["equi_conf", "model"]:
-    #     file_path = jdata.get(k, None)
-    #     if file_path is not None:
-    #         target_linkfile_path = relative_link_file(
-    #             file_path=file_path,
-    #             target_abs_dir=task_abs_dir
-    #         )
-    #         v = os.path.basename(target_linkfile_path)
-    #         equi_settings[k] = v
-
-    # meam_model = jdata.get('meam_model', None)
-    # if meam_model:
-    #     for k in ["library", "potential"]:
-    #         file_path = meam_model.get(k, None)
-    #         if file_path is not None:
-    #             target_linkfile_path = relative_link_file(
-    #                 file_path=file_path,
-    #                 target_abs_dir=task_abs_dir
-    #             )
-    #             v = os.path.basename(target_linkfile_path)
-    #             meam_model[k] = v
 
 
     with open(os.path.join(task_abs_dir, 'jdata.json'), 'w') as f:
@@ -572,6 +535,7 @@ def post_task(iter_name, natoms = None, is_water = False) :
     info_dict = info.copy()
     out_lmp = os.path.abspath(os.path.join(iter_name, 'out.lmp'))
     info_dict['out_lmp'] = out_lmp
+    info_dict['job_dir'] = iter_name
 
     with open(os.path.join(iter_name, 'result'), 'w') as f:
         f.write(ptr)
