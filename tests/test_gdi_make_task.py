@@ -40,6 +40,7 @@ class TestGdiMakeTask(unittest.TestCase):
 
         check_file_list = [ 
             'graph.pb',
+            'conf.lmp',
             'in.lammps'
         ]
         for file in check_file_list:
