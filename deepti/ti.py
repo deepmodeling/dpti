@@ -5,7 +5,7 @@ import numpy as np
 import scipy.constants as pc
 import pymbar
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
+# sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 from deepti.lib.utils import create_path, relative_link_file
 from deepti.lib.utils import copy_file_list
 from deepti.lib.utils import block_avg
@@ -196,6 +196,13 @@ def make_tasks(iter_name, jdata, if_meam=None):
 
     # cwd = os.getcwd()
     # os.chdir(iter_name)
+    relative_link_file(equi_conf, job_abs_dir)
+    if model:
+        relative_link_file(model, job_abs_dir)
+    if if_meam:
+        relative_link_file(meam_model['library'], job_abs_dir)
+        relative_link_file(meam_model['potential'], job_abs_dir)
+
     with open(os.path.join(job_abs_dir, 
         'ti_settings.json'), 'w') as fp:
         json.dump(ti_settings, fp, indent=4)
@@ -208,17 +215,10 @@ def make_tasks(iter_name, jdata, if_meam=None):
         task_abs_dir = create_path(task_dir)
         # os.chdir(work_path)
 
-        # equi_conf = equi_settings['equi_conf']
         relative_link_file(equi_conf, task_abs_dir)
-        # equi_settings['equi_conf'] = os.path.basename(equi_conf)
-
-        # model = equi_settings['model']
         if model:
             relative_link_file(model, task_abs_dir)
-            # equi_settings['model'] = os.path.basename(model)
-
-        # meam_model = equi_settings['meam_model']
-        if meam_model:
+        if if_meam:
             relative_link_file(meam_model['library'], task_abs_dir)
             relative_link_file(meam_model['potential'], task_abs_dir)
 
@@ -230,13 +230,14 @@ def make_tasks(iter_name, jdata, if_meam=None):
         # os.symlink(os.path.relpath(linked_model), 'graph.pb')
         if 'nvt' in ens and path == 't' :
             lmp_str \
-                = _gen_lammps_input('conf.lmp',
+                = _gen_lammps_input(os.path.basename(equi_conf),
                                     mass_map, 
                                     model,
                                     nsteps, 
                                     timestep,
                                     ens,
                                     temp_seq[ii],
+                                    pres=pres,
                                     tau_t = tau_t,
                                     thermo_freq = thermo_freq, 
                                     copies = copies,
@@ -248,9 +249,9 @@ def make_tasks(iter_name, jdata, if_meam=None):
             #     fp.write('%f' % temps[ii])
         elif 'npt' in ens and (path == 't' or path == 't-ginv'):
             lmp_str \
-                = _gen_lammps_input('conf.lmp',
+                = _gen_lammps_input(os.path.basename(equi_conf),
                                     mass_map, 
-                                    'graph.pb',
+                                    model,
                                     nsteps, 
                                     timestep,
                                     ens,
@@ -268,9 +269,9 @@ def make_tasks(iter_name, jdata, if_meam=None):
             #     fp.write('%f' % (temps[ii]))
         elif 'npt' in ens and path == 'p' :
             lmp_str \
-                = _gen_lammps_input('conf.lmp',
+                = _gen_lammps_input(os.path.basename(equi_conf),
                                     mass_map, 
-                                    'graph.pb',
+                                    model,
                                     nsteps, 
                                     timestep,
                                     ens,
@@ -355,7 +356,7 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's
             all_temps.append(array_t[ii])
             err = 0
             sys_err = 0
-            all_press.append(jdata['press'])
+            all_press.append(jdata['pres'])
             all_fe.append(e1)
             all_fe_err.append(err)
             all_fe_sys_err.append(sys_err)
@@ -378,11 +379,11 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's
             sys_err *= all_t[ii]
             all_temps.append(all_t[ii])
             if 'npt' in ens :
-                all_press.append(jdata['press'])
+                all_press.append(jdata['pres'])
         elif path == 'p':
             e1 = Eo + diff_e        
             err = np.sqrt(np.square(Eo_err) + np.square(err))
-            all_temps.append(jdata['temps'])
+            all_temps.append(jdata['temp'])
             all_press.append(all_t[ii])
         all_fe.append(e1)
         all_fe_err.append(err)
@@ -648,13 +649,13 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms = None) :
             sys_err = 0
             all_temps.append(all_t[ii])
             if 'npt' in ens :
-                all_press.append(jdata['press'])
+                all_press.append(jdata['pres'])
         elif path == 'p':
             kt_in_ev = jdata['temps'] * pc.Boltzmann / pc.electron_volt
             e1 = Eo + Deltaf_ij[0,ii] * kt_in_ev
             err = dDeltaf_ij[0,ii] * kt_in_ev
             sys_err = 0
-            all_temps.append(jdata['temps'])
+            all_temps.append(jdata['temp'])
             all_press.append(all_t[ii])            
         else :
             pass
@@ -753,11 +754,12 @@ def refine_task (from_task, to_task, err) :
             
 def compute_task(job, inte_method, Eo, Eo_err, To, scheme='simpson'):
     # job = args.JOB
-    jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
+    with open(os.path.join(job, 'ti_settings.json'), 'r') as f:
+        jdata = json.load(f)
     if inte_method == 'inte' :
         info = post_tasks(job, jdata, Eo=Eo, Eo_err=Eo_err, To=To, scheme=scheme)
     elif inte_method == 'mbar' :
-        info = post_tasks_mbar(job, jdata, args.Eo)
+        post_tasks_mbar(job, jdata, Eo)
     else :
         raise RuntimeError('unknow integration method')
     

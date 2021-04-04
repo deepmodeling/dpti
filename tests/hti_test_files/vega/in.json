@@ -31,7 +31,7 @@
     ],
     "protect_eps": 1e-06,
     "model": "graph.pb",
-    "model_mass_map": [
+    "mass_map": [
         118.71
     ],
     "spring_k": 0.02,
@@ -47,8 +47,8 @@
     "crystal": "frenkel",
     "langevin": true,
     "nsteps": 500000,
-    "dt": 0.002,
-    "stat_freq": 10,
+    "timestep": 0.002,
+    "thermo_freq": 10,
     "stat_skip": 10000,
     "stat_bsize": 500,
     "temp": 400,

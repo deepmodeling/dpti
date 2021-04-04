@@ -1,5 +1,5 @@
 {
-    "equi_conf": "conf.lmp",
+    "equi_conf": null,
     "ncopies": [
         1,
         1,
@@ -32,21 +32,21 @@
     ],
     "spring_k": 0.02,
     "soft_param": {
-        "sigma_0_0": 2.493672,
-        "epsilon": 0.03,
+        "sigma_0_0": 2.7,
+        "epsilon": 0.030,
         "activation": 0.5,
-        "n": 1,
+        "n": 1.0,
         "alpha_lj": 0.5,
-        "rcut": 6
+        "rcut": 6.0,
+        "_comment": "that's all"
     },
     "crystal": "frenkel",
     "langevin": true,
-    "nsteps": 500000,
+    "nsteps": 5000,
     "timestep": 0.002,
     "thermo_freq": 10,
-    "stat_skip": 10000,
-    "stat_bsize": 500,
-    "temp": 400,
-    "if_meam": false,
-    "meam_model": {}
+    "stat_skip": 100,
+    "stat_bsize": 10,
+    "temp": null,
+    "if_meam": false
 }

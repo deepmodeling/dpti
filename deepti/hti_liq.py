@@ -4,7 +4,7 @@ import os, sys, json, argparse, glob, shutil
 import numpy as np
 import scipy.constants as pc
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
+# sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 from deepti import einstein
 import deepti.lib.lmp as lmp
 from deepti.lib.utils import create_path, relative_link_file
@@ -117,7 +117,7 @@ def _gen_lammps_input_ideal (step,
                              soft_param,
                              model,
                              nsteps,
-                             dt,
+                             timestep,
                              ens,
                              temp,
                              pres = 1.0, 
@@ -163,7 +163,7 @@ def _gen_lammps_input_ideal (step,
         raise RuntimeError('unknown step')
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
     ret += 'neighbor        1.0 bin\n'
-    ret += 'timestep        %s\n' % dt
+    ret += 'timestep        %s\n' % timestep
     ret += 'compute         allmsd all msd\n'
     ret += 'thermo          ${THERMO_FREQ}\n'
     ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_diff[1] c_allmsd[*]\n'

@@ -22,7 +22,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="",
     python_requires=">3.7",
-    packages=['deepti'],
+    packages=['deepti', 'deepti/lib'],
     classifiers=[
         "Programming Language :: Python :: 3.7",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
