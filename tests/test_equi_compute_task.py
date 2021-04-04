@@ -35,6 +35,16 @@ class TestEquiMakeTask(unittest.TestCase):
             f2 = os.path.join(test_dir, file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2))
 
+    def test_get_npt_avg_conf(self):
+        npt_name = os.path.join(self.benchmark_dir, 'npt')
+        # test_dir = os.path.join(self.test_dir, 'get_npt_avg_conf')
+        npt_avg_conf_lmp = deepti.equi.npt_equi_conf(npt_name)
+        f2 = os.path.join(self.test_dir, 'npt_avg.lmp')
+        with open(f2, 'w') as f:
+            f.write(npt_avg_conf_lmp)
+        f1 = os.path.join(npt_name, 'npt_avg.lmp')
+        self.assertEqual(get_file_md5(f1), get_file_md5(f2))
+
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree('tmp_equi_log/')

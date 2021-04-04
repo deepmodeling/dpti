@@ -1,0 +1,53 @@
+{
+  "equi_conf": null,
+  "ncopies": [
+    1,
+    1,
+    1
+  ],
+  "lambda_soft_on": [
+    "0.000:0.030:0.003",
+    "0.030:0.060:0.005",
+    "0.060:0.160:0.010",
+    "0.160:0.300:0.020",
+    "0.300:1.000:0.050",
+    "1"
+  ],
+  "lambda_deep_on": [
+    "0.00:0.006:0.002",
+    "0.006:0.03:0.004",
+    "0.03:0.16:0.01",
+    "0.16:0.40:0.03",
+    "0.40:1.00:0.06",
+    "1"
+  ],
+  "lambda_soft_off": [
+    "0.000:0.750:0.125",
+    "0.750:0.900:0.050",
+    "0.900:1.000:0.010",
+    "1"
+  ],
+  "protect_eps": 1e-8,
+  "model": "graph.pb",
+  "mass_map": [
+    118.71
+  ],
+  "spring_k": 0.02,
+  "soft_param": {
+    "sigma_0_0": 2.70,
+    "epsilon": 0.010,
+    "activation": 0.5,
+    "n": 1,
+    "alpha_lj": 0.5,
+    "rcut": 6,
+    "_comment": "that's all"
+  },
+  "crystal": "frenkel",
+  "langevin": true,
+  "nsteps": 5000,
+  "timestep": 0.002,
+  "thermo_freq": 10,
+  "stat_skip": 100,
+  "stat_bsize": 10,
+  "temp": null,
+}

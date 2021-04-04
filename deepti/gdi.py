@@ -5,11 +5,12 @@ import numpy as np
 import scipy.constants as pc
 
 from scipy.integrate import solve_ivp
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
+# sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 from deepti.lib.utils import create_path, relative_link_file
 from deepti.lib.utils import block_avg
 from deepti.lib.lammps import get_natoms
-from deepti import ti
+from deepti.ti import _gen_lammps_input
+# from deepti import ti
 # from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
 # from dpgen.dispatcher.Dispatcher import Dispatcher
 try:
@@ -63,7 +64,7 @@ def _make_tasks_onephase(temp,
                          if_meam=False,
                          meam_model=None):
     # assume that model and conf.lmp exist in the current dir
-    assert(os.path.isfile(conf_file), (conf_file, os.getcwd()))
+    assert os.path.isfile(conf_file), (conf_file, os.getcwd())
     # assert(os.path.isfile(graph_file))
     conf_file = os.path.abspath(conf_file)
     if graph_file:
@@ -88,7 +89,7 @@ def _make_tasks_onephase(temp,
         if not os.path.exists('graph.pb'):
             os.symlink(os.path.relpath(graph_abs_file), 'graph.pb')
 
-    if meam_model:
+    if if_meam:
         relative_link_file(meam_model['library_abs_path'], './')
         relative_link_file(meam_model['potential_abs_path'], './')
         # meam_library_basename = os.path.basename(meam_model['library'])
@@ -98,7 +99,7 @@ def _make_tasks_onephase(temp,
     
     # input for NPT MD
     lmp_str \
-        = ti._gen_lammps_input('conf.lmp',
+        = _gen_lammps_input('conf.lmp',
                                mass_map, 
                                graph_file,
                                nsteps, 
@@ -160,7 +161,7 @@ def make_dpdt (temp,
                meam_model=None) :
     assert(os.path.isdir(task_path))    
 
-    if meam_model:
+    if if_meam:
         meam_model['library_abs_path'] = os.path.abspath(meam_model['library'])
         meam_model['potential_abs_path'] = os.path.abspath(meam_model['potential'])
         # relative_link_file(), task_path)
@@ -253,7 +254,7 @@ def make_dpdt (temp,
         # lmp_exec = mdata['command']
         # command = lmp_exec + " -i in.lammps"
         forward_files = ['conf.lmp', 'in.lammps', 'graph.pb']
-        if meam_model:
+        if if_meam:
             meam_library_basename = os.path.basename(meam_model['library'])
             meam_potential_basename = os.path.basename(meam_model['potential'])
             forward_files.extend([meam_library_basename, meam_potential_basename])
