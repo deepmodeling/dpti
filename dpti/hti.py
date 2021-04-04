@@ -6,18 +6,18 @@ import scipy.constants as pc
 import pymbar
 
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
-from deepti.einstein import free_energy, frenkel
-from deepti.lib.utils import create_path, relative_link_file
-from deepti.lib.utils import copy_file_list
-from deepti.lib.utils import block_avg
-from deepti.lib.utils import integrate_range
-from deepti.lib.utils import integrate_range_hti
+from dpti.einstein import free_energy, frenkel
+from dpti.lib.utils import create_path, relative_link_file
+from dpti.lib.utils import copy_file_list
+from dpti.lib.utils import block_avg
+from dpti.lib.utils import integrate_range
+from dpti.lib.utils import integrate_range_hti
 # from lib.utils import integrate_sys_err
-from deepti.lib.utils import compute_nrefine
-from deepti.lib.utils import parse_seq
-from deepti.lib.utils import get_task_file_abspath
-from deepti.lib.lammps import get_thermo
-from deepti.lib.lammps import get_natoms
+from dpti.lib.utils import compute_nrefine
+from dpti.lib.utils import parse_seq
+from dpti.lib.utils import get_task_file_abspath
+from dpti.lib.lammps import get_thermo
+from dpti.lib.lammps import get_natoms
 
 def make_iter_name (iter_index) :
     return "task_hti." + ('%04d' % iter_index)
@@ -1159,11 +1159,11 @@ def hti_phase_trans_analyze(job, jdata=None):
     msd_min = min(msd_all)
     msd_max = max(msd_all)
 
-    print('# deepti hti 00 log0')
+    print('# dpti hti 00 log0')
     print(log0)
-    print('# deepti hti 01 log1')
+    print('# dpti hti 01 log1')
     print(log1)
-    print('# deepti hti 02 log2')
+    print('# dpti hti 02 log2')
     print(log2)
     
     if msd_min < 20 and msd_max > 100:

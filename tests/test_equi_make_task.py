@@ -2,9 +2,9 @@ import os, json, shutil
 import numpy as np
 import unittest
 from unittest.mock import MagicMock, patch, PropertyMock
-from context import deepti
-from deepti.lib.utils import get_file_md5
-from deepti.equi import make_task
+from context import dpti
+from dpti.lib.utils import get_file_md5
+from dpti.equi import make_task
 
 class TestEquiMakeTask(unittest.TestCase):
     @classmethod
@@ -26,7 +26,7 @@ class TestEquiMakeTask(unittest.TestCase):
         json_file = os.path.join(benchmark_dir, 'jdata.json')
         with open(json_file) as f:
             jdata = json.load(f)
-        deepti.equi.make_task(iter_name=test_dir, jdata=jdata)
+        dpti.equi.make_task(iter_name=test_dir, jdata=jdata)
         check_file_list = ['in.lammps',  
             'conf.lmp',  'graph.pb']
         for file in check_file_list:
@@ -44,7 +44,7 @@ class TestEquiMakeTask(unittest.TestCase):
         json_file = os.path.join(benchmark_dir, 'jdata.json')
         with open(json_file) as f:
             jdata = json.load(f)
-        deepti.equi.make_task(iter_name=test_dir, jdata=jdata)
+        dpti.equi.make_task(iter_name=test_dir, jdata=jdata)
         check_file_list = ['in.lammps', 'conf.lmp', 
             'Sn_18Metals.meam', 'library_18Metals.meam']
         for file in check_file_list:
@@ -62,7 +62,7 @@ class TestEquiMakeTask(unittest.TestCase):
         json_file = os.path.join(benchmark_dir, 'jdata.json')
         with open(json_file) as f:
             jdata = json.load(f)
-        deepti.equi.make_task(iter_name=test_dir, jdata=jdata)
+        dpti.equi.make_task(iter_name=test_dir, jdata=jdata)
         check_file_list = ['in.lammps',  
             'conf.lmp', 'graph.pb']
         for file in check_file_list:
@@ -82,7 +82,7 @@ class TestEquiMakeTask(unittest.TestCase):
         json_file = os.path.join(benchmark_dir, 'jdata.json')
         with open(json_file) as f:
             jdata = json.load(f)
-        deepti.equi.make_task(iter_name=test_dir, jdata=jdata, npt_dir=npt_dir)
+        dpti.equi.make_task(iter_name=test_dir, jdata=jdata, npt_dir=npt_dir)
 
         check_file_list = ['in.lammps',  
             'npt_avg.lmp', 'graph.pb']

@@ -1,9 +1,9 @@
 import os, textwrap
 import numpy as np
 import unittest
-from context import deepti
+from context import dpti
 from potential_common import soft_param, soft_param_three_element, meam_model
-from deepti.hti_liq import _ff_deep_on
+from dpti.hti_liq import _ff_deep_on
 
 class TestDeepOn(unittest.TestCase):
     def setUp(self):
@@ -120,5 +120,5 @@ class TestDeepOn(unittest.TestCase):
         # fix_modify      l_spring_1 energy yes
         # variable        l_spring equal f_l_spring_1
         # """)
-        # ret2 = deepti.hti._ff_spring(**input)
+        # ret2 = dpti.hti._ff_spring(**input)
         # self.assertEqual(ret1, ret2)

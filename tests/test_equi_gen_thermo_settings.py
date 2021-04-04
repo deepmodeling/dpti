@@ -1,7 +1,7 @@
 import os, textwrap
 import numpy as np
 import unittest
-from context import deepti
+from context import dpti
 
 class TestEquiThermoSetting(unittest.TestCase):
     def setUp(self) :
@@ -17,7 +17,7 @@ class TestEquiThermoSetting(unittest.TestCase):
         compute         allmsd all msd
         thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz c_allmsd[*]
         """)
-        ret2 = deepti.equi.gen_equi_thermo_settings(**input)
+        ret2 = dpti.equi.gen_equi_thermo_settings(**input)
         self.assertEqual(ret1, ret2)
 
 if __name__ == '__main__':

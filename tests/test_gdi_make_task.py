@@ -1,10 +1,10 @@
 import os, json, shutil
 import numpy as np
 import unittest
-from context import deepti
+from context import dpti
 from unittest.mock import MagicMock, patch, PropertyMock
-from deepti.lib.utils import get_file_md5
-from deepti.gdi import _make_tasks_onephase
+from dpti.lib.utils import get_file_md5
+from dpti.gdi import _make_tasks_onephase
 
 class TestGdiMakeTask(unittest.TestCase):
     @classmethod
@@ -27,7 +27,7 @@ class TestGdiMakeTask(unittest.TestCase):
         with open(json_file) as f:
             jdata = json.load(f)
 
-        deepti.gdi._make_tasks_onephase(
+        dpti.gdi._make_tasks_onephase(
             temp=300,
             pres=50000,
             task_path=test_dir,

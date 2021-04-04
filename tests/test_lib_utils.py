@@ -2,9 +2,9 @@ import os, textwrap
 import numpy as np
 import unittest
 import shutil
-from context import deepti
-from deepti.lib.utils import parse_seq, block_avg, relative_link_file
-from deepti.lib.utils import integrate_simpson, integrate_range_hti
+from context import dpti
+from dpti.lib.utils import parse_seq, block_avg, relative_link_file
+from dpti.lib.utils import integrate_simpson, integrate_range_hti
 from numpy.testing import assert_almost_equal
 
 lambda_seq = [
@@ -118,7 +118,7 @@ class TestRelativeLinkFile(unittest.TestCase):
 
     def test_raise_err(self):
         with self.assertRaises(RuntimeError):
-            relative_link_file('../deepti/', 
+            relative_link_file('../dpti/', 
             'relative_link_file_test_dir/')
 
     @classmethod

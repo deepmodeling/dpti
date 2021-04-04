@@ -1,10 +1,10 @@
 import os, textwrap
 import numpy as np
 import unittest
-from context import deepti
+from context import dpti
 from potential_common import soft_param, soft_param_three_element, meam_model
 # from potential_common import 
-# print(deepti.equi)
+# print(dpti.equi)
 
 class TestEquiForceField(unittest.TestCase):
     def setUp(self) :
@@ -22,7 +22,7 @@ class TestEquiForceField(unittest.TestCase):
         compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE
         """)
         # ret1 = textwrap.dedent(ret1_raw)
-        ret2 = deepti.hti._ff_deep_on(**input)
+        ret2 = dpti.hti._ff_deep_on(**input)
         # print('--------')
         # print(ret1)
         # print('--------')
@@ -42,7 +42,7 @@ class TestEquiForceField(unittest.TestCase):
         fix             tot_pot all adapt/fep 0 pair meam scale * * v_LAMBDA
         compute         e_diff all fep ${TEMP} pair meam scale * * v_ONE
         """)
-        ret2 = deepti.hti._ff_deep_on(**input)
+        ret2 = dpti.hti._ff_deep_on(**input)
         # print('--------')
         # # print(ret1)
         # print('--------')
@@ -54,7 +54,7 @@ class TestEquiForceField(unittest.TestCase):
         input = dict(lamb=0.075, model=None, sparam=soft_param,
             if_meam=True, meam_model={})
         with self.assertRaises(KeyError):
-            deepti.hti._ff_deep_on(**input)
+            dpti.hti._ff_deep_on(**input)
 
 
 

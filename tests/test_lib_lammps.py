@@ -1,10 +1,10 @@
 import os, textwrap
 import numpy as np
 import unittest
-from context import deepti
+from context import dpti
 # from potential_common import soft_param, soft_param_three_element, meam_model
-from deepti.lib.lammps import get_natoms, get_thermo, get_last_dump
-# from deepti.lib.dump import from_system_data
+from dpti.lib.lammps import get_natoms, get_thermo, get_last_dump
+# from dpti.lib.dump import from_system_data
 from numpy.testing import assert_almost_equal
 
 class TestLibLammpsGetNatoms(unittest.TestCase):

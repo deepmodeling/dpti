@@ -1,9 +1,9 @@
 import os, json, shutil, textwrap
 import numpy as np
 import unittest
-from context import deepti
+from context import dpti
 from unittest.mock import MagicMock, patch, PropertyMock
-from deepti.lib.utils import get_file_md5
+from dpti.lib.utils import get_file_md5
 from potential_common import meam_model
 
 
@@ -67,7 +67,7 @@ class TestTiGenLammpsInput(unittest.TestCase):
         run             ${NSTEPS}
         write_data      out.lmp
         """)
-        ret2 = deepti.ti._gen_lammps_input(**input)
+        ret2 = dpti.ti._gen_lammps_input(**input)
         self.assertEqual(ret1, ret2)
 
     @patch('numpy.random')
@@ -126,7 +126,7 @@ class TestTiGenLammpsInput(unittest.TestCase):
         run             ${NSTEPS}
         write_data      out.lmp
         """)
-        ret2 = deepti.ti._gen_lammps_input(**input)
+        ret2 = dpti.ti._gen_lammps_input(**input)
         self.assertEqual(ret1, ret2)
 
 

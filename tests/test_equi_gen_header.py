@@ -1,8 +1,8 @@
 import os, textwrap
 import numpy as np
 import unittest
-from context import deepti
-# print(deepti.equi)
+from context import dpti
+# print(dpti.equi)
 
 class TestEquiHeader(unittest.TestCase):
     def setUp(self) :
@@ -35,7 +35,7 @@ class TestEquiHeader(unittest.TestCase):
         change_box      all triclinic
         mass            1 118.710000
         """)
-        ret2 = deepti.equi.gen_equi_header(**input)
+        ret2 = dpti.equi.gen_equi_header(**input)
         self.assertEqual(ret1, ret2)
 
     def test_equi_header_nvt(self):
@@ -63,7 +63,7 @@ class TestEquiHeader(unittest.TestCase):
         change_box      all triclinic
         mass            1 118.710000
         """)
-        ret2 = deepti.equi.gen_equi_header(**input)
+        ret2 = dpti.equi.gen_equi_header(**input)
         self.assertEqual(ret1, ret2)
 
 
@@ -93,7 +93,7 @@ class TestEquiHeader(unittest.TestCase):
         mass            1 118.710000
         mass            2 196.970000
         """)
-        ret2 = deepti.equi.gen_equi_header(**input)
+        ret2 = dpti.equi.gen_equi_header(**input)
         self.assertEqual(ret1, ret2)
 
 if __name__ == '__main__':
