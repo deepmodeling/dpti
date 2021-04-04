@@ -5,16 +5,16 @@ import numpy as np
 import scipy.constants as pc
 
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
-from deepti import einstein
-import deepti.lib.lmp as lmp
-from deepti.lib.utils import create_path, relative_link_file
-from deepti.lib.utils import copy_file_list
-from deepti.lib.utils import block_avg
-from deepti.lib.utils import integrate
-from deepti.lib.utils import integrate_sys_err
-from deepti.lib.utils import parse_seq
-from deepti.lib.lammps import get_thermo
-from deepti.lib.lammps import get_natoms
+from dpti import einstein
+import dpti.lib.lmp as lmp
+from dpti.lib.utils import create_path, relative_link_file
+from dpti.lib.utils import copy_file_list
+from dpti.lib.utils import block_avg
+from dpti.lib.utils import integrate
+from dpti.lib.utils import integrate_sys_err
+from dpti.lib.utils import parse_seq
+from dpti.lib.lammps import get_thermo
+from dpti.lib.lammps import get_natoms
 
 def make_iter_name (iter_index) :
     return "task_hti." + ('%04d' % iter_index)

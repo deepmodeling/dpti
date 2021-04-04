@@ -1,9 +1,9 @@
 import os, json, shutil
 import numpy as np
 import unittest
-from context import deepti
+from context import dpti
 from unittest.mock import MagicMock, patch, PropertyMock
-from deepti.lib.utils import get_file_md5
+from dpti.lib.utils import get_file_md5
 
 class TestHtiMakeTask(unittest.TestCase):
     @classmethod
@@ -25,9 +25,9 @@ class TestHtiMakeTask(unittest.TestCase):
         json_file = os.path.join(benchmark_dir, 'jdata.json')
         with open(json_file) as f:
             jdata = json.load(f)
-        # print(deepti.ti)
-        # print(dir(deepti.ti))
-        deepti.hti_liq.make_tasks(iter_name=test_dir, jdata=jdata)
+        # print(dpti.ti)
+        # print(dir(dpti.ti))
+        dpti.hti_liq.make_tasks(iter_name=test_dir, jdata=jdata)
         check_file_list = [ 
             'conf.lmp', 
             'graph.pb',
@@ -52,9 +52,9 @@ class TestHtiMakeTask(unittest.TestCase):
         json_file = os.path.join(benchmark_dir, 'jdata.json')
         with open(json_file) as f:
             jdata = json.load(f)
-        # print(deepti.ti)
-        # print(dir(deepti.ti))
-        deepti.hti_liq.make_tasks(iter_name=test_dir, jdata=jdata)
+        # print(dpti.ti)
+        # print(dir(dpti.ti))
+        dpti.hti_liq.make_tasks(iter_name=test_dir, jdata=jdata)
         check_file_list = [
             'conf.lmp', 
             '00.soft_on/task.000004/conf.lmp',

@@ -16,8 +16,8 @@ from dpdispatcher.submission import Submission, Job, Task, Resources
 from dpdispatcher.batch_object import BatchObject
 # from dpdispatcher.pbs import PBS
 # from functions import NPT_end_func
-# sys.path.append("/home/fengbo/deepti-1-yfb-Sn/")
-from deepti import equi, hti, hti_liq, ti
+# sys.path.append("/home/fengbo/dpti-1-yfb-Sn/")
+from dpti import equi, hti, hti_liq, ti
 import subprocess as sp
 
 # def get_dag_work_dir(context):

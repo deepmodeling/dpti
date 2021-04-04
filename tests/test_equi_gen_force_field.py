@@ -1,7 +1,7 @@
 import os, textwrap
 import numpy as np
 import unittest
-from context import deepti
+from context import dpti
 from potential_common import meam_model
 
 class TestEquiForceField(unittest.TestCase):
@@ -16,7 +16,7 @@ class TestEquiForceField(unittest.TestCase):
         pair_style      deepmd graph.pb
         pair_coeff
         """)
-        ret2 = deepti.equi.gen_equi_force_field(**input)
+        ret2 = dpti.equi.gen_equi_force_field(**input)
         self.assertEqual(ret1, ret2)
 
     def test_meam(self):
@@ -29,7 +29,7 @@ class TestEquiForceField(unittest.TestCase):
         pair_style      meam
         pair_coeff      * * library_18Metals.meam Sn Sn_18Metals.meam Sn
         """)
-        ret2 = deepti.equi.gen_equi_force_field(**input)
+        ret2 = dpti.equi.gen_equi_force_field(**input)
         self.assertEqual(ret1, ret2)
 
     def test_meam_raise_error(self):
@@ -37,7 +37,7 @@ class TestEquiForceField(unittest.TestCase):
             if_meam=True,
             meam_model={})
         with self.assertRaises(KeyError):
-            deepti.equi.gen_equi_force_field(**input)
+            dpti.equi.gen_equi_force_field(**input)
 
     def test_meam_raise_error_lack_key(self):
         err_meam_model1 = dict(
@@ -48,7 +48,7 @@ class TestEquiForceField(unittest.TestCase):
             if_meam=True,
             meam_model=err_meam_model1)
         with self.assertRaises(KeyError):
-            deepti.equi.gen_equi_force_field(**input)
+            dpti.equi.gen_equi_force_field(**input)
 
 if __name__ == '__main__':
     unittest.main()

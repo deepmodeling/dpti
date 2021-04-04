@@ -1,9 +1,9 @@
 import os, textwrap
 import numpy as np
 import unittest
-from context import deepti
+from context import dpti
 from potential_common import soft_param, soft_param_three_element, meam_model
-from deepti.hti_liq import _ff_soft_off
+from dpti.hti_liq import _ff_soft_off
 
 class TestSoftOff(unittest.TestCase):
     def setUp(self):

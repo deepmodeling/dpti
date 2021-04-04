@@ -6,18 +6,18 @@ import scipy.constants as pc
 import pymbar
 
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
-from deepti.lib.utils import create_path, relative_link_file
-from deepti.lib.utils import copy_file_list
-from deepti.lib.utils import block_avg
-from deepti.lib.utils import integrate_range
+from dpti.lib.utils import create_path, relative_link_file
+from dpti.lib.utils import copy_file_list
+from dpti.lib.utils import block_avg
+from dpti.lib.utils import integrate_range
 # from lib.utils import integrate_sys_err
-from deepti.lib.utils import compute_nrefine
-from deepti.lib.utils import parse_seq, link_file_in_dict
-from deepti.lib.utils import get_task_file_abspath
-from deepti.lib.lammps import get_thermo
-from deepti.lib.lammps import get_natoms
+from dpti.lib.utils import compute_nrefine
+from dpti.lib.utils import parse_seq, link_file_in_dict
+from dpti.lib.utils import get_task_file_abspath
+from dpti.lib.lammps import get_thermo
+from dpti.lib.lammps import get_natoms
 
-# from deepti.equi import gen_equi_lammps_input
+# from dpti.equi import gen_equi_lammps_input
 
 def make_iter_name (iter_index) :
     return "task_ti." + ('%04d' % iter_index)

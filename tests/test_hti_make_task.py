@@ -1,9 +1,9 @@
 import os, json, shutil
 import numpy as np
 import unittest
-from context import deepti
+from context import dpti
 from unittest.mock import MagicMock, patch, PropertyMock
-from deepti.lib.utils import get_file_md5
+from dpti.lib.utils import get_file_md5
 
 class TestHtiMakeTask(unittest.TestCase):
     @classmethod
@@ -25,9 +25,9 @@ class TestHtiMakeTask(unittest.TestCase):
         json_file = os.path.join(benchmark_dir, 'jdata.json')
         with open(json_file) as f:
             jdata = json.load(f)
-        # print(deepti.ti)
-        # print(dir(deepti.ti))
-        deepti.hti.make_tasks(iter_name=test_dir, jdata=jdata, switch='three-step')
+        # print(dpti.ti)
+        # print(dir(dpti.ti))
+        dpti.hti.make_tasks(iter_name=test_dir, jdata=jdata, switch='three-step')
         check_file_list = [ 
             'conf.lmp', 
             'graph.pb',
@@ -54,9 +54,9 @@ class TestHtiMakeTask(unittest.TestCase):
         json_file = os.path.join(benchmark_dir, 'jdata.json')
         with open(json_file) as f:
             jdata = json.load(f)
-        # print(deepti.ti)
-        # print(dir(deepti.ti))
-        deepti.hti.make_tasks(iter_name=test_dir, jdata=jdata, switch='two-step')
+        # print(dpti.ti)
+        # print(dir(dpti.ti))
+        dpti.hti.make_tasks(iter_name=test_dir, jdata=jdata, switch='two-step')
         check_file_list = [ 
             'conf.lmp', 
             'graph.pb',
@@ -80,7 +80,7 @@ class TestHtiMakeTask(unittest.TestCase):
         json_file = os.path.join(benchmark_dir, 'jdata.json')
         with open(json_file) as f:
             jdata = json.load(f)
-        deepti.hti.make_tasks(iter_name=test_dir, jdata=jdata, switch='one-step')
+        dpti.hti.make_tasks(iter_name=test_dir, jdata=jdata, switch='one-step')
         check_file_list = [ 
             'conf.lmp', 
             'graph.pb',
@@ -102,9 +102,9 @@ class TestHtiMakeTask(unittest.TestCase):
         json_file = os.path.join(benchmark_dir, 'jdata.json')
         with open(json_file) as f:
             jdata = json.load(f)
-        # print(deepti.ti)
-        # print(dir(deepti.ti))
-        deepti.hti.make_tasks(iter_name=test_dir, jdata=jdata, switch='three-step')
+        # print(dpti.ti)
+        # print(dir(dpti.ti))
+        dpti.hti.make_tasks(iter_name=test_dir, jdata=jdata, switch='three-step')
         check_file_list = [ 
             'conf.lmp', 
             '00.lj_on/task.000004/conf.lmp',

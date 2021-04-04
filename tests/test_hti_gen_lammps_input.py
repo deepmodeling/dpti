@@ -1,12 +1,12 @@
 import os, textwrap
 import numpy as np
 import unittest
-from context import deepti
+from context import dpti
 # from potential_common import soft_param, soft_param_three_element, meam_model
-# from deepti.lib.lammps import get_natoms, get_thermo, get_last_dump
-# from deepti.lib.dump import from_system_data
+# from dpti.lib.lammps import get_natoms, get_thermo, get_last_dump
+# from dpti.lib.dump import from_system_data
 from potential_common import soft_param, meam_model
-from deepti.hti import _gen_lammps_input
+from dpti.hti import _gen_lammps_input
 from numpy.testing import assert_almost_equal
 from unittest.mock import MagicMock, patch, PropertyMock
 

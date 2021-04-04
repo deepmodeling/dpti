@@ -1,9 +1,9 @@
 import os, textwrap
 import numpy as np
 import unittest
-from context import deepti
+from context import dpti
 # from numpy.testing import assert_almost_equal
-from deepti.einstein import frenkel, free_energy, ideal_gas_fe
+from dpti.einstein import frenkel, free_energy, ideal_gas_fe
 lambda_seq = [
     "0.00:0.05:0.010",
     "0.05:0.15:0.020",

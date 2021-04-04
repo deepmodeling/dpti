@@ -12,17 +12,17 @@ today = datetime.date.today().strftime("%b-%d-%Y")
 install_requires=['apache-airflow>2.0', 'scipy', 'numpy', 'pymbar']
 
 setuptools.setup(
-    name='deepti',
-    use_scm_version={'write_to': 'deepti/_version.py'},
+    name='dpti',
+    use_scm_version={'write_to': 'dpti/_version.py'},
     setup_requires=['setuptools_scm'],
     author="Deep Modeling Team",
     author_email="",
-    description="Python deepti for thermodynamics integration",
+    description="Python dpti for thermodynamics integration",
     long_description="",
     long_description_content_type="text/markdown",
     url="",
     python_requires=">3.7",
-    packages=['deepti', 'deepti/lib'],
+    packages=['dpti', 'dpti/lib'],
     classifiers=[
         "Programming Language :: Python :: 3.7",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",

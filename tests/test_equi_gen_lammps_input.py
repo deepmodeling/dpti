@@ -2,7 +2,7 @@ import os, textwrap
 import numpy as np
 import unittest
 from unittest.mock import MagicMock, patch, PropertyMock
-from context import deepti
+from context import dpti
 from potential_common import meam_model
 
 class TestEquiGenLammpsInput(unittest.TestCase):
@@ -69,7 +69,7 @@ class TestEquiGenLammpsInput(unittest.TestCase):
         write_data      out.lmp
         """)
 
-        ret2 = deepti.equi.gen_equi_lammps_input(**input)
+        ret2 = dpti.equi.gen_equi_lammps_input(**input)
         self.assertEqual(ret1, ret2)
 
     @patch('numpy.random')
@@ -91,7 +91,7 @@ class TestEquiGenLammpsInput(unittest.TestCase):
             if_meam=False,
             meam_model=None,
         )
-        ret2 = deepti.equi.gen_equi_lammps_input(**input)
+        ret2 = dpti.equi.gen_equi_lammps_input(**input)
 
         ret1 = textwrap.dedent("""\
         clear
@@ -153,7 +153,7 @@ class TestEquiGenLammpsInput(unittest.TestCase):
             if_meam=True,
             meam_model=meam_model,
         )
-        ret2 = deepti.equi.gen_equi_lammps_input(**input)
+        ret2 = dpti.equi.gen_equi_lammps_input(**input)
         ret1 = textwrap.dedent("""\
         clear
         # --------------------- VARIABLES-------------------------

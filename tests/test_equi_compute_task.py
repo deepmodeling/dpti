@@ -2,9 +2,9 @@ import os, json, shutil
 import numpy as np
 import unittest
 from unittest.mock import MagicMock, patch, PropertyMock
-from context import deepti
-from deepti.lib.utils import get_file_md5, relative_link_file
-from deepti.equi import post_task
+from context import dpti
+from dpti.lib.utils import get_file_md5, relative_link_file
+from dpti.equi import post_task
 
 class TestEquiMakeTask(unittest.TestCase):
     @classmethod
@@ -38,7 +38,7 @@ class TestEquiMakeTask(unittest.TestCase):
     def test_get_npt_avg_conf(self):
         npt_name = os.path.join(self.benchmark_dir, 'npt')
         # test_dir = os.path.join(self.test_dir, 'get_npt_avg_conf')
-        npt_avg_conf_lmp = deepti.equi.npt_equi_conf(npt_name)
+        npt_avg_conf_lmp = dpti.equi.npt_equi_conf(npt_name)
         f2 = os.path.join(self.test_dir, 'npt_avg.lmp')
         with open(f2, 'w') as f:
             f.write(npt_avg_conf_lmp)

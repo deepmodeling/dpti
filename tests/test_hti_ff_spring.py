@@ -1,7 +1,7 @@
 import os, textwrap
 import numpy as np
 import unittest
-from context import deepti
+from context import dpti
 from potential_common import soft_param, soft_param_three_element, meam_model
 
 class TestHtiFfSpring(unittest.TestCase):
@@ -17,7 +17,7 @@ class TestHtiFfSpring(unittest.TestCase):
         fix_modify      l_spring_1 energy yes
         variable        l_spring equal f_l_spring_1
         """)
-        ret2 = deepti.hti._ff_spring(**input)
+        ret2 = dpti.hti._ff_spring(**input)
         self.assertEqual(ret1, ret2)
 
     def test_spring_var_spring(self):
@@ -29,7 +29,7 @@ class TestHtiFfSpring(unittest.TestCase):
         fix_modify      l_spring_1 energy yes
         variable        l_spring equal f_l_spring_1
         """)
-        ret2 = deepti.hti._ff_spring(**input)
+        ret2 = dpti.hti._ff_spring(**input)
         self.assertEqual(ret1, ret2)
 
     def test_spring_multiple_element(self):
@@ -44,7 +44,7 @@ class TestHtiFfSpring(unittest.TestCase):
         fix_modify      l_spring_2 energy yes
         variable        l_spring equal f_l_spring_1+f_l_spring_2
         """)
-        ret2 = deepti.hti._ff_spring(**input)
+        ret2 = dpti.hti._ff_spring(**input)
         self.assertEqual(ret1, ret2)
 
 def test_spring_var_spring_multiple_element(self):
@@ -59,7 +59,7 @@ def test_spring_var_spring_multiple_element(self):
         fix_modify      l_spring_2 energy yes
         variable        l_spring equal f_l_spring_1+f_l_spring_2
         """)
-        ret2 = deepti.hti._ff_spring(**input)
+        ret2 = dpti.hti._ff_spring(**input)
         self.assertEqual(ret1, ret2)
 
 
