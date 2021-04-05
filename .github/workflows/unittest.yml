@@ -20,5 +20,5 @@ jobs:
     - name: Install dependencies
       run: pip install . coverage codecov
     - name: Test
-      run: cd tests && coverage run --source=../deepti -m unittest && cd .. && coverage combine tests/.coverage && coverage report
+      run: cd tests && coverage run --source=../dpti -m unittest && cd .. && coverage combine tests/.coverage && coverage report
     - run: codecov
