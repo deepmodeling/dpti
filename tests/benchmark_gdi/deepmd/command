@@ -1,1 +1,1 @@
-../../../deepti/gdi.py pb.json machine.json -b 10000 -e 13500 -i 270 -a 2 -r 1e-3  -v -d p
+../../../dpti/gdi.py pb.json machine.json -b 10000 -e 13500 -i 270 -a 2 -r 1e-3  -v -d p
