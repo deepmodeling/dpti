@@ -1,6 +1,7 @@
 *~
 iter*
 task*
+dpti.egg-info/
 !tests/benchmark_hti/*/*/task*
 !tests/benchmark_hti/*/task*
 !tests/benchmark_ti/*/task*
