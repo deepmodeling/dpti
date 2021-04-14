@@ -97,7 +97,7 @@ def NPT_sim(job_work_dir):
     submission = get_empty_submission(job_work_dir.value)
     submission.register_task_list([task])
     submission.run_submission()
-    return job_work_dir
+    return Str(job_work_dir.value)
 
 @calcfunction
 def NPT_end(job_work_dir):
@@ -111,13 +111,13 @@ def NPT_end(job_work_dir):
     return Dict(dict=info)
 
 
-@workfunction
-def NVT_start(start_info, *, NPT_end_info):
+@calcfunction
+def NVT_start(start_info, NPT_end_info):
     npt_dir = NPT_end_info['job_dir']
     
-    work_base_abs_dir = start_info.get('work_base_abs_dir')
-    dag_work_dir = start_info.get('dag_work_dir')
-    job_work_dir = Str(os.path.join(dag_work_dir.value, 'NVT_sim', 'new_job'))
+    work_base_abs_dir = start_info['work_base_abs_dir']
+    dag_work_dir = start_info['dag_work_dir']
+    job_work_dir = Str(os.path.join(dag_work_dir, 'NVT_sim', 'new_job'))
 
     result_json_file = os.path.join(job_work_dir.value, 'result.json')
     if os.path.isfile(result_json_file):
@@ -137,15 +137,15 @@ def NVT_start(start_info, *, NPT_end_info):
     os.chdir(cwd)
     return job_work_dir
 
-@workfunction
+@calcfunction
 def NVT_sim(job_work_dir):
     submission = get_empty_submission(job_work_dir.value)
     task = Task(command='lmp -i in.lammps', task_work_path='./') 
     submission.register_task_list([task])
     submission.run_submission()
-    return job_work_dir
+    return Str(job_work_dir.value)
 
-@workfunction
+@calcfunction
 def NVT_end(job_work_dir):
     result_file_path = os.path.join(job_work_dir.value, 'result.json')
     if os.path.isfile(result_file_path):
@@ -157,12 +157,12 @@ def NVT_end(job_work_dir):
     return Dict(dict=info)
 
 
-@workfunction
-def HTI_start(start_info, *, NVT_end_info):
+@calcfunction
+def HTI_start(start_info, NVT_end_info):
     work_base_abs_dir = start_info['work_base_abs_dir']
     dag_work_dir = start_info['dag_work_dir']
     if_liquid = start_info['if_liquid']
-    conf_lmp = NVT_end_info.get('out_lmp', None)
+    conf_lmp = NVT_end_info['out_lmp']
 
     job_work_dir = Str(os.path.join(dag_work_dir, 'HTI_sim', 'new_job'))
     if os.path.isfile(os.path.join(dag_work_dir, 'HTI_sim', 'new_job', 'result.json')):
@@ -195,7 +195,7 @@ def HTI_start(start_info, *, NVT_end_info):
     os.chdir(cwd)
     return job_work_dir
 
-@workfunction
+@calcfunction
 def HTI_sim(job_work_dir):
     task_abs_dir_list = glob.glob(os.path.join(job_work_dir.value, './*/task*'))
     task_dir_list = [os.path.relpath(ii, start=job_work_dir.value ) for ii in task_abs_dir_list]
@@ -206,16 +206,16 @@ def HTI_sim(job_work_dir):
     submission = get_empty_submission(job_work_dir.value)
     submission.register_task_list(task_list=task_list)
     submission.run_submission()
-    return job_work_dir
+    return Str(job_work_dir.value)
 
-@workfunction
+@calcfunction
 def HTI_end(job_work_dir,
     start_info,
-    NPT_end_info={}
+    NPT_end_info
 ):
     if_liquid = start_info['if_liquid']
-    manual_pv = NPT_end_info.get('pv')
-    manual_pv_err = NPT_end_info.get('pv_err')
+    manual_pv = NPT_end_info['pv']
+    manual_pv_err = NPT_end_info['pv_err']
 
     result_file_path = os.path.join(job_work_dir.value, 'result.json')
     if os.path.isfile(result_file_path):
@@ -239,8 +239,8 @@ def HTI_end(job_work_dir,
     print(info)
     return Dict(dict=info)
 
-@workfunction
-def TI_start(start_info, *, HTI_end_info=None):
+@calcfunction
+def TI_start(start_info, HTI_end_info):
     work_base_abs_dir = start_info['work_base_abs_dir']
     dag_work_dir = start_info['dag_work_dir']
 
@@ -272,7 +272,7 @@ def TI_start(start_info, *, HTI_end_info=None):
     os.chdir(cwd)
     return job_work_dir
 
-@workfunction
+@calcfunction
 def TI_sim(job_work_dir):
     task_abs_dir_list = glob.glob(os.path.join(job_work_dir.value, './task*'))
     task_dir_list = [os.path.relpath(ii, start=job_work_dir.value ) for ii in task_abs_dir_list]
@@ -280,9 +280,9 @@ def TI_sim(job_work_dir):
     task_list = [ Task(command='lmp_serial -i in.lammps', task_work_path=ii) for ii in task_dir_list ]
     submission.register_task_list(task_list=task_list)
     submission.run_submission()
-    return job_work_dir
+    return Str(job_work_dir.value)
 
-@workfunction
+@calcfunction
 def TI_end(job_work_dir, start_info, HTI_end_info):
     Eo = HTI_end_info['e1']
     Eo_err = HTI_end_info['e1_err']
@@ -306,24 +306,21 @@ def TI_end(job_work_dir, start_info, HTI_end_info):
 @workfunction
 def TI_workflow(dag_run):
     start_info = all_start_check(dag_run)
-    NPT_end_info = NPT_end(
-        NPT_sim(NPT_start(start_info=start_info))
-    )
+    npt_job_dir = NPT_sim(NPT_start(start_info=start_info))
+    NPT_end_info = NPT_end(npt_job_dir)
     
-    NVT_end_info = NVT_end(NVT_sim(NVT_start(
-        start_info=start_info, NPT_end_info=NPT_end_info)))
+    nvt_job_dir = NVT_sim(NVT_start(start_info=start_info, NPT_end_info=NPT_end_info))
+    NVT_end_info = NVT_end(nvt_job_dir)
 
-    HTI_end_info = HTI_end(HTI_sim(HTI_start(
-        start_info=start_info, 
-        NVT_end_info=NVT_end_info)),
-    start_info=start_info,
-    NPT_end_info=NPT_end_info)
+    hti_job_dir = HTI_sim(HTI_start(
+        start_info=start_info,
+        NVT_end_info=NVT_end_info))
+    HTI_end_info = HTI_end(hti_job_dir, start_info, NPT_end_info)
 
-    TI_end_info = TI_end(TI_sim(TI_start(
-        start_info=start_info, 
-        HTI_end_info=HTI_end_info)), 
-        start_info=start_info, 
-        HTI_end_info=HTI_end_info)
+    ti_end_info = TI_sim(TI_start(
+        start_info=start_info,
+        HTI_end_info=HTI_end_info))
+    TI_end_info = TI_end(ti_end_info, start_info, HTI_end_info)
 
     return TI_end_info
 
