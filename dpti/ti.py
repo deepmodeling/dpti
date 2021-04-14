@@ -759,9 +759,10 @@ def compute_task(job, inte_method, Eo, Eo_err, To, scheme='simpson'):
     if inte_method == 'inte' :
         info = post_tasks(job, jdata, Eo=Eo, Eo_err=Eo_err, To=To, scheme=scheme)
     elif inte_method == 'mbar' :
-        post_tasks_mbar(job, jdata, Eo)
+        info = post_tasks_mbar(job, jdata, Eo)
     else :
         raise RuntimeError('unknow integration method')
+    return info
     
 
 def _main ():
