@@ -447,7 +447,7 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
             ea += 1.5 * pc.Boltzmann * tt / pc.electron_volt
             # print('~~', tt, ea, 1.5 * pc.Boltzmann * tt / pc.electron_volt)
         elif path == 'p' :
-            temp = jdata['temps']
+            temp = jdata['temp']
             ea += 1.5 * pc.Boltzmann * temp / pc.electron_volt
         else :
             raise RuntimeError('invalid path setting' )
