@@ -428,6 +428,7 @@ def water_bond(iter_name, skip = 1) :
 
 
 def _compute_thermo (lmplog, natoms, stat_skip, stat_bsize) :
+    # print(3939, natoms)
     data = get_thermo(lmplog)
     ea, ee = block_avg(data[:, 3], skip = stat_skip, block_size = stat_bsize)
     ha, he = block_avg(data[:, 4], skip = stat_skip, block_size = stat_bsize)
@@ -522,7 +523,7 @@ def post_task(iter_name, natoms = None, is_water = False) :
         natoms = get_natoms(equi_conf)
         if 'copies' in jdata :
             natoms *= np.prod(jdata['copies'])
-    is_water=jdata.get('is_water', True)
+    is_water=jdata.get('is_water', False)
     if is_water is True:
         nmols = natoms // 3
     elif is_water is False:
