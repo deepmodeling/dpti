@@ -447,7 +447,7 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
             ea += 1.5 * pc.Boltzmann * tt / pc.electron_volt
             # print('~~', tt, ea, 1.5 * pc.Boltzmann * tt / pc.electron_volt)
         elif path == 'p' :
-            temp = jdata['temps']
+            temp = jdata['temp']
             ea += 1.5 * pc.Boltzmann * temp / pc.electron_volt
         else :
             raise RuntimeError('invalid path setting' )
@@ -759,9 +759,10 @@ def compute_task(job, inte_method, Eo, Eo_err, To, scheme='simpson'):
     if inte_method == 'inte' :
         info = post_tasks(job, jdata, Eo=Eo, Eo_err=Eo_err, To=To, scheme=scheme)
     elif inte_method == 'mbar' :
-        post_tasks_mbar(job, jdata, Eo)
+        info = post_tasks_mbar(job, jdata, Eo)
     else :
         raise RuntimeError('unknow integration method')
+    return info
     
 
 def _main ():
