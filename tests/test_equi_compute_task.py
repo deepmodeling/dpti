@@ -44,10 +44,18 @@ class TestEquiMakeTask(unittest.TestCase):
             f.write(npt_avg_conf_lmp)
         f1 = os.path.join(npt_name, 'npt_avg.lmp')
         self.assertEqual(get_file_md5(f1), get_file_md5(f2))
+    
+    def test_compute_thermo(self):
+        info = dpti.equi._compute_thermo('benchmark_equi_log/npt/log.lammps', 144, stat_skip=30, stat_bsize=10)
+        with open('benchmark_equi_log/npt/result.json', 'r') as f:
+            result = json.load(f)
+        self.assertDictEqual(info, result)
+        # print(info)
+        # pass
 
-    # @classmethod
-    # def tearDownClass(cls):
-    #     shutil.rmtree('tmp_equi_log/')
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree('tmp_equi_log/')
 
 
 if __name__ == '__main__':
