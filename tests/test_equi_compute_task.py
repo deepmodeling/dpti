@@ -45,9 +45,9 @@ class TestEquiMakeTask(unittest.TestCase):
         f1 = os.path.join(npt_name, 'npt_avg.lmp')
         self.assertEqual(get_file_md5(f1), get_file_md5(f2))
 
-    @classmethod
-    def tearDownClass(cls):
-        shutil.rmtree('tmp_equi_log/')
+    # @classmethod
+    # def tearDownClass(cls):
+    #     shutil.rmtree('tmp_equi_log/')
 
 
 if __name__ == '__main__':
