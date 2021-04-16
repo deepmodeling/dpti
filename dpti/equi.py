@@ -513,7 +513,7 @@ def _print_thermo_info(info, more_head = '') :
     print(ptr)
     return ptr
 
-def post_task(iter_name, natoms = None, is_water = False) :
+def post_task(iter_name, natoms = None, is_water = None) :
     # j_file = os.path.join(iter_name, 'in.json')
     j_file = os.path.join(iter_name, 'equi_settings.json')
     with open(j_file, 'r') as f:
@@ -523,7 +523,10 @@ def post_task(iter_name, natoms = None, is_water = False) :
         natoms = get_natoms(equi_conf)
         if 'copies' in jdata :
             natoms *= np.prod(jdata['copies'])
-    is_water=jdata.get('is_water', False)
+    if is_water is None:
+        is_water=jdata.get('is_water', False)
+    else:
+        pass
     if is_water is True:
         nmols = natoms // 3
     elif is_water is False:
