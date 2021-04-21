@@ -14,26 +14,9 @@ from airflow.exceptions import AirflowSkipException, AirflowFailException
 # from dpdispatcher.lazy_local_context import LazyLocalContext
 from dpdispatcher.submission import Submission, Job, Task, Resources
 from dpdispatcher.batch_object import BatchObject
-# from dpdispatcher.pbs import PBS
-# from functions import NPT_end_func
-# sys.path.append("/home/fengbo/dpti-1-yfb-Sn/")
 from dpti import equi, hti, hti_liq, ti
 import subprocess as sp
 
-# def get_dag_work_dir(context):
-#     dag_run = context['params']
-#     work_base_dir = dag_run['work_base_dir']
-#     target_temp = int(dag_run['target_temp'])
-#     target_press = int(dag_run['target_press'])
-#     conf_lmp = str(dag_run['conf_lmp'])
-#     ti_path = str(dag_run['ti_path'])
-
-#     dag_work_dirname=str(target_temp)+'K-'+str(target_press)+'bar-'+str(conf_lmp)
-
-#     work_base_abs_dir = os.path.realpath(work_base_dir)
-
-#     dag_work_dir=os.path.join(work_base_abs_dir, dag_work_dirname)
-#     return dag_work_dir
 def get_empty_submission(job_work_dir):
     context = get_current_context()
     dag_run = context['params']
@@ -68,24 +51,12 @@ def all_start_check():
     if_liquid = dag_run['if_liquid']
 
 
-    # work_base_dir = os.path.realpath(work_base_dir)
     work_base_abs_dir = os.path.realpath(work_base_dir)
 
-    # dag_work_folder=str(tar_temp)+'K-'+str(tar_press)+'bar-'+str(conf_lmp)
     dag_work_dirname=str(target_temp)+'K-'+str(target_pres)+'bar-'+str(conf_lmp)
     dag_work_dir=os.path.join(work_base_abs_dir, dag_work_dirname)
-    
-    # dag_work_dir=os.path.join(work_base_dir, dag_work_folder)
-
-    # context['work_base_dir'] = work_base_dir
-    # context['dag_work_dir'] = dag_work_dir
-
-    # equi_conf = os.path.join(work_base_dir, structure + '.lmp')
-    #  model = os.path.join(work_base_dir, 'graph.pb')
 
     assert os.path.isdir(work_base_dir) is True,  f'work_base_dir {work_base_dir} must exist '
-    # assert os.path.isdir(dag_work_dir) is False,  f'dag_work_folder dir {dag_work_dir} already exist'
-    # os.mkdir(dag_work_dir) 
     if os.path.isdir(dag_work_dir) is False:
         os.mkdir(dag_work_dir)
     else:
@@ -94,10 +65,7 @@ def all_start_check():
     conf_lmp_abs_path = os.path.join(work_base_abs_dir, conf_lmp)
     assert os.path.isfile(conf_lmp_abs_path) is True,  f'structure file {conf_lmp_abs_path} must exist'
     assert str(ti_path) in ["t", "p"], f'value for "path" must be "t" or "p" '
-    # assert type(if_meam) is bool
-    # if path == "t": ti_begin_temp = dag_run['tar_temp'] 
-    # if path == "p": ti_begin_pres = dag_run['tar_pres']
-    
+
     start_info = dict(work_base_dir=work_base_dir, 
         target_temp=target_temp,
         target_pres=target_pres, 
@@ -113,7 +81,6 @@ def all_start_check():
 @task()
 def NPT_start(start_info):
     print(start_info)
-    # dag_work_dir = get_dag_work_dir(context=get_current_context())
     work_base_abs_dir = start_info['work_base_abs_dir']
     dag_work_dir = start_info['dag_work_dir']
     job_work_dir = os.path.join(dag_work_dir, 'NPT_sim', 'new_job')
@@ -121,7 +88,6 @@ def NPT_start(start_info):
     result_json_file = os.path.join(job_work_dir, 'result.json')
     if os.path.isfile(result_json_file):
         return job_work_dir
-    #     raise AirflowSkipException
     with open(os.path.join(work_base_abs_dir, 'npt.json')) as f:
         npt_jdata = json.load(f)
 
@@ -131,7 +97,6 @@ def NPT_start(start_info):
     task_jdata['pres'] = start_info['target_pres']
     task_jdata['ens'] = start_info['ens']
     print(task_jdata)
-    # task_jdata['if_meam'] = start_info['if_meam']
     cwd = os.getcwd()
     os.chdir(work_base_abs_dir)
     equi.make_task(job_work_dir, task_jdata)
@@ -149,10 +114,8 @@ def NPT_sim(job_work_dir):
 
 @task(trigger_rule='none_failed')
 def NPT_end(job_work_dir):
-    # task_work_dir = start_info['dag']
     result_file_path = os.path.join(job_work_dir, 'result.json')
     if os.path.isfile(result_file_path):
-    # if os.path.isfile(result_file_paath):
         info = json.load(open(result_file_path, 'r'))
     else:
         info = equi.post_task(job_work_dir)
@@ -161,9 +124,6 @@ def NPT_end(job_work_dir):
 
 @task()
 def NVT_start(start_info, *, NPT_end_info):
-    # print(NVT_start_dict)
-    #    work_base_dir = start_info['work_base_dir']
-    # dag_work_dir = get_dag_work_dir(context=get_current_context())
 
     print('NPT_end_info', NPT_end_info)
     npt_dir = NPT_end_info['job_dir']
@@ -181,13 +141,8 @@ def NVT_start(start_info, *, NPT_end_info):
         nvt_jdata = json.load(f)
 
     task_jdata = nvt_jdata.copy()
-    # if npt_name is not None:
-   #      task_jdata['equi_conf'] = conf_lmp
-   #  else:
-   #      task_jdata['equi_conf'] = start_info['conf_lmp']
     task_jdata['temp'] = start_info['target_temp']
     task_jdata['pres'] = start_info['target_pres']
-    # assert task_jdata['ens'] == 'nvt', task_jdata
     task_jdata['ens'] = 'nvt' 
     print('debug', npt_dir)
     
@@ -235,8 +190,6 @@ def HTI_start(start_info, *, NVT_end_info={}):
             hti_jdata = json.load(j)
     
     task_jdata = hti_jdata.copy()
-    # task_jdata['equi_conf'] = "../NVT_sim/new_job/out.lmp"
-    # task_jdata['equi_conf'] = os.path.join(start_info['dag_work_dir'], 'NVT_sim', 'new_job', 'out.lmp')
     if conf_lmp is not None:
         task_jdata['equi_conf'] = conf_lmp
     else:
@@ -258,12 +211,7 @@ def HTI_start(start_info, *, NVT_end_info={}):
 def HTI_sim(job_work_dir):
     task_abs_dir_list = glob.glob(os.path.join(job_work_dir, './*/task*'))
     task_dir_list = [os.path.relpath(ii, start=job_work_dir ) for ii in task_abs_dir_list]
-    
-    # task_dir_real_list = glob.glob(job_work_dir + '/*/task*')
-    # task_dir_real_list = glob.glob(job_work_dir + '/task*')
-   #  task_dir_list = [os.path.relpath(ii,
-   #      start=job_work_dir ) 
-   #      for ii in task_dir_list]
+
     task_list = [ Task(command='lmp_serial -i in.lammps', 
         task_work_path=ii) 
         for ii in task_dir_list ]
@@ -350,7 +298,6 @@ def TI_sim(job_work_dir):
 def TI_end(job_work_dir, start_info, HTI_end_info):
     Eo = HTI_end_info['e1']
     Eo_err = HTI_end_info['e1_err']
-    # ti_jdata = json.load(open(os.path.join(sim_work_dir, 'in.json'), 'r'))
 
     ti_path = start_info['ti_path']
     if ti_path == 't':
@@ -368,37 +315,14 @@ def TI_end(job_work_dir, start_info, HTI_end_info):
 
 default_args = {
     'owner': 'fengbo',
-    'start_date': datetime(2020, 1, 1, 8, 00)
+    'start_date': datetime(2021, 1, 1, 8, 00)
 }
 
-
-# @dag(default_args=default_args, schedule_interval=None, start_date=datetime(2021, 1, 1, 8, 00))
-# def all_taskflow():
-#     start_info = all_start_check()
-#     NPT_end_info = NPT_end(NPT_sim(NPT_start(start_info=start_info)))
-#     # NPT_end_conf = NPT_end_info
-#     # conf_lmp = 
-#     NVT_end_info = NVT_end(NVT_sim(NVT_start(start_info=start_info, NPT_end_info=NPT_end_info)))
-#     HTI_end_info = HTI_end(HTI_sim(HTI_start(start_info=start_info, NVT_end_info=NVT_end_info)))
-#     # TI_end_info = TI_
-
-
-# @dag(default_args=default_args, schedule_interval=None, start_date=datetime(2021, 1, 1, 8, 00))
-# def HTI_taskflow():
-#     start_info = all_start_check()
-#     NPT_end_info = NPT_end(NPT_sim(NPT_start(start_info=start_info)))
-#     NVT_end_info = NVT_end(NVT_sim(NVT_start(start_info=start_info, NPT_end_info=NPT_end_info)))
-#     HTI_end_info = HTI_end(HTI_sim(HTI_start(start_info=start_info, NVT_end_info=NVT_end_info)), start_info=start_info, NPT_end_info=NPT_end_info)
-    
-@dag(default_args=default_args, schedule_interval=None, start_date=datetime(2021, 1, 1, 8, 00))
+@dag(default_args=default_args, schedule_interval=None,)
 def TI_taskflow():
     start_info = all_start_check()
     NPT_end_info = NPT_end(
         NPT_sim(NPT_start(start_info=start_info)))
-   
-    # print(NPT_end_info)
-    # print(NPT_end_info['job_dir'])
-    # npt_dir = NPT_end_info['job_dir']
 
     NVT_end_info = NVT_end(NVT_sim(NVT_start(
         start_info=start_info, NPT_end_info=NPT_end_info)))
@@ -417,9 +341,6 @@ def TI_taskflow():
 
     return TI_end_info
 
-
-    
-# HTI_dag = HTI_taskflow()
 TI_dag = TI_taskflow()
 
 
