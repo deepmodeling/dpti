@@ -217,7 +217,7 @@ def HTI_sim(job_work_dir):
     task_abs_dir_list = glob.glob(os.path.join(job_work_dir, './*/task*'))
     task_dir_list = [os.path.relpath(ii, start=job_work_dir ) for ii in task_abs_dir_list]
 
-    task_list = [ Task(command='lmp_serial -i in.lammps', 
+    task_list = [ Task(command='lmp -i in.lammps', 
         task_work_path=ii) 
         for ii in task_dir_list ]
     submission = get_empty_submission(job_work_dir)
@@ -294,7 +294,7 @@ def TI_sim(job_work_dir):
     task_abs_dir_list = glob.glob(os.path.join(job_work_dir, './task*'))
     task_dir_list = [os.path.relpath(ii, start=job_work_dir ) for ii in task_abs_dir_list]
     submission = get_empty_submission(job_work_dir)
-    task_list = [ Task(command='lmp_serial -i in.lammps', task_work_path=ii) for ii in task_dir_list ]
+    task_list = [ Task(command='lmp -i in.lammps', task_work_path=ii) for ii in task_dir_list ]
     submission.register_task_list(task_list=task_list)
     submission.run_submission()
     return job_work_dir
