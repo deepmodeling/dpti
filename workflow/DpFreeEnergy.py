@@ -13,7 +13,7 @@ from airflow.exceptions import AirflowSkipException, AirflowFailException
 
 # from dpdispatcher.lazy_local_context import LazyLocalContext
 from dpdispatcher.submission import Submission, Job, Task, Resources
-from dpdispatcher.batch_object import BatchObject
+from dpdispatcher.batch_object import Machine
 from dpti import equi, hti, hti_liq, ti
 import subprocess as sp
 
@@ -24,10 +24,15 @@ def get_empty_submission(job_work_dir):
 
     with open(os.path.join(work_base_dir, 'machine.json'), 'r') as f:
         mdata = json.load(f)
-    batch_dict = mdata['batch']
-    resources_dict = mdata['resources']
-    batch = BatchObject(jdata=batch_dict)
-    resources = Resources(**resources_dict)
+    machine = Machine.load_from_machine_dict(machine_dict=mdata)
+    # batch_dict = mdata['batch']
+    # resources_dict = mdata['resources']
+    
+    # batch = BatchObject(jdata=batch_dict)
+    # resources = Resources(**resources_dict)
+
+    batch = machine.batch
+    resources = machine.resources
 
     submission = Submission(
         work_base=job_work_dir, 
