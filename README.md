@@ -5,9 +5,9 @@ deepmodeling, deepmd, dpti, free energy, phase diagram
 github:  [https://github.com/deepmodeling/dpti](https://github.com/deepmodeling/dpti)<br />relating docs: [https://www.yuque.com/dpti/manual/ilzmlb](https://www.yuque.com/dpti/manual/ilzmlb)
 <a name="0487c87d66ac0af8f7df818b7e010bd0"></a>
 # 🌾OutPut show
-:::info
+
 We could use dpti to calculate out the Press-Volume phase diagram of metals.<br />The picture below shows the metal Sn phase diagram results calculated by one of the authors.
-:::
+
 
 <br />The left subgraph shows the experiment phase diagram results.(see:[https://aip.scitation.org/doi/10.1063/1.4872458](https://aip.scitation.org/doi/10.1063/1.4872458))<br />
 <br />The middle subgraph shows the DP phase diagram based on SCAN functional DFT calculation results.<br />
@@ -17,9 +17,9 @@ We could use dpti to calculate out the Press-Volume phase diagram of metals.<br 
 
 <a name="ad44045ba5f9b5ebf81388ff611d8d5b"></a>
 # 🏞brief Introduction
-:::info
+
 **dpti** (deep potential thermodynamic integration) is a python package for calculating free energy, doing thermodynamic integration and figuring out pressure-temperature phase diagram for materials with molecular dynamics (MD) simulation methods.
-:::
+
 
 <br />The user will get Gibbs (Helmholtz) free energy of a system at different temperature and pressure conditions. With these free energy results, the user could determine the phase transition points and coexistence curve on the pressure-volume phase diagram. 
 <a name="xuFE2"></a>
@@ -30,12 +30,12 @@ At first, dpti is a collection of python scripts to generate LAMMPS input script
 
 <a name="46bdda688b5bc33d261bccfb389fdf55"></a>
 # 📃Installation
-:::info
+
 dpti use apache-airflow as workflow framework, and dpdispatcher to interact with the HPC systems (slurm or PBS).
-:::
-:::info
+
+
 airflow use realation database (PostgreSQL, MySQL or Sqlite) as backend to store the metadata, DAGs definetion and nodes state etc.
-:::
+
 <a name="d3066b89f26f2ffcef7d0f8647512881"></a>
 ### install dpti and dpdispatcher.
 git clone the following packages and install.<br />[https://github.com/deepmodeling/dpdispatcher](https://github.com/deepmodeling/dpdispatcher)<br />[https://github.com/deepmodeling/dpti](https://github.com/deepmodeling/dpti)
@@ -164,14 +164,8 @@ airflow scheduler
 
 <a name="253840892aedd2058f97c95ac6ef6366"></a>
 # 💪extra info
-:::warning
-This project is under development now. This software is deployed on Alibaba Cloud Service of DeePMD group.
-:::
 
-
-:::success
 The backend of this software is based on the software `airflow`. The following command can start the calculation.
-:::
 
 <br />
 <br />The first command is used for calculate the free energy of solid.<br />The second command is used for calculate the free energy of liquid.<br />
@@ -183,10 +177,10 @@ airflow trigger_dag TI_taskflow --conf $(printf "%s" $(cat FreeEnergy.meam.json)
 
 
 1. We usually want to calculate the free energy of a metal at a specific pressure or temperature.  And the crystal structure of the metal can be various. For example,  we want to calculate the free energy of metal Sn of bcc structure at 200 K and 50000 bar (5GPa). In order to caculate the per atom free energy of metal Sn. First, We must prepare a configuration file named bcc.lmp and modify the [FreeEnergy.json](#ULX0o) or [FreeEnergyLiquid.json](#WuLBQ) and modify the key-value pair  like "structure": "bcc", "target_temp": 200, "target_press" : 50000.  And decide  whether to integrate along the  t(temperature) path  or along the p(pressure) path . Modify the "path" key-value pair for this.  The key-value pair "ensemble" for lammps MD simulation. Usually the ensemble shoule be consistent with the crystal intrinsic structure. That means we should set "npt-iso" for structure "bcc" to keep the simulation box changes simultaneously in x, y, z directions.
-1. modify the ti.t.json or ti.p.json, and change the key-value pair "temps" or "press" .  For ti.t.json, the tar_temp of FreeEnergy.json must be in the list  which the key-value pair "temps" of ti.t.json represents. And similarly for ti.p.json, the tar_press of FreeEnergy.json must be in the list which the key-value pair "temps" of ti.t.json represents.
-1. Use the command `airflow trigger_dag`  mentioned above. This command will start a [airflow dag](https://airflow.apache.org/docs/apache-airflow/stable/concepts.html).This dag is wrote and maintained by the dpti software developer. It is used to make the calculation to be done more autocally . The user could monitor the task state and calculation procedure at [a website](#2aabcbd6). The user can also rerun, restart, delete the whole calculation or some part of the calculations.
-1. Wait until the calculation finish. Usually the whole procedure continues for about 6 to 10 hours. The calculations will be done autocally.
-1. Find the results in [Results Show](#2aabcbd6) part. The user could use the tables and data of it and plot the curve.
+2. modify the ti.t.json or ti.p.json, and change the key-value pair "temps" or "press" .  For ti.t.json, the tar_temp of FreeEnergy.json must be in the list  which the key-value pair "temps" of ti.t.json represents. And similarly for ti.p.json, the tar_press of FreeEnergy.json must be in the list which the key-value pair "temps" of ti.t.json represents.
+3. Use the command `airflow trigger_dag`  mentioned above. This command will start a [airflow dag](https://airflow.apache.org/docs/apache-airflow/stable/concepts.html).This dag is wrote and maintained by the dpti software developer. It is used to make the calculation to be done more autocally . The user could monitor the task state and calculation procedure at [a website](#2aabcbd6). The user can also rerun, restart, delete the whole calculation or some part of the calculations.
+4. Wait until the calculation finish. Usually the whole procedure continues for about 6 to 10 hours. The calculations will be done autocally.
+5. Find the results in [Results Show](#2aabcbd6) part. The user could use the tables and data of it and plot the curve.
 
 
 
@@ -198,9 +192,8 @@ airflow trigger_dag TI_taskflow --conf $(printf "%s" $(cat FreeEnergy.meam.json)
 <br />For TI simulation the result will locate at `/home/fengbo/4_Sn/1_free_energy/400K-0bar-bct-t/TI_sim/result`<br />
 <br />You may want to use the result file and datas of  TI_sim/result and plot the free_energy vs T curve for different structure and find the crossing point.<br />
 
-:::info
 The user can ssh contect to the aliyun cloud server by command like ` ssh -L localhost:8080:localhost:8080 user1@67.xxx.xxx.25`  and visit [http://localhost:8080/](http://localhost:8080/) to monitor the free energy calculation tasks procedure.
-:::
+
 
 <br />
 <br />
@@ -257,11 +250,11 @@ Integrating along the isothermal or isobaric path, We will know the free energy
 
 
 
-:::tips
+
 note:
 
 1. the conf_lmp file must be in the work_base_dir.
-:::
+
 
 <br />
 
@@ -330,13 +323,11 @@ For solid, the settings used in Hamiltonian thermodyniamics integration (HTI)
 | temp | integer | 400 | the target temperature in HTI calculation  |
 
 
-
-:::tips
 note:
 
 1. the parameter defined by lammps pair_style  lj/cut/soft and pair_coeff command. see [lammps lj/cut/soft](https://lammps.sandia.gov/doc/pair_fep_soft.html#)
-1. sigma_0_0 means the sigma value for the lammps atom type 0 and atom type 0.
-:::
+2. sigma_0_0 means the sigma value for the lammps atom type 0 and atom type 0.
+
 <a name="379b68fde55209594cf49f462acad39b"></a>
 ## hti.liquid.json
 For solid, the settings used in Hamiltonian thermodyniamics integration (HTI).
@@ -363,13 +354,11 @@ For solid, the settings used in Hamiltonian thermodyniamics integration (HTI).
 | temp | integer | 400 | the target temperature in HTI calculation  |
 
 
-
-:::tips
 note:
 
 1. the parameter defined by lammps pair_style  lj/cut/soft and pair_coeff command. see [lammps lj/cut/soft](https://lammps.sandia.gov/doc/pair_fep_soft.html#)
-1. sigma_0_0 means the sigma value for the lammps atom type 0 and atom type 0.
-:::
+2. sigma_0_0 means the sigma value for the lammps atom type 0 and atom type 0.
+
 <a name="39d1080db8e8cc133d75af64f089abd5"></a>
 ## ti.t.json
 the settings used in thermodynamic integration (TI) for constant pressure and changeable temperature
