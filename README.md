@@ -154,11 +154,14 @@ reset db and webserver scheduler
 ```python
 # reset db
 airflow db init
-airflow webserver
-airflow scheduler
+# -D flag represent daemonize
+airflow webserver # -p 8080 -D
+airflow scheduler # -D
 ```
 <a name="QsNiC"></a>
 ### airflow webserver
+
+TODO
 
 <br />
 
