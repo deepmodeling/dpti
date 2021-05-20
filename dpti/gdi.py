@@ -10,7 +10,7 @@ from dpti.lib.utils import create_path, relative_link_file
 from dpti.lib.utils import block_avg
 from dpti.lib.lammps import get_natoms
 from dpti.ti import _gen_lammps_input
-# from dpti import ti
+from dpti import ti
 # from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
 # from dpgen.dispatcher.Dispatcher import Dispatcher
 try:
@@ -317,7 +317,7 @@ def make_dpdt (temp,
         dh = t1['h'] - t0['h'] - (shift[1] - shift[0])
         with open(os.path.join('database', 'dpdt.out'), 'a') as fp:
             fp.write('%.16e %.16e %.16e %.16e\n' % \
-                     (temp, pres, dv, dh))            
+                    (temp, pres, dv, dh))            
     os.chdir(cwd)
     return [dv, dh]
 
@@ -378,20 +378,76 @@ class GibbsDuhemFunc (object):
             return [(y * dv) / dh / self.ev2bar * (1/self.pref)]
 
 
+def gdi_main_loop(jdata, mdata, gdata, begin, end, direction,
+    initial_value, step_value, abs_tol, rel_tol ,if_water,
+    output, first_step, shift, verbose, if_meam):
+
+    update_key_list = ['begin', 'end', 'direction',
+        'initial_value', 'step_value', 'abs_tol', 'rel_tol', 'if_water',
+        'output', 'first_step', 'shift', 'verbose', 'if_meam'
+    ]
+    
+    g = {}
+    for key in update_key_list:
+        if gdata.get(key, None):
+            g[key] = gdata[key]
+        else:
+            g[key] = eval(key)
+
+    natoms = None
+    if g['if_water']:
+        conf_0 = jdata['phase_i']['equi_conf']
+        conf_1 = jdata['phase_ii']['equi_conf']
+        natoms = [get_natoms(conf_0), get_natoms(conf_1)]
+        natoms = [ii // 3  for ii in natoms]
+    print ('# natoms: ', natoms)
+    print ('# shifts: ', shift)
+    meam_model = jdata.get('meam_model', None)
+    gdf = GibbsDuhemFunc(jdata,
+                         mdata,
+                         g['output'],
+                         g['direction'],
+                         natoms = natoms,
+                         shift = g['shift'],
+                         verbose = g['verbose'],
+                         if_meam=g['if_meam'],
+                         meam_model=meam_model)
+
+    # print('debug', first_step)
+    sol = solve_ivp(gdf,
+                    [g['begin'], g['end']],
+                    [g['initial_value']],
+                    t_eval = g['step_value'],
+                    method = 'RK23',
+                    atol=g['abs_tol'],
+                    rtol=g['rel_tol'],
+                    first_step = g['first_step'])
+
+    if g['direction'] == 't' :
+        tmp = np.concatenate([sol.t, sol.y[0]])
+    else :
+        tmp = np.concatenate([sol.y[0], sol.t])        
+
+    tmp = np.reshape(tmp, [2,-1])
+    np.savetxt(os.path.join(g['output'], 'pb.out'), tmp.T)
+    return None
+
 def _main () :
     parser = argparse.ArgumentParser(
         description="Compute the phase boundary via Gibbs-Duhem integration")
-    parser.add_argument('PARAM', type=str ,
+    parser.add_argument('PARAM', type=str,
                         help='json parameter file')
-    parser.add_argument('MACHINE', type=str ,
+    parser.add_argument('MACHINE', type=str,
                         help='json machine file')
-    parser.add_argument('-b','--begin', type=float ,
+    parser.add_argument('-g', '--gdidata', type=str, default=None,
+                        help='json gdi integration file')
+    parser.add_argument('-b','--begin', type=float, default=None,
                         help='start of the integration')
-    parser.add_argument('-e','--end', type=float ,
+    parser.add_argument('-e','--end', type=float, default=None,
                         help='end of the integration')
-    parser.add_argument('-d','--direction', type=str, choices=['t','p'],
+    parser.add_argument('-d','--direction', type=str, choices=['t','p'], default=None,
                         help='direction of the integration, along T or P')
-    parser.add_argument('-i','--initial-value', type=float,
+    parser.add_argument('-i','--initial-value', type=float, default=None,
                         help='the initial value of T (direction=p) or P (direction=t)')
     parser.add_argument('-s','--step-value', type=float, nargs = '+',
                         help='the T (direction=t) or P (direction=p) values must be evaluated')
@@ -399,56 +455,37 @@ def _main () :
                         help='the absolute tolerance of the integration')
     parser.add_argument('-r','--rel-tol', type=float, default = 1e-2,
                         help='the relative tolerance of the integration')
-    parser.add_argument('-w','--water', action = 'store_true',
+    parser.add_argument('-w','--if-water', action = 'store_true',
                         help='assumes water molecules: nmols = natoms//3')
     parser.add_argument('-o','--output', type=str, default = 'new_job',
                         help='the output folder for the job')
-    parser.add_argument('-f','--first-step', type=float, default = None,
+    parser.add_argument('-f','--first-step', type=float, default=None,
                         help='the first step size of the integrator')
     parser.add_argument('-S','--shift', type=float, nargs = 2, default = [0.0, 0.0],
                         help='the output folder for the job')
     parser.add_argument('-v','--verbose', action = 'store_true',
                         help='print detailed infomation')
-    parser.add_argument("-z", "--meam", help="whether use meam instead of dp", action="store_true")
+    parser.add_argument("-z", "--if-meam", help="whether use meam instead of dp", action="store_true")
     args = parser.parse_args()
-    
-    jdata = json.load(open(args.PARAM))
-    mdata = json.load(open(args.MACHINE))
-    natoms = None
-    if args.water :
-        conf_0 = jdata['phase_i']['equi_conf']
-        conf_1 = jdata['phase_ii']['equi_conf']
-        natoms = [get_natoms(conf_0), get_natoms(conf_1)]
-        natoms = [ii // 3  for ii in natoms]
-    print ('# natoms: ', natoms)
-    print ('# shifts: ', args.shift)
-    meam_model = jdata.get('meam_model', None)
-    gdf = GibbsDuhemFunc(jdata,
-                         mdata,
-                         args.output,
-                         args.direction,
-                         natoms = natoms,
-                         shift = args.shift,
-                         verbose = args.verbose,
-                         if_meam=args.meam,
-                         meam_model=meam_model)
-    sol = solve_ivp(gdf,
-                    [args.begin, args.end],
-                    [args.initial_value],
-                    t_eval = args.step_value,
-                    method = 'RK23',
-                    atol=args.abs_tol,
-                    rtol=args.rel_tol,
-                    first_step = args.first_step)
 
-    if args.direction == 't' :
-        tmp = np.concatenate([sol.t, sol.y[0]])
-    else :
-        tmp = np.concatenate([sol.y[0], sol.t])        
+    with open(args.PARAM) as j:
+        jdata = json.load(j)
+    with open(args.MACHINE) as m:
+        mdata = json.load(m)
+    print('debug', args)
 
-    tmp = np.reshape(tmp, [2,-1])
-    np.savetxt(os.path.join(args.output, 'pb.out'), tmp.T)
+    if args.gdidata:
+        with open(args.gdidata) as g:
+            gdata = json.load(g)
+    else:
+        gdata=None
 
+    return_value = gdi_main_loop(jdata=jdata, mdata=mdata, gdata=gdata, begin=args.begin, end=args.end,
+        direction=args.direction, initial_value=args.initial_value, step_value=args.step_value, 
+        abs_tol=args.abs_tol, rel_tol=args.rel_tol, if_water=args.if_water, output=args.output,
+        first_step=args.first_step, shift=args.shift, verbose=args.verbose, if_meam=args.if_meam)
+
+    return return_value
 
 if __name__ == '__main__' :
     _main()        
