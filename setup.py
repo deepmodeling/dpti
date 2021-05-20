@@ -21,10 +21,10 @@ setuptools.setup(
     long_description="",
     long_description_content_type="text/markdown",
     url="",
-    python_requires=">3.7",
+    python_requires=">3.6",
     packages=['dpti', 'dpti/lib'],
     classifiers=[
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.6",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
     ],
     keywords='free energy thermodynamics integration deepmd-kit',
