@@ -149,16 +149,17 @@ def _setup_dpdt (task_path, jdata) :
         json.dump(jdata, fp, indent=4)
 
 
-def make_dpdt (temp,
-               pres,
-               inte_dir,
-               task_path,
-               mdata,
-               natoms = None,
-               shift = [0, 0],
-               verbose = False,
-               if_meam=False,
-               meam_model=None) :
+def make_dpdt(temp,
+            pres,
+            inte_dir,
+            task_path,
+            mdata,
+            natoms=None,
+            shift=[0, 0],
+            verbose=False,
+            if_meam=False,
+            meam_model=None,
+            workflow=None):
     assert(os.path.isdir(task_path))    
 
     if if_meam:
@@ -173,12 +174,12 @@ def make_dpdt (temp,
     # check if we need new MD simulations
     new_task = True
     if (not os.path.isdir('database')) or \
-       (not os.path.isfile('database/dpdt.out')):
-        if verbose :
+        (not os.path.isfile('database/dpdt.out')):
+        if verbose:
             print('# dpdt: cannot find any MD record, start from scrtach')
         new_task = True
         counter = 0
-    else :
+    else:
         if verbose :
             print('# dpdt: found MD records, search if any record matches')
         data = np.loadtxt('database/dpdt.out')
@@ -186,7 +187,7 @@ def make_dpdt (temp,
         counter = data.shape[0]
         for ii in range(data.shape[0]) :
             if (np.linalg.norm(temp - data[ii][0]) < 1e-4) and \
-               (np.linalg.norm(pres - data[ii][1]) < 1e-2) :
+                (np.linalg.norm(pres - data[ii][1]) < 1e-2) :
                 if verbose :
                     print('# dpdt: found matched record at %f %f ' % (temp, pres))
                 new_task = False
@@ -225,7 +226,9 @@ def make_dpdt (temp,
     if new_task :
         if verbose :
             print('# dpdt: do not find any matched record, run new task from %d ' % counter)
-        jdata = json.load(open('in.json', 'r'))        
+
+        with open('in.json', 'r') as j:
+            jdata = json.load(j)
         # make new task
         work_path = os.path.join('database', 'task.%06d' % counter)
         _make_tasks_onephase(temp, pres, 
@@ -322,18 +325,19 @@ def make_dpdt (temp,
     return [dv, dh]
 
 
-class GibbsDuhemFunc (object):
+class GibbsDuhemFunc(object):
     def __init__ (self,
-                  jdata,
-                  mdata,
-                  task_path,
-                  inte_dir,
-                  pref = 1.0,
-                  natoms = None,
-                  shift = [0, 0],
-                  verbose = False,
-                  if_meam=False,
-                  meam_model=None):
+                jdata,
+                mdata,
+                task_path,
+                inte_dir,
+                pref = 1.0,
+                natoms = None,
+                shift = [0, 0],
+                verbose = False,
+                if_meam=False,
+                meam_model=None
+    ):
         self.jdata = jdata
         self.mdata = mdata
         self.task_path = task_path
@@ -346,7 +350,7 @@ class GibbsDuhemFunc (object):
         self.meam_model = meam_model
         
         # self.dispatcher = Dispatcher(mdata['machine'], context_type = 'lazy-local', batch_type = 'pbs')
-        if os.path.isdir(task_path) :
+        if os.path.isdir(task_path):
             print('find path ' + task_path + ' use it. The user should guarantee the consistency between the jdata and the found work path ')
         else :
             _setup_dpdt(task_path, jdata)
@@ -357,14 +361,15 @@ class GibbsDuhemFunc (object):
         if self.inte_dir == 't' :
             # x: temp, y: pres
             [dv, dh] = make_dpdt(x, y,
-                                 self.inte_dir,
-                                 self.task_path, self.mdata,
-                                 self.natoms,
-                                 self.shift,
-                                 self.verbose,
-                                 if_meam=self.if_meam,
-                                 meam_model=self.meam_model)
+                                self.inte_dir,
+                                self.task_path, self.mdata,
+                                self.natoms,
+                                self.shift,
+                                self.verbose,
+                                if_meam=self.if_meam,
+                                meam_model=self.meam_model)
             return [dh / (x * dv) * self.ev2bar * self.pref]
+
         elif self.inte_dir == 'p' :
             # x: pres, y: temp
             [dv, dh] = make_dpdt(y, x,
@@ -378,9 +383,13 @@ class GibbsDuhemFunc (object):
             return [(y * dv) / dh / self.ev2bar * (1/self.pref)]
 
 
-def gdi_main_loop(jdata, mdata, gdata, begin, end, direction,
-    initial_value, step_value, abs_tol, rel_tol ,if_water,
-    output, first_step, shift, verbose, if_meam):
+# def gdi_main_loop(jdata, mdata, gdata, begin, end, direction,
+#     initial_value, step_value, abs_tol, rel_tol ,if_water,
+#     output, first_step, shift, verbose, if_meam):
+
+def gdi_main_loop(jdata, mdata, gdidata, begin=None, end=None, direction=None,
+    initial_value=None, step_value=None, abs_tol=None, rel_tol=None ,if_water=None,
+    output=None, first_step=None, shift=None, verbose=None, if_meam=None):
 
     update_key_list = ['begin', 'end', 'direction',
         'initial_value', 'step_value', 'abs_tol', 'rel_tol', 'if_water',
@@ -389,10 +398,13 @@ def gdi_main_loop(jdata, mdata, gdata, begin, end, direction,
     
     g = {}
     for key in update_key_list:
-        if gdata.get(key, None):
-            g[key] = gdata[key]
+        if gdidata.get(key, None):
+            g[key] = gdidata[key]
         else:
             g[key] = eval(key)
+
+    with open('gdidata.run.json', 'w') as f:
+        json.dump(g, f, indent=4)
 
     natoms = None
     if g['if_water']:
@@ -401,17 +413,20 @@ def gdi_main_loop(jdata, mdata, gdata, begin, end, direction,
         natoms = [get_natoms(conf_0), get_natoms(conf_1)]
         natoms = [ii // 3  for ii in natoms]
     print ('# natoms: ', natoms)
-    print ('# shifts: ', shift)
+    print ('# shifts: ', g['shift'])
     meam_model = jdata.get('meam_model', None)
+
+    # with open('')
+
     gdf = GibbsDuhemFunc(jdata,
-                         mdata,
-                         g['output'],
-                         g['direction'],
-                         natoms = natoms,
-                         shift = g['shift'],
-                         verbose = g['verbose'],
-                         if_meam=g['if_meam'],
-                         meam_model=meam_model)
+                        mdata,
+                        g['output'],
+                        g['direction'],
+                        natoms = natoms,
+                        shift = g['shift'],
+                        verbose = g['verbose'],
+                        if_meam=g['if_meam'],
+                        meam_model=meam_model)
 
     # print('debug', first_step)
     sol = solve_ivp(gdf,
@@ -421,7 +436,9 @@ def gdi_main_loop(jdata, mdata, gdata, begin, end, direction,
                     method = 'RK23',
                     atol=g['abs_tol'],
                     rtol=g['rel_tol'],
-                    first_step = g['first_step'])
+                    first_step = g['first_step']
+                    )
+
 
     if g['direction'] == 't' :
         tmp = np.concatenate([sol.t, sol.y[0]])
@@ -430,7 +447,7 @@ def gdi_main_loop(jdata, mdata, gdata, begin, end, direction,
 
     tmp = np.reshape(tmp, [2,-1])
     np.savetxt(os.path.join(g['output'], 'pb.out'), tmp.T)
-    return None
+    return True
 
 def _main () :
     parser = argparse.ArgumentParser(
@@ -472,15 +489,15 @@ def _main () :
         jdata = json.load(j)
     with open(args.MACHINE) as m:
         mdata = json.load(m)
-    print('debug', args)
+    # print('debug', args)
 
     if args.gdidata:
         with open(args.gdidata) as g:
-            gdata = json.load(g)
+            gdidata = json.load(g)
     else:
-        gdata=None
+        gdidata=None
 
-    return_value = gdi_main_loop(jdata=jdata, mdata=mdata, gdata=gdata, begin=args.begin, end=args.end,
+    return_value = gdi_main_loop(jdata=jdata, mdata=mdata, gdidata=gdidata, begin=args.begin, end=args.end,
         direction=args.direction, initial_value=args.initial_value, step_value=args.step_value, 
         abs_tol=args.abs_tol, rel_tol=args.rel_tol, if_water=args.if_water, output=args.output,
         first_step=args.first_step, shift=args.shift, verbose=args.verbose, if_meam=args.if_meam)
