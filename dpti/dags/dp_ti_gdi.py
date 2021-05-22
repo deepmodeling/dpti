@@ -49,6 +49,8 @@ class GDIDAGFactory:
         self.loop_dag = self.create_loop_dag()
 
     def create_main_dag(self):
+        gdi_name = self.gdi_name
+        
         @task()
         def dpti_gdi_main_prepare(**kwargs):
             # context = get_current_context()
@@ -73,6 +75,7 @@ class GDIDAGFactory:
                 gdidata = json.load(f)
 
             output_dir = os.path.join(work_base, 'new_job')
+            # print('38383', output_dir)
 
             # workflow = 
 

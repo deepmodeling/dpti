@@ -2,7 +2,6 @@
 
 from operator import sub
 import os, sys, json, argparse, glob, shutil, time
-from dpdispatcher.batch_object import Machine
 import numpy as np
 import scipy.constants as pc
 
@@ -17,6 +16,7 @@ from dpti import ti
 # from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
 # from dpgen.dispatcher.Dispatcher import Dispatcher
 try:
+    from dpdispatcher.batch_object import Machine
     from dpdispatcher.submission import Submission, Task, Resources
     from dpdispatcher.batch_object import BatchObject
 except ImportError:
@@ -133,11 +133,11 @@ def _make_tasks_onephase(temp,
 def _setup_dpdt (task_path, jdata) :
     name_0 = jdata['phase_i']['name']
     name_1 = jdata['phase_ii']['name']
-    conf_0 = jdata['phase_i']['equi_conf']
-    conf_1 = jdata['phase_ii']['equi_conf']
+    conf_0 = os.path.join(task_path, '../', jdata['phase_i']['equi_conf'])
+    conf_1 = os.path.join(task_path, '../', jdata['phase_ii']['equi_conf'])
     conf_0 = os.path.abspath(conf_0)
     conf_1 = os.path.abspath(conf_1)
-    model = jdata['model']
+    model = os.path.join(task_path, '../', jdata['model'])
     if model:
         model = os.path.abspath(model)
 
@@ -269,7 +269,7 @@ def make_dpdt(temp,
         if if_meam:
             meam_library_basename = os.path.basename(meam_model['library'])
             meam_potential_basename = os.path.basename(meam_model['potential'])
-        forward_files.extend([meam_library_basename, meam_potential_basename])
+            forward_files.extend([meam_library_basename, meam_potential_basename])
         backward_files = ['log.lammps', 'out.lmp']
 
         task1 = Task(
@@ -363,6 +363,8 @@ class GibbsDuhemFunc(object):
         self.if_meam = if_meam
         self.meam_model = meam_model
         self.workflow = workflow
+
+        print('debug54250', task_path)
         
         # self.dispatcher = Dispatcher(mdata['machine'], context_type = 'lazy-local', batch_type = 'pbs')
         if os.path.isdir(task_path):
@@ -437,8 +439,8 @@ def gdi_main_loop(jdata, mdata, gdidata, begin=None, end=None, direction=None,
 
     gdf = GibbsDuhemFunc(jdata,
                         mdata,
-                        g['output'],
-                        g['direction'],
+                        task_path=g['output'],
+                        inte_dir=g['direction'],
                         natoms = natoms,
                         shift = g['shift'],
                         verbose = g['verbose'],
