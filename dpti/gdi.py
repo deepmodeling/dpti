@@ -293,11 +293,12 @@ def make_dpdt (temp,
             batch=batch,
             task_list=[task1, task2]
         )
-    if workflow is None:
-        submission.run_submission()
-    else:
+        submission.generate_jobs()
+        if workflow is None:
+            submission.run_submission()
+        else:
         # client.trigg
-        workflow.trigger_loop(submission=submission, mdata=mdata)
+            workflow.trigger_loop(submission=submission, mdata=mdata)
 
         # run_tasks = ['0', '1']        
 
@@ -330,6 +331,7 @@ def make_dpdt (temp,
         t0 = ti._compute_thermo(log_0, natoms[0], stat_skip, stat_bsize)
         t1 = ti._compute_thermo(log_1, natoms[1], stat_skip, stat_bsize)
         dv = t1['v'] - t0['v']
+        print('debug13413', t1, t0, shift)
         dh = t1['h'] - t0['h'] - (shift[1] - shift[0])
         with open(os.path.join('database', 'dpdt.out'), 'a') as fp:
             fp.write('%.16e %.16e %.16e %.16e\n' % \
@@ -405,8 +407,8 @@ class GibbsDuhemFunc(object):
 #     output, first_step, shift, verbose, if_meam):
 
 def gdi_main_loop(jdata, mdata, gdidata, begin=None, end=None, direction=None,
-    initial_value=None, step_value=None, abs_tol=None, rel_tol=None ,if_water=None,
-    output=None, first_step=None, shift=None, verbose=None, if_meam=None, workflow=None):
+    initial_value=None, step_value=None, abs_tol=10, rel_tol=0.01, if_water=None,
+    output=None, first_step=None, shift=[0.0, 0.0], verbose=None, if_meam=None, workflow=None):
 
     update_key_list = ['begin', 'end', 'direction',
         'initial_value', 'step_value', 'abs_tol', 'rel_tol', 'if_water',
@@ -444,7 +446,7 @@ def gdi_main_loop(jdata, mdata, gdidata, begin=None, end=None, direction=None,
                         verbose = g['verbose'],
                         if_meam=g['if_meam'],
                         meam_model=meam_model,
-                        workflow=None)
+                        workflow=workflow)
 
     sol = solve_ivp(gdf,
                     [g['begin'], g['end']],
