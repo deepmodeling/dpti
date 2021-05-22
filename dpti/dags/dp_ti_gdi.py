@@ -24,9 +24,9 @@ from dpti import gdi
 
 from dpti.gdi import gdi_main_loop
 
-default_args = {'owner': 'airflow',
-                'start_date': datetime(2018, 1, 1)
-                }
+# default_args = {'owner': 'airflow',
+#                 'start_date': datetime(2018, 1, 1)
+#                 }
 
 # BASE_DAG_NAME='dag_dpti_gdi_v8'
 # MAX_LOOP_NUM = 30
@@ -49,7 +49,7 @@ class GDIDAGFactory:
         self.loop_dag = self.create_loop_dag()
 
     def create_main_dag(self):
-        dag_name = self.dag_main_name
+        dag_name = self.dag_loop_name
         var_name = self.var_name
         @task()
         def dpti_gdi_main_prepare(**kwargs):
@@ -176,14 +176,14 @@ class GDIWorkflow:
         print('debug696:submission_dict', submission_dict)
         print('debug:mdata:', mdata)
         # submission_hash = submission.submission_hash
-        Variable.set(self.var_name, 'begin')
         try:
             c.trigger_dag(dag_id=self.dag_name, run_id=f"dag_run_{submission_hash}",
                 conf={'submission_dict': submission_dict, 'mdata':mdata}
             ) #, conf={'loop_num': loop_num})
+            Variable.set(self.var_name, 'begin')
         except DagRunAlreadyExists:
             print('continue from old dagrun')
-        loop_return = self.wait_until_end(self.var_name)
+        loop_return = self.wait_until_end()
         return loop_return
 
 
