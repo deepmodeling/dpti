@@ -46,7 +46,7 @@ class GDIDAGFactory:
         self.var_name = self.gdi_name + '_dv_dh'
         self.loop_dag = self.create_loop_dag()
 
-    def run_main_loop(work_base):
+    def run_main_loop(self, work_base):
         with open(os.path.join(work_base, 'machine.json'), 'r') as f:
             mdata = json.load(f)
 
