@@ -331,7 +331,6 @@ def make_dpdt (temp,
         t0 = ti._compute_thermo(log_0, natoms[0], stat_skip, stat_bsize)
         t1 = ti._compute_thermo(log_1, natoms[1], stat_skip, stat_bsize)
         dv = t1['v'] - t0['v']
-        print('debug13413', t1, t0, shift)
         dh = t1['h'] - t0['h'] - (shift[1] - shift[0])
         with open(os.path.join('database', 'dpdt.out'), 'a') as fp:
             fp.write('%.16e %.16e %.16e %.16e\n' % \
@@ -367,7 +366,7 @@ class GibbsDuhemFunc (object):
         self.workflow = workflow
 
         # self.dispatcher = Dispatcher(mdata['machine'], context_type = 'lazy-local', batch_type = 'pbs')
-        if os.path.isdir(task_path):
+        if os.path.isdir(task_path) :
             print('find path ' + task_path + ' use it. The user should guarantee the consistency between the jdata and the found work path ')
         else :
             _setup_dpdt(task_path, jdata)
