@@ -183,7 +183,7 @@ def make_dpdt (temp,
     # check if we need new MD simulations
     new_task = True
     if (not os.path.isdir('database')) or \
-         (not os.path.isfile('database/dpdt.out')):
+       (not os.path.isfile('database/dpdt.out')):
         if verbose :
             print('# dpdt: cannot find any MD record, start from scrtach')
         new_task = True
@@ -196,7 +196,7 @@ def make_dpdt (temp,
         counter = data.shape[0]
         for ii in range(data.shape[0]) :
             if (np.linalg.norm(temp - data[ii][0]) < 1e-4) and \
-                 (np.linalg.norm(pres - data[ii][1]) < 1e-2) :
+               (np.linalg.norm(pres - data[ii][1]) < 1e-2) :
                 if verbose :
                     print('# dpdt: found matched record at %f %f ' % (temp, pres))
                 new_task = False
@@ -340,19 +340,19 @@ def make_dpdt (temp,
     return [dv, dh]
 
 
-class GibbsDuhemFunc(object):
+class GibbsDuhemFunc (object):
     def __init__ (self,
-                jdata,
-                mdata,
-                task_path,
-                inte_dir,
-                pref = 1.0,
-                natoms = None,
-                shift = [0, 0],
-                verbose = False,
-                if_meam=False,
-                meam_model=None,
-                workflow=None
+                  jdata,
+                  mdata,
+                  task_path,
+                  inte_dir,
+                  pref = 1.0,
+                  natoms = None,
+                  shift = [0, 0],
+                  verbose = False,
+                  if_meam=False,
+                  meam_model=None,
+                  workflow=None
     ):
         self.jdata = jdata
         self.mdata = mdata
