@@ -8,7 +8,7 @@ from airflow.decorators import task
 from airflow.utils.dates import days_ago
 from airflow.utils.task_group import TaskGroup
 from datetime import datetime, timedelta
-from airflow.exceptions import AirflowFailException, AirflowSkipException
+from airflow.exceptions import AirflowFailException, AirflowSkipException, DagNotFound, DagRunAlreadyExists
 # from airflow.api.client.local_client import Client
 
 from airflow.api.client.local_client import Client
@@ -19,6 +19,7 @@ from dpdispatcher.submission import Submission
 from dpdispatcher.batch_object import Machine
 
 import time
+import uuid
 from dpti import gdi
 
 from dpti.gdi import gdi_main_loop
@@ -62,14 +63,14 @@ class GDIDAGFactory:
             mdata=mdata, 
             gdidata=gdidata, 
             output=output_dir, 
-            workflow=self.loop_dag
+            workflow=self
         )
         return True
 
     def create_loop_dag(self):
         @task()
         def dpti_gdi_loop_prepare(**kwargs):
-            Variable.set(self.var_name, False)
+            Variable.set(self.var_name, 'run')
             prepare_return = True
             return prepare_return
 
@@ -79,7 +80,9 @@ class GDIDAGFactory:
             dag_run = context['params']
 
             submission_dict = dag_run['submission_dict']
+            print('submission_dict', submission_dict)
             mdata = dag_run['mdata']
+            print('mdata', mdata)
 
             machine = Machine.load_from_machine_dict(mdata)
             batch = machine.batch
@@ -94,7 +97,7 @@ class GDIDAGFactory:
         @task()
         def dpti_gdi_loop_end(md_return, **kwargs):
             end_return = True
-            Variable.set(self.var_name, True)
+            Variable.set(self.var_name, 'end')
             return end_return
 
         dag = DAG(self.dag_loop_name, **self.__class__.dagargs)
@@ -106,24 +109,35 @@ class GDIDAGFactory:
         return dag
 
     def wait_until_end(self):
-        var_begin_value = Variable.get(self.var_name)
-        var_value = None
-        print('wait until end; var_begin_value', var_begin_value)
+        var_value = Variable.get(self.var_name)
+        # var_value = None
+        print('begin wait until end; var_value', var_value)
         while True:
             var_value = Variable.get(self.var_name)
-            if var_value is False:
-                time.sleep(20)
-            else:
+            if var_value == 'end':
+                print('wait finish', var_value)
                 break
+            else:
+                print('wait continue', var_value)
+                time.sleep(30)
         return var_value
 
     def trigger_loop(self, submission, mdata):
         # loop_num = None
         c = Client(None, None)
+        submission_dict = submission.serialize()
         submission_hash = submission.submission_hash
-        c.trigger_dag(dag_id=self.dag_loop_name, run_id=f"gdi_{submission_hash}",
-            conf={'submission_dict': submission.serialize(), 'mdata':mdata}
-        ) #, conf={'loop_num': loop_num})
+        print('debug696:submission_dict', submission_dict)
+        print('debug:mdata:', mdata)
+        # submission_hash = submission.submission_hash
+        Variable.set(self.var_name, 'begin')
+        try:
+            c.trigger_dag(dag_id=self.dag_loop_name, run_id=f"gdi_{submission_hash}",
+                conf={'submission_dict': submission_dict, 'mdata':mdata}
+            ) #, conf={'loop_num': loop_num})
+        except DagRunAlreadyExists:
+            print('continue from old dagrun')
+            
         loop_return = self.wait_until_end()
         # loop_return = get_loop_end_return()
         return loop_return

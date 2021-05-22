@@ -287,9 +287,12 @@ def make_dpdt(temp,
             batch=batch,
             task_list=[task1, task2]
         )
+        submission.generate_jobs()
     if workflow is None:
         submission.run_submission()
     else:
+        # submission_dict = submission.serialize()
+        # print('debug787:', submission_dict)
         workflow.trigger_loop(submission=submission, mdata=mdata)
 
         # run_tasks = ['0', '1']        
@@ -437,7 +440,7 @@ def gdi_main_loop(jdata, mdata, gdidata, begin=None, end=None, direction=None,
                         verbose = g['verbose'],
                         if_meam=g['if_meam'],
                         meam_model=meam_model,
-                        workflow=None)
+                        workflow=workflow)
 
     # print('debug', first_step)
     sol = solve_ivp(gdf,
