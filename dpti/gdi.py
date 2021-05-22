@@ -2,7 +2,6 @@
 
 from operator import sub
 import os, sys, json, argparse, glob, shutil, time
-from dpdispatcher.batch_object import Machine
 import numpy as np
 import scipy.constants as pc
 
@@ -17,6 +16,7 @@ from dpti import ti
 # from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
 # from dpgen.dispatcher.Dispatcher import Dispatcher
 try:
+    from dpdispatcher.batch_object import Machine
     from dpdispatcher.submission import Submission, Task, Resources
     from dpdispatcher.batch_object import BatchObject
 except ImportError:
