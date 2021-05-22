@@ -35,7 +35,7 @@ class GDIDAGFactory:
     }
     def __init__(self, gdi_name):
         self.gdi_name = gdi_name
-        self.dag_name = self.dag_name + '_gdi_dag'
+        self.dag_name = self.gdi_name + '_gdi_dag'
         self.var_name = self.gdi_name + '_dv_dh'
         self.dag = self.create_dag()
         # self.loop_number = 8
@@ -53,6 +53,7 @@ class GDIDAGFactory:
     def create_dag(self):
         @task()
         def dpti_gdi_loop_prepare(**kwargs):
+            prepare_return = 0
             return prepare_return
 
         @task()

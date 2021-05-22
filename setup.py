@@ -22,7 +22,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="",
     python_requires=">3.6",
-    packages=['dpti', 'dpti/lib'],
+    packages=['dpti', 'dpti/lib', 'dpti/dags'],
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
