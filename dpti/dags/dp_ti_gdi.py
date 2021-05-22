@@ -12,7 +12,7 @@ from airflow.exceptions import AirflowFailException, AirflowSkipException, DagNo
 # from airflow.api.client.local_client import Client
 
 from airflow.api.client.local_client import Client
-from airflow.models import Variable
+from airflow.models import Variable, dagrun
 from numpy.core.fromnumeric import var
 # from dpdispatcher.
 from dpdispatcher.submission import Submission
@@ -45,7 +45,54 @@ class GDIDAGFactory:
         self.dag_loop_name = self.gdi_name + '_gdi_loop_dag'
         self.dag_main_name = self.gdi_name + '_gdi_main_dag'
         self.var_name = self.gdi_name + '_dv_dh'
+        self.main_dag = self.create_main_dag()
         self.loop_dag = self.create_loop_dag()
+
+    def create_main_dag(self):
+        @task()
+        def dpti_gdi_main_prepare(**kwargs):
+            # context = get_current_context()
+            # dag_run = context['params']
+            # work_base = dag_run['work_base']
+            # Variable.set(self.var_name, 'run')
+            prepare_return = True
+            return prepare_return
+        
+        @task()
+        def dpti_gdi_main_loop(**kwargs):
+            context = get_current_context()
+            dag_run = context['params']
+            work_base = dag_run['work_base']
+            with open(os.path.join(work_base, 'machine.json'), 'r') as f:
+                mdata = json.load(f)
+
+            with open(os.path.join(work_base, 'pb.json'), 'r') as f:
+                jdata = json.load(f)
+
+            with open(os.path.join(work_base, 'gdidata.json'), 'r') as f:
+                gdidata = json.load(f)
+
+            output_dir = os.path.join(work_base, 'new_job')
+
+            # workflow = 
+
+            gdi_main_loop(jdata=jdata, 
+                mdata=mdata,
+                gdidata=gdidata, 
+                output=output_dir, 
+                workflow=self
+            )
+            # return True          
+            # Variable.set(self.var_name, 'run')
+            prepare_return = True
+            return prepare_return
+
+        @task()
+        def dpti_gdi_main_end(**kwargs):            
+            # Variable.set(self.var_name, 'run')
+            prepare_return = True
+            return prepare_return
+
 
     def run_main_loop(self, work_base):
         with open(os.path.join(work_base, 'machine.json'), 'r') as f:
