@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+from operator import sub
 import os, sys, json, argparse, glob, shutil, time
+from dpdispatcher.batch_object import Machine
 import numpy as np
 import scipy.constants as pc
 
@@ -11,6 +13,7 @@ from dpti.lib.utils import block_avg
 from dpti.lib.lammps import get_natoms
 from dpti.ti import _gen_lammps_input
 from dpti import ti
+# from dpti.workflow
 # from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
 # from dpgen.dispatcher.Dispatcher import Dispatcher
 try:
@@ -230,9 +233,10 @@ def make_dpdt(temp,
         with open('in.json', 'r') as j:
             jdata = json.load(j)
         # make new task
-        work_path = os.path.join('database', 'task.%06d' % counter)
+        work_base = os.path.abspath(os.path.join('database', 'task.%06d' % counter))
+
         _make_tasks_onephase(temp, pres, 
-                             os.path.join(work_path, '0'),
+                             os.path.join(work_base, '0'),
                              jdata,
                              ens = jdata['phase_i'].get('ens', None),
                              conf_file = conf_0,
@@ -240,7 +244,7 @@ def make_dpdt(temp,
                              if_meam=if_meam,
                              meam_model=meam_model)
         _make_tasks_onephase(temp, pres, 
-                             os.path.join(work_path, '1'),
+                             os.path.join(work_base, '1'),
                              jdata, 
                              ens = jdata['phase_ii'].get('ens', None),
                              conf_file = conf_1,
@@ -248,19 +252,18 @@ def make_dpdt(temp,
                              if_meam=if_meam,
                              meam_model=meam_model)
         # submit new task
-        resources_dict = mdata['resources']
-        batch_dict = mdata['batch']
-        resources = Resources(**resources_dict)
-        batch = BatchObject(jdata=batch_dict)
+
+        # if workflow is None:
+        machine = Machine.load_from_machine_dict(mdata)
+        resources = machine.resources
+        batch = machine.batch
+
         command = 'lmp -i in.lammps'
-        # resources = mdata['resources']
-        # lmp_exec = mdata['command']
-        # command = lmp_exec + " -i in.lammps"
         forward_files = ['conf.lmp', 'in.lammps', 'graph.pb']
         if if_meam:
             meam_library_basename = os.path.basename(meam_model['library'])
             meam_potential_basename = os.path.basename(meam_model['potential'])
-            forward_files.extend([meam_library_basename, meam_potential_basename])
+        forward_files.extend([meam_library_basename, meam_potential_basename])
         backward_files = ['log.lammps', 'out.lmp']
 
         task1 = Task(
@@ -277,14 +280,17 @@ def make_dpdt(temp,
         )
 
         submission = Submission(
-            work_base=work_path,
+            work_base=work_base,
             resources=resources,
             forward_common_files=[],
             backward_common_files=[],
             batch=batch,
-            task_list=[task1, task2])
-        
+            task_list=[task1, task2]
+        )
+    if workflow is None:
         submission.run_submission()
+    else:
+        workflow.trigger_loop(submission=submission, mdata=mdata)
 
         # run_tasks = ['0', '1']        
 
@@ -308,8 +314,8 @@ def make_dpdt(temp,
         #                   backward_files)
 
         # collect resutls
-        log_0 = os.path.join(work_path, '0', 'log.lammps')
-        log_1 = os.path.join(work_path, '1', 'log.lammps')
+        log_0 = os.path.join(work_base, '0', 'log.lammps')
+        log_1 = os.path.join(work_base, '1', 'log.lammps')
         if natoms == None :
             natoms = [get_natoms('conf.0.lmp'), get_natoms('conf.1.lmp')]
         stat_skip = jdata['stat_skip']
@@ -336,7 +342,8 @@ class GibbsDuhemFunc(object):
                 shift = [0, 0],
                 verbose = False,
                 if_meam=False,
-                meam_model=None
+                meam_model=None,
+                workflow=None
     ):
         self.jdata = jdata
         self.mdata = mdata
@@ -348,6 +355,7 @@ class GibbsDuhemFunc(object):
         self.shift = shift
         self.if_meam = if_meam
         self.meam_model = meam_model
+        self.workflow = workflow
         
         # self.dispatcher = Dispatcher(mdata['machine'], context_type = 'lazy-local', batch_type = 'pbs')
         if os.path.isdir(task_path):
@@ -367,7 +375,8 @@ class GibbsDuhemFunc(object):
                                 self.shift,
                                 self.verbose,
                                 if_meam=self.if_meam,
-                                meam_model=self.meam_model)
+                                meam_model=self.meam_model,
+                                workflow=self.workflow)
             return [dh / (x * dv) * self.ev2bar * self.pref]
 
         elif self.inte_dir == 'p' :
@@ -379,7 +388,8 @@ class GibbsDuhemFunc(object):
                                  self.shift,
                                  self.verbose,
                                  if_meam=self.if_meam,
-                                 meam_model=self.meam_model)
+                                 meam_model=self.meam_model,
+                                 workflow=self.workflow)
             return [(y * dv) / dh / self.ev2bar * (1/self.pref)]
 
 
@@ -389,7 +399,7 @@ class GibbsDuhemFunc(object):
 
 def gdi_main_loop(jdata, mdata, gdidata, begin=None, end=None, direction=None,
     initial_value=None, step_value=None, abs_tol=None, rel_tol=None ,if_water=None,
-    output=None, first_step=None, shift=None, verbose=None, if_meam=None):
+    output=None, first_step=None, shift=None, verbose=None, if_meam=None, workflow=None):
 
     update_key_list = ['begin', 'end', 'direction',
         'initial_value', 'step_value', 'abs_tol', 'rel_tol', 'if_water',
@@ -426,7 +436,8 @@ def gdi_main_loop(jdata, mdata, gdidata, begin=None, end=None, direction=None,
                         shift = g['shift'],
                         verbose = g['verbose'],
                         if_meam=g['if_meam'],
-                        meam_model=meam_model)
+                        meam_model=meam_model,
+                        workflow=None)
 
     # print('debug', first_step)
     sol = solve_ivp(gdf,
@@ -500,7 +511,7 @@ def _main () :
     return_value = gdi_main_loop(jdata=jdata, mdata=mdata, gdidata=gdidata, begin=args.begin, end=args.end,
         direction=args.direction, initial_value=args.initial_value, step_value=args.step_value, 
         abs_tol=args.abs_tol, rel_tol=args.rel_tol, if_water=args.if_water, output=args.output,
-        first_step=args.first_step, shift=args.shift, verbose=args.verbose, if_meam=args.if_meam)
+        first_step=args.first_step, shift=args.shift, verbose=args.verbose, if_meam=args.if_meam, workflow=None)
 
     return return_value
 
