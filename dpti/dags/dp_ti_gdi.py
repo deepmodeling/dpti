@@ -78,10 +78,8 @@ class GDIDAGFactory:
                 gdidata = json.load(f)
 
             output_dir = os.path.join(work_base, 'new_job')
-            # print('38383', output_dir)
 
             # workflow =
-            # print('debug7689678', var_name, dag_name)
             gdi_workflow = GDIWorkflow(var_name=var_name, 
                 dag_name=dag_name)
 
@@ -176,8 +174,6 @@ class GDIWorkflow:
         c = Client(None, None)
         submission_dict = submission.serialize()
         submission_hash = submission.submission_hash
-        print('debug696:submission_dict', submission_dict)
-        print('debug:mdata:', mdata)
         # submission_hash = submission.submission_hash
         try:
             c.trigger_dag(dag_id=self.dag_name, run_id=f"dag_run_{submission_hash}",
