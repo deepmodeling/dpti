@@ -59,7 +59,7 @@ class GDIDAGFactory:
             return prepare_return
         
         @task()
-        def dpti_gdi_main_loop(**kwargs):
+        def dpti_gdi_main_loop(prepare_return, **kwargs):
             context = get_current_context()
             dag_run = context['params']
             work_base = dag_run['work_base']
@@ -84,35 +84,22 @@ class GDIDAGFactory:
             )
             # return True          
             # Variable.set(self.var_name, 'run')
-            prepare_return = True
-            return prepare_return
+            loop_return = True
+            return loop_return
 
         @task()
-        def dpti_gdi_main_end(**kwargs):            
+        def dpti_gdi_main_end(loop_return, **kwargs):            
             # Variable.set(self.var_name, 'run')
-            prepare_return = True
-            return prepare_return
+            end_return = True
+            return end_return
 
+        main_dag = DAG(self.dag_main_name, **self.__class__.dagargs)
+        with main_dag:
+            prepare_return = dpti_gdi_main_prepare()
+            loop_return = dpti_gdi_main_loop(prepare_return)
+            end_return = dpti_gdi_main_end(loop_return)
 
-    def run_main_loop(self, work_base):
-        with open(os.path.join(work_base, 'machine.json'), 'r') as f:
-            mdata = json.load(f)
-
-        with open(os.path.join(work_base, 'pb.json'), 'r') as f:
-            jdata = json.load(f)
-
-        with open(os.path.join(work_base, 'gdidata.json'), 'r') as f:
-            gdidata = json.load(f)
-
-        output_dir = os.path.join(work_base, 'new_job')
-
-        gdi_main_loop(jdata=jdata, 
-            mdata=mdata, 
-            gdidata=gdidata, 
-            output=output_dir, 
-            workflow=self
-        )
-        return True
+        return main_dag
 
     def create_loop_dag(self):
         @task()
@@ -147,13 +134,13 @@ class GDIDAGFactory:
             Variable.set(self.var_name, 'end')
             return end_return
 
-        dag = DAG(self.dag_loop_name, **self.__class__.dagargs)
-        with dag:
+        loop_dag = DAG(self.dag_loop_name, **self.__class__.dagargs)
+        with loop_dag:
             prepare_return = dpti_gdi_loop_prepare()
             md_return = dpti_gdi_loop_md(prepare_return)
             end_return = dpti_gdi_loop_end(md_return)
             print("end_return", end_return)
-        return dag
+        return loop_dag
 
     def wait_until_end(self):
         var_value = Variable.get(self.var_name)
@@ -190,7 +177,7 @@ class GDIDAGFactory:
         return loop_return
 
 
-# GDI_dag_factory = GDIDAGFactory(gdi_name='Sn_test1')
+# GDI_dag_factory = GDIDAGFactory(gdi_name='Sn_test10')
 # dag = GDI_dag_factory.main_dag
 
 
