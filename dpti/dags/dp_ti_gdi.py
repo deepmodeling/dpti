@@ -40,17 +40,19 @@ class GDIDAGFactory:
         'default_args': default_args,
         'schedule_interval': None,
     }
-    def __init__(self, gdi_name):
+    def __init__(self, gdi_name, dag_work_base):
         self.gdi_name = gdi_name
         self.dag_loop_name = self.gdi_name + '_gdi_loop_dag'
         self.dag_main_name = self.gdi_name + '_gdi_main_dag'
         self.var_name = self.gdi_name + '_dv_dh'
+        self.dag_work_base = dag_work_base
         self.main_dag = self.create_main_dag()
         self.loop_dag = self.create_loop_dag()
 
     def create_main_dag(self):
         dag_name = self.dag_loop_name
         var_name = self.var_name
+        work_base = self.dag_work_base
         @task()
         def dpti_gdi_main_prepare(**kwargs):
             # context = get_current_context()
@@ -62,9 +64,10 @@ class GDIDAGFactory:
         
         @task()
         def dpti_gdi_main_loop(prepare_return, **kwargs):
-            context = get_current_context()
-            dag_run = context['params']
-            work_base = dag_run['work_base']
+            # context = get_current_context()
+            # dag_run = context['params']
+            # work_base = dag_run['work_base']
+            # work_base = work_base
             with open(os.path.join(work_base, 'machine.json'), 'r') as f:
                 mdata = json.load(f)
 
@@ -78,7 +81,7 @@ class GDIDAGFactory:
             # print('38383', output_dir)
 
             # workflow =
-            print('debug7689678', var_name, dag_name)
+            # print('debug7689678', var_name, dag_name)
             gdi_workflow = GDIWorkflow(var_name=var_name, 
                 dag_name=dag_name)
 
