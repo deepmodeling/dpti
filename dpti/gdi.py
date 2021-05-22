@@ -263,7 +263,7 @@ def make_dpdt(temp,
         if if_meam:
             meam_library_basename = os.path.basename(meam_model['library'])
             meam_potential_basename = os.path.basename(meam_model['potential'])
-        forward_files.extend([meam_library_basename, meam_potential_basename])
+            forward_files.extend([meam_library_basename, meam_potential_basename])
         backward_files = ['log.lammps', 'out.lmp']
 
         task1 = Task(
