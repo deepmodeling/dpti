@@ -158,17 +158,17 @@ def _setup_dpdt (task_path, jdata) :
         json.dump(jdata, fp, indent=4)
 
 
-def make_dpdt(temp,
-            pres,
-            inte_dir,
-            task_path,
-            mdata,
-            natoms=None,
-            shift=[0, 0],
-            verbose=False,
-            if_meam=False,
-            meam_model=None,
-            workflow=None):
+def make_dpdt (temp,
+               pres,
+               inte_dir,
+               task_path,
+               mdata,
+               natoms=None,
+               shift=[0, 0],
+               verbose=False,
+               if_meam=False,
+               meam_model=None,
+               workflow=None):
     assert(os.path.isdir(task_path))    
 
     if if_meam:
@@ -183,12 +183,12 @@ def make_dpdt(temp,
     # check if we need new MD simulations
     new_task = True
     if (not os.path.isdir('database')) or \
-        (not os.path.isfile('database/dpdt.out')):
-        if verbose:
+         (not os.path.isfile('database/dpdt.out')):
+        if verbose :
             print('# dpdt: cannot find any MD record, start from scrtach')
         new_task = True
         counter = 0
-    else:
+    else :
         if verbose :
             print('# dpdt: found MD records, search if any record matches')
         data = np.loadtxt('database/dpdt.out')
@@ -196,7 +196,7 @@ def make_dpdt(temp,
         counter = data.shape[0]
         for ii in range(data.shape[0]) :
             if (np.linalg.norm(temp - data[ii][0]) < 1e-4) and \
-                (np.linalg.norm(pres - data[ii][1]) < 1e-2) :
+                 (np.linalg.norm(pres - data[ii][1]) < 1e-2) :
                 if verbose :
                     print('# dpdt: found matched record at %f %f ' % (temp, pres))
                 new_task = False
@@ -364,8 +364,6 @@ class GibbsDuhemFunc(object):
         self.meam_model = meam_model
         self.workflow = workflow
 
-        print('debug54250', task_path)
-        
         # self.dispatcher = Dispatcher(mdata['machine'], context_type = 'lazy-local', batch_type = 'pbs')
         if os.path.isdir(task_path):
             print('find path ' + task_path + ' use it. The user should guarantee the consistency between the jdata and the found work path ')
@@ -378,14 +376,14 @@ class GibbsDuhemFunc(object):
         if self.inte_dir == 't' :
             # x: temp, y: pres
             [dv, dh] = make_dpdt(x, y,
-                                self.inte_dir,
-                                self.task_path, self.mdata,
-                                self.natoms,
-                                self.shift,
-                                self.verbose,
-                                if_meam=self.if_meam,
-                                meam_model=self.meam_model,
-                                workflow=self.workflow)
+                                 self.inte_dir,
+                                 self.task_path, self.mdata,
+                                 self.natoms,
+                                 self.shift,
+                                 self.verbose,
+                                 if_meam=self.if_meam,
+                                 meam_model=self.meam_model,
+                                 workflow=self.workflow)
             return [dh / (x * dv) * self.ev2bar * self.pref]
 
         elif self.inte_dir == 'p' :
@@ -448,7 +446,6 @@ def gdi_main_loop(jdata, mdata, gdidata, begin=None, end=None, direction=None,
                         meam_model=meam_model,
                         workflow=None)
 
-    # print('debug', first_step)
     sol = solve_ivp(gdf,
                     [g['begin'], g['end']],
                     [g['initial_value']],
@@ -509,7 +506,6 @@ def _main () :
         jdata = json.load(j)
     with open(args.MACHINE) as m:
         mdata = json.load(m)
-    # print('debug', args)
 
     if args.gdidata:
         with open(args.gdidata) as g:
