@@ -2,6 +2,7 @@
 
 from operator import sub
 import os, sys, json, argparse, glob, shutil, time
+from dpdispatcher.batch_object import Machine
 import numpy as np
 import scipy.constants as pc
 
@@ -16,11 +17,16 @@ from dpti import ti
 # from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
 # from dpgen.dispatcher.Dispatcher import Dispatcher
 try:
-    from dpdispatcher.batch_object import Machine
     from dpdispatcher.submission import Submission, Task, Resources
     from dpdispatcher.batch_object import BatchObject
 except ImportError:
     pass
+
+# try:
+#     from airflow.exceptions import AirflowFailException, AirflowSkipException, DagNotFound, DagRunAlreadyExists
+#     from airflow.api.client.local_client import Client
+# except ImportError:
+#     pass
 
 # def _group_slurm_jobs(ssh_sess,
 #                       resources,
@@ -263,7 +269,7 @@ def make_dpdt(temp,
         if if_meam:
             meam_library_basename = os.path.basename(meam_model['library'])
             meam_potential_basename = os.path.basename(meam_model['potential'])
-            forward_files.extend([meam_library_basename, meam_potential_basename])
+        forward_files.extend([meam_library_basename, meam_potential_basename])
         backward_files = ['log.lammps', 'out.lmp']
 
         task1 = Task(
@@ -287,12 +293,10 @@ def make_dpdt(temp,
             batch=batch,
             task_list=[task1, task2]
         )
-        submission.generate_jobs()
     if workflow is None:
         submission.run_submission()
     else:
-        # submission_dict = submission.serialize()
-        # print('debug787:', submission_dict)
+        # client.trigg
         workflow.trigger_loop(submission=submission, mdata=mdata)
 
         # run_tasks = ['0', '1']        
@@ -440,7 +444,7 @@ def gdi_main_loop(jdata, mdata, gdidata, begin=None, end=None, direction=None,
                         verbose = g['verbose'],
                         if_meam=g['if_meam'],
                         meam_model=meam_model,
-                        workflow=workflow)
+                        workflow=None)
 
     # print('debug', first_step)
     sol = solve_ivp(gdf,
