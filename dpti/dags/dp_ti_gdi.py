@@ -14,8 +14,14 @@ from airflow.exceptions import AirflowFailException, AirflowSkipException
 from airflow.api.client.local_client import Client
 from airflow.models import Variable
 from numpy.core.fromnumeric import var
+# from dpdispatcher.
+from dpdispatcher.submission import Submission
+from dpdispatcher.batch_object import Machine
 
 import time
+from dpti import gdi
+
+from dpti.gdi import gdi_main_loop
 
 default_args = {'owner': 'airflow',
                 'start_date': datetime(2018, 1, 1)
@@ -35,57 +41,69 @@ class GDIDAGFactory:
     }
     def __init__(self, gdi_name):
         self.gdi_name = gdi_name
-        self.dag_name = self.gdi_name + '_gdi_dag'
+        self.dag_loop_name = self.gdi_name + '_gdi_loop_dag'
+        self.dag_main_name = self.gdi_name + '_gdi_main_dag'
         self.var_name = self.gdi_name + '_dv_dh'
-        self.dag = self.create_dag()
-        # self.loop_number = 8
+        self.loop_dag = self.create_loop_dag()
 
-    # @property
-    # def dag(self):
-    #     pass
+    def run_main_loop(work_base):
+        with open(os.path.join(work_base, 'machine.json'), 'r') as f:
+            mdata = json.load(f)
 
-    def get_dags(self):
-        main_dag = self.create_main()
-        # loop_dag = self.create_loop()
-        return main_dag
+        with open(os.path.join(work_base, 'pb.json'), 'r') as f:
+            jdata = json.load(f)
 
-    #  @classmethod
-    def create_dag(self):
+        with open(os.path.join(work_base, 'gdidata.json'), 'r') as f:
+            gdidata = json.load(f)
+
+        output_dir = os.path.join(work_base, 'new_job')
+
+        gdi_main_loop(jdata=jdata, 
+            mdata=mdata, 
+            gdidata=gdidata, 
+            output=output_dir, 
+            workflow=self.loop_dag
+        )
+        return True
+
+    def create_loop_dag(self):
         @task()
         def dpti_gdi_loop_prepare(**kwargs):
-            prepare_return = 0
+            Variable.set(self.var_name, False)
+            prepare_return = True
             return prepare_return
 
         @task()
         def dpti_gdi_loop_md(prepare_return, **kwargs):
-            md_return = prepare_return
-            return md_return
+            context = get_current_context()
+            dag_run = context['params']
+
+            submission_dict = dag_run['submission_dict']
+            mdata = dag_run['mdata']
+
+            machine = Machine.load_from_machine_dict(mdata)
+            batch = machine.batch
+            submission = Submission.deserialize(
+                submission_dict=submission_dict,
+                batch=batch
+            )
+            submission.run_submission()
+            # md_return = prepare_return
+            return True
 
         @task()
         def dpti_gdi_loop_end(md_return, **kwargs):
-            end_return = md_return
-            # Variable.set
-            var_name = self.var_name
-            Variable.set(var_name, end_return)
+            end_return = True
+            Variable.set(self.var_name, True)
             return end_return
 
-        dagname = self.gdi_name + '_dpti_gdi'
-        dag = DAG(dagname, **self.__class__.dagargs)
+        dag = DAG(self.dag_loop_name, **self.__class__.dagargs)
         with dag:
             prepare_return = dpti_gdi_loop_prepare()
             md_return = dpti_gdi_loop_md(prepare_return)
             end_return = dpti_gdi_loop_end(md_return)
             print("end_return", end_return)
-            # t1 = DummyOperator(task_id='dpti_gdi_loop_prepare')
-            # t2 = DummyOperator(task_id='dpti_gdi_loop_md')
-            # t3 = DummyOperator(task_id='dpti_gdi_loop_end')
-            # t1 >> t2  >> t3
         return dag
-
-    # def get_loop_end_return(self):
-    #     var_name = self.var_name
-    #     loop_end_return = Variable.get(var_name)
-    #     return loop_end_return
 
     def wait_until_end(self):
         var_begin_value = Variable.get(self.var_name)
@@ -93,21 +111,23 @@ class GDIDAGFactory:
         print('wait until end; var_begin_value', var_begin_value)
         while True:
             var_value = Variable.get(self.var_name)
-            if var_value == var_begin_value:
+            if var_value is False:
                 time.sleep(20)
             else:
                 break
         return var_value
 
-    def trigger_loop(self, loop_num):
+    def trigger_loop(self, submission, mdata):
         # loop_num = None
         c = Client(None, None)
-        c.trigger_dag(dag_id=self.dag_name, run_id=f"loop_{loop_num}") #, conf={'loop_num': loop_num})
+        submission_hash = submission.submission_hash
+        c.trigger_dag(dag_id=self.dag_loop_name, run_id=f"gdi_{submission_hash}",
+            conf={'submission_dict': submission.serialize(), 'mdata':mdata}
+        ) #, conf={'loop_num': loop_num})
         loop_return = self.wait_until_end()
         # loop_return = get_loop_end_return()
         return loop_return
 
-    # def 
 
 # GDI_dag_factory = GDIDAGFactory(gdi_name='Sn_test1')
 # dag = GDI_dag_factory.main_dag
