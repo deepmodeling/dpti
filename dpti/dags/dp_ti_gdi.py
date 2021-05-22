@@ -49,8 +49,8 @@ class GDIDAGFactory:
         self.loop_dag = self.create_loop_dag()
 
     def create_main_dag(self):
-        gdi_name = self.gdi_name
-        
+        dag_name = self.dag_main_name
+        var_name = self.var_name
         @task()
         def dpti_gdi_main_prepare(**kwargs):
             # context = get_current_context()
@@ -77,13 +77,16 @@ class GDIDAGFactory:
             output_dir = os.path.join(work_base, 'new_job')
             # print('38383', output_dir)
 
-            # workflow = 
+            # workflow =
+            print('debug7689678', var_name, dag_name)
+            gdi_workflow = GDIWorkflow(var_name=var_name, 
+                dag_name=dag_name)
 
             gdi_main_loop(jdata=jdata, 
                 mdata=mdata,
                 gdidata=gdidata, 
                 output=output_dir, 
-                workflow=self
+                workflow=gdi_workflow
             )
             # return True          
             # Variable.set(self.var_name, 'run')
@@ -145,6 +148,12 @@ class GDIDAGFactory:
             print("end_return", end_return)
         return loop_dag
 
+
+class GDIWorkflow:
+    def __init__(self, dag_name, var_name):
+        self.dag_name = dag_name
+        self.var_name = var_name
+
     def wait_until_end(self):
         var_value = Variable.get(self.var_name)
         # var_value = None
@@ -169,19 +178,13 @@ class GDIDAGFactory:
         # submission_hash = submission.submission_hash
         Variable.set(self.var_name, 'begin')
         try:
-            c.trigger_dag(dag_id=self.dag_loop_name, run_id=f"gdi_{submission_hash}",
+            c.trigger_dag(dag_id=self.dag_name, run_id=f"dag_run_{submission_hash}",
                 conf={'submission_dict': submission_dict, 'mdata':mdata}
             ) #, conf={'loop_num': loop_num})
         except DagRunAlreadyExists:
             print('continue from old dagrun')
-            
-        loop_return = self.wait_until_end()
-        # loop_return = get_loop_end_return()
+        loop_return = self.wait_until_end(self.var_name)
         return loop_return
-
-
-# GDI_dag_factory = GDIDAGFactory(gdi_name='Sn_test10')
-# dag = GDI_dag_factory.main_dag
 
 
 
