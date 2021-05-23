@@ -68,6 +68,7 @@ class GDIDAGFactory:
             # dag_run = context['params']
             # work_base = dag_run['work_base']
             # work_base = work_base
+            print('debug:prepare_return', prepare_return)
             with open(os.path.join(work_base, 'machine.json'), 'r') as f:
                 mdata = json.load(f)
 
@@ -110,14 +111,23 @@ class GDIDAGFactory:
         return main_dag
 
     def create_loop_dag(self):
-        @task()
-        def dpti_gdi_loop_prepare(**kwargs):
+        @task(multiple_outputs=True)
+        def dpti_gdi_loop_prepare():
             Variable.set(self.var_name, 'run')
-            prepare_return = True
-            return prepare_return
+
+            context = get_current_context()
+            dag_run = context['params']
+            task0_dict = dag_run['task0_dict']
+            task1_dict = dag_run['task1_dict']
+
+            submission_dict = dag_run['submission_dict']
+            # prepare_return = True
+            # return (task0_dict, task1_dict)
+            return {'task0_dict':task0_dict, 'task1_dict':task1_dict}
+            # return (task0_dict, task1_dict)
 
         @task()
-        def dpti_gdi_loop_md(task_dict, **kwargs):
+        def dpti_gdi_loop_md(task_dict):
             context = get_current_context()
             dag_run = context['params']
 
@@ -125,6 +135,7 @@ class GDIDAGFactory:
             print('submission_dict', submission_dict)
             mdata = dag_run['mdata']
             print('mdata', mdata)
+            print('debug:task_dict', task_dict)
 
             machine = Machine.load_from_machine_dict(mdata)
             batch = machine.batch
@@ -138,18 +149,18 @@ class GDIDAGFactory:
             return True
 
         @task()
-        def dpti_gdi_loop_end(task1_return, task2_return, **kwargs):
+        def dpti_gdi_loop_end(task0_return, task1_return):
             end_return = True
             Variable.set(self.var_name, 'end')
             return end_return
 
         loop_dag = DAG(self.dag_loop_name, **self.__class__.dagargs)
         with loop_dag:
-            task1_dict, task2_dict = dpti_gdi_loop_prepare()
-            task1_return = dpti_gdi_loop_md(task1_dict)
-            task2_return = dpti_gdi_loop_md(task2_dict)
-            end_return = dpti_gdi_loop_end(task1_return, task2_return)
-            print("end_return", end_return)
+            tasks_dict = dpti_gdi_loop_prepare()
+            task0_return = dpti_gdi_loop_md(tasks_dict['task0_dict'])
+            task1_return = dpti_gdi_loop_md(tasks_dict['task1_dict'])
+            # end_return = dpti_gdi_loop_end(task0_return, task1_return)
+            end_return = dpti_gdi_loop_end(task0_return, task1_return)
         return loop_dag
 
 
@@ -172,18 +183,18 @@ class GDIWorkflow:
                 time.sleep(30)
         return var_value
 
-    def trigger_loop(self, submission, task1, task2, mdata):
+    def trigger_loop(self, submission, task0, task1, mdata):
         # loop_num = None
         c = Client(None, None)
         submission_dict = submission.serialize()
+        task0_dict = task0.serialize()
         task1_dict = task1.serialize()
-        task2_dict = task2.serialize()
         submission_hash = submission.submission_hash
         # submission_hash = submission.submission_hash
         try:
             c.trigger_dag(dag_id=self.dag_name, run_id=f"dag_run_{submission_hash}",
-                conf={'submission_dict': submission_dict, 'task1_dict':task1_dict, 
-                'task2_dict':task2_dict, 'mdata':mdata}
+                conf={'submission_dict': submission_dict, 'task0_dict':task0_dict, 
+                'task1_dict':task1_dict, 'mdata':mdata}
             ) #, conf={'loop_num': loop_num})
             Variable.set(self.var_name, 'begin')
         except DagRunAlreadyExists:
