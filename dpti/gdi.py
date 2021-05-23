@@ -2,6 +2,7 @@
 
 from operator import sub
 import os, sys, json, argparse, glob, shutil, time
+from typing import Optional
 import numpy as np
 import scipy.constants as pc
 
@@ -12,6 +13,9 @@ from dpti.lib.utils import block_avg
 from dpti.lib.lammps import get_natoms
 from dpti.ti import _gen_lammps_input
 from dpti import ti
+import dargs
+from dargs import dargs, Argument, Variant
+
 # from dpti.workflow
 # from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
 # from dpgen.dispatcher.Dispatcher import Dispatcher
@@ -400,71 +404,76 @@ class GibbsDuhemFunc (object):
                                  workflow=self.workflow)
             return [(y * dv) / dh / self.ev2bar * (1/self.pref)]
 
+# def gdi_main_loop(jdata, mdata, gdidata, begin=None, end=None, direction=None,
+#     initial_value=None, step_value=None, abs_tol=10, rel_tol=0.01, if_water=None,
+#     output=None, first_step=None, shift=[0.0, 0.0], verbose=None, if_meam=None, workflow=None):
 
-# def gdi_main_loop(jdata, mdata, gdata, begin, end, direction,
-#     initial_value, step_value, abs_tol, rel_tol ,if_water,
-#     output, first_step, shift, verbose, if_meam):
+def gdi_main_loop(jdata, mdata, gdidata_dict, gdidata_cli={}, workflow=None):
 
-def gdi_main_loop(jdata, mdata, gdidata, begin=None, end=None, direction=None,
-    initial_value=None, step_value=None, abs_tol=10, rel_tol=0.01, if_water=None,
-    output=None, first_step=None, shift=[0.0, 0.0], verbose=None, if_meam=None, workflow=None):
-
-    update_key_list = ['begin', 'end', 'direction',
-        'initial_value', 'step_value', 'abs_tol', 'rel_tol', 'if_water',
-        'output', 'first_step', 'shift', 'verbose', 'if_meam'
+    gdiargs = [
+        Argument("begin", float, optional=False),
+        Argument("end", float, optional=False),
+        Argument("direction", str, optional=False),
+        Argument("initial_value", float, optional=False),
+        Argument("step_value", [list, float], optional=True, default=None),
+        Argument("abs_tol", float, optional=True, default=10,),
+        Argument("rel_tol", float, optional=True, default=0.01),
+        Argument("if_water", bool, optional=True, default=None),
+        Argument("output", str, optional=True, default="new_job/"),
+        Argument("first_step", float, optional=True, default=None),
+        Argument("shift", list, optional=True, default=[0.0, 0.0]),
+        Argument("verbose", bool, optional=True, default=True),
+        Argument("if_meam", bool, optional=True, default=None),
     ]
-    
-    g = {}
-    for key in update_key_list:
-        if gdidata.get(key, None):
-            g[key] = gdidata[key]
-        else:
-            g[key] = eval(key)
 
-    with open('gdidata.run.json', 'w') as f:
-        json.dump(g, f, indent=4)
+    gdidata = Argument("gdidata", dict, gdiargs)
+
+    gdidata.normalize_value(gdidata_cli)
+    gdidata.normalize_value(gdidata_dict)
+
+    with open(os.path.join(gdidata['output'], 'gdidata.run.json', 'w')) as f:
+        json.dump(gdidata, f, indent=4)
 
     natoms = None
-    if g['if_water']:
+    if gdidata['if_water']:
         conf_0 = jdata['phase_i']['equi_conf']
         conf_1 = jdata['phase_ii']['equi_conf']
         natoms = [get_natoms(conf_0), get_natoms(conf_1)]
         natoms = [ii // 3  for ii in natoms]
     print ('# natoms: ', natoms)
-    print ('# shifts: ', g['shift'])
+    print ('# shifts: ', gdidata['shift'])
     meam_model = jdata.get('meam_model', None)
 
     # with open('')
 
     gdf = GibbsDuhemFunc(jdata,
                         mdata,
-                        task_path=g['output'],
-                        inte_dir=g['direction'],
+                        task_path=gdidata['output'],
+                        inte_dir=gdidata['direction'],
                         natoms = natoms,
-                        shift = g['shift'],
-                        verbose = g['verbose'],
-                        if_meam=g['if_meam'],
+                        shift = gdidata['shift'],
+                        verbose = gdidata['verbose'],
+                        if_meam=gdidata['if_meam'],
                         meam_model=meam_model,
                         workflow=workflow)
 
     sol = solve_ivp(gdf,
-                    [g['begin'], g['end']],
-                    [g['initial_value']],
-                    t_eval = g['step_value'],
+                    [gdidata['begin'], gdidata['end']],
+                    [gdidata['initial_value']],
+                    t_eval = gdidata['step_value'],
                     method = 'RK23',
-                    atol=g['abs_tol'],
-                    rtol=g['rel_tol'],
-                    first_step = g['first_step']
+                    atol=gdidata['abs_tol'],
+                    rtol=gdidata['rel_tol'],
+                    first_step = gdidata['first_step']
                     )
 
-
-    if g['direction'] == 't' :
+    if gdidata['direction'] == 't' :
         tmp = np.concatenate([sol.t, sol.y[0]])
     else :
         tmp = np.concatenate([sol.y[0], sol.t])        
 
     tmp = np.reshape(tmp, [2,-1])
-    np.savetxt(os.path.join(g['output'], 'pb.out'), tmp.T)
+    np.savetxt(os.path.join(gdidata['output'], 'pb.out'), tmp.T)
     return True
 
 def _main () :
@@ -474,7 +483,7 @@ def _main () :
                         help='json parameter file')
     parser.add_argument('MACHINE', type=str,
                         help='json machine file')
-    parser.add_argument('-g', '--gdidata', type=str, default=None,
+    parser.add_argument('-g', '--gdidata-json', type=str, default=None,
                         help='json gdi integration file')
     parser.add_argument('-b','--begin', type=float, default=None,
                         help='start of the integration')
@@ -508,16 +517,31 @@ def _main () :
     with open(args.MACHINE) as m:
         mdata = json.load(m)
 
-    if args.gdidata:
-        with open(args.gdidata) as g:
-            gdidata = json.load(g)
+    if args.gdijson:
+        with open(args.gdidata_json) as g:
+            gdidata_dict = json.load(g)
     else:
-        gdidata=None
+        gdidata_dict=None
 
-    return_value = gdi_main_loop(jdata=jdata, mdata=mdata, gdidata=gdidata, begin=args.begin, end=args.end,
+    gdidata_cli = dict(begin=args.begin, end=args.end,
         direction=args.direction, initial_value=args.initial_value, step_value=args.step_value, 
         abs_tol=args.abs_tol, rel_tol=args.rel_tol, if_water=args.if_water, output=args.output,
-        first_step=args.first_step, shift=args.shift, verbose=args.verbose, if_meam=args.if_meam, workflow=None)
+        first_step=args.first_step, shift=args.shift, verbose=args.verbose, if_meam=args.if_meam
+    )
+
+    return_value = gdi_main_loop(jdata=jdata, 
+        mdata=mdata,
+        gdidata_dict=gdidata_dict,
+        gdidata_cli=gdidata_cli,
+        workflow=None)
+    # gdidata_run = gdiargs
+
+
+
+    # return_value = gdi_main_loop(jdata=jdata, mdata=mdata, gdidata=gdidata, begin=args.begin, end=args.end,
+    #     direction=args.direction, initial_value=args.initial_value, step_value=args.step_value, 
+    #     abs_tol=args.abs_tol, rel_tol=args.rel_tol, if_water=args.if_water, output=args.output,
+    #     first_step=args.first_step, shift=args.shift, verbose=args.verbose, if_meam=args.if_meam, workflow=None)
 
     return return_value
 
