@@ -15,7 +15,7 @@ from airflow.api.client.local_client import Client
 from airflow.models import Variable, dagrun
 from numpy.core.fromnumeric import var
 # from dpdispatcher.
-from dpdispatcher.submission import Submission
+from dpdispatcher.submission import Submission, Task
 from dpdispatcher.batch_object import Machine
 
 import time
@@ -117,7 +117,7 @@ class GDIDAGFactory:
             return prepare_return
 
         @task()
-        def dpti_gdi_loop_md(prepare_return, **kwargs):
+        def dpti_gdi_loop_md(task_dict, **kwargs):
             context = get_current_context()
             dag_run = context['params']
 
@@ -132,21 +132,23 @@ class GDIDAGFactory:
                 submission_dict=submission_dict,
                 batch=batch
             )
+            submission.register_task(task=Task.deserialize(task_dict=task_dict))
             submission.run_submission()
             # md_return = prepare_return
             return True
 
         @task()
-        def dpti_gdi_loop_end(md_return, **kwargs):
+        def dpti_gdi_loop_end(task1_return, task2_return, **kwargs):
             end_return = True
             Variable.set(self.var_name, 'end')
             return end_return
 
         loop_dag = DAG(self.dag_loop_name, **self.__class__.dagargs)
         with loop_dag:
-            prepare_return = dpti_gdi_loop_prepare()
-            md_return = dpti_gdi_loop_md(prepare_return)
-            end_return = dpti_gdi_loop_end(md_return)
+            task1_dict, task2_dict = dpti_gdi_loop_prepare()
+            task1_return = dpti_gdi_loop_md(task1_dict)
+            task2_return = dpti_gdi_loop_md(task2_dict)
+            end_return = dpti_gdi_loop_end(task1_return, task2_return)
             print("end_return", end_return)
         return loop_dag
 
@@ -170,15 +172,18 @@ class GDIWorkflow:
                 time.sleep(30)
         return var_value
 
-    def trigger_loop(self, submission, mdata):
+    def trigger_loop(self, submission, task1, task2, mdata):
         # loop_num = None
         c = Client(None, None)
         submission_dict = submission.serialize()
+        task1_dict = task1.serialize()
+        task2_dict = task2.serialize()
         submission_hash = submission.submission_hash
         # submission_hash = submission.submission_hash
         try:
             c.trigger_dag(dag_id=self.dag_name, run_id=f"dag_run_{submission_hash}",
-                conf={'submission_dict': submission_dict, 'mdata':mdata}
+                conf={'submission_dict': submission_dict, 'task1_dict':task1_dict, 
+                'task2_dict':task2_dict, 'mdata':mdata}
             ) #, conf={'loop_num': loop_num})
             Variable.set(self.var_name, 'begin')
         except DagRunAlreadyExists:

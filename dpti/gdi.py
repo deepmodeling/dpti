@@ -288,17 +288,16 @@ def make_dpdt (temp,
             forward_files=forward_files,
             backward_files=backward_files
         )
-
         submission = Submission(
             work_base=work_base,
             resources=resources,
             forward_common_files=[],
             backward_common_files=[],
             batch=batch,
-            task_list=[task1, task2]
         )
-        submission.generate_jobs()
         if workflow is None:
+            submission.register_task_list([task1, task2])
+            # submission.generate_jobs()
             submission.run_submission()
         else:
         # client.trigg
@@ -431,9 +430,6 @@ def gdi_main_loop(jdata, mdata, gdidata_dict, gdidata_cli={}, workflow=None):
     gdidata = gdidata_dict.copy()
     gdidata = gdidata_format.normalize_value(gdidata_cli)
     gdidata = gdidata_format.normalize_value(gdidata_dict)
-    # gdidata = gdidata_format.normalize_value(gdidata_dict)
-    print('debug686, gdidata', gdidata)
-    print("debug688, gdidata['output']", gdidata['output'])
 
     with open(os.path.join(os.path.dirname(os.path.abspath(gdidata['output'])), 
             'gdidata.run.json'), 'w') as f:
