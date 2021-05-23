@@ -426,12 +426,17 @@ def gdi_main_loop(jdata, mdata, gdidata_dict, gdidata_cli={}, workflow=None):
         Argument("if_meam", bool, optional=True, default=None),
     ]
 
-    gdidata = Argument("gdidata", dict, gdiargs)
+    gdidata_format = Argument("gdidata", dict, gdiargs)
 
-    gdidata.normalize_value(gdidata_cli)
-    gdidata.normalize_value(gdidata_dict)
+    gdidata = gdidata_dict.copy()
+    gdidata = gdidata_format.normalize_value(gdidata_cli)
+    gdidata = gdidata_format.normalize_value(gdidata_dict)
+    # gdidata = gdidata_format.normalize_value(gdidata_dict)
+    print('debug686, gdidata', gdidata)
+    print("debug688, gdidata['output']", gdidata['output'])
 
-    with open(os.path.join(gdidata['output'], 'gdidata.run.json', 'w')) as f:
+    with open(os.path.join(os.path.dirname(os.path.abspath(gdidata['output'])), 
+            'gdidata.run.json'), 'w') as f:
         json.dump(gdidata, f, indent=4)
 
     natoms = None
@@ -517,7 +522,7 @@ def _main () :
     with open(args.MACHINE) as m:
         mdata = json.load(m)
 
-    if args.gdijson:
+    if args.gdidata_json:
         with open(args.gdidata_json) as g:
             gdidata_dict = json.load(g)
     else:

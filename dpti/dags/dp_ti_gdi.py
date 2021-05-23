@@ -75,9 +75,10 @@ class GDIDAGFactory:
                 jdata = json.load(f)
 
             with open(os.path.join(work_base, 'gdidata.json'), 'r') as f:
-                gdidata = json.load(f)
+                gdidata_dict = json.load(f)
 
-            output_dir = os.path.join(work_base, 'new_job')
+            output_dir = os.path.join(work_base, 'new_job/')
+            gdidata_dict['output'] = output_dir
 
             # workflow =
             gdi_workflow = GDIWorkflow(var_name=var_name, 
@@ -85,8 +86,8 @@ class GDIDAGFactory:
 
             gdi_main_loop(jdata=jdata, 
                 mdata=mdata,
-                gdidata=gdidata, 
-                output=output_dir, 
+                gdidata_dict=gdidata_dict,
+                gdidata_cli={}, 
                 workflow=gdi_workflow
             )
             # return True          
