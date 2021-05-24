@@ -276,18 +276,15 @@ def make_dpdt (temp,
             forward_files.extend([meam_library_basename, meam_potential_basename])
         backward_files = ['log.lammps', 'out.lmp']
 
-        task0 = Task(
-            command=command,
-            task_work_path='0/',
-            forward_files=forward_files,
-            backward_files=backward_files
-        )
-        task1 = Task(
-            command=command,
-            task_work_path='1/',
-            forward_files=forward_files,
-            backward_files=backward_files
-        )
+        task_list = []
+        for ii in range(2):
+            task = Task(
+                command=command,
+                task_work_path=f'{ii}/',
+                forward_files=forward_files,
+                backward_files=backward_files
+            )
+
         submission = Submission(
             work_base=work_base,
             resources=resources,
@@ -296,12 +293,12 @@ def make_dpdt (temp,
             batch=batch,
         )
         if workflow is None:
-            submission.register_task_list([task0, task1])
+            submission.register_task_list(task_list=task_list)
             # submission.generate_jobs()
             submission.run_submission()
         else:
         # client.trigg
-            workflow.trigger_loop(submission=submission, task0=task0, task1=task1, mdata=mdata)
+            workflow.trigger_loop(submission=submission, task_list=task_list, mdata=mdata)
 
         # run_tasks = ['0', '1']        
 
