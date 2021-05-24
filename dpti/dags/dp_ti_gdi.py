@@ -62,7 +62,7 @@ class GDIDAGFactory:
             prepare_return = True
             return prepare_return
         
-        @task()
+        @task(retries=2, retry_delay=timedelta(minutes=1))
         def dpti_gdi_main_loop(prepare_return, **kwargs):
             # context = get_current_context()
             # dag_run = context['params']
@@ -117,8 +117,8 @@ class GDIDAGFactory:
 
             context = get_current_context()
             dag_run = context['params']
-            task0_dict = dag_run['task0_dict']
-            task1_dict = dag_run['task1_dict']
+            task0_dict = dag_run['task_dict_list'][0]
+            task1_dict = dag_run['task_dict_list'][1]
 
             submission_dict = dag_run['submission_dict']
             # prepare_return = True
@@ -183,18 +183,18 @@ class GDIWorkflow:
                 time.sleep(30)
         return var_value
 
-    def trigger_loop(self, submission, task0, task1, mdata):
+    def trigger_loop(self, submission, task_list, mdata):
         # loop_num = None
         c = Client(None, None)
         submission_dict = submission.serialize()
-        task0_dict = task0.serialize()
-        task1_dict = task1.serialize()
+        # task0_dict = task0.serialize()
+        # task1_dict = task1.serialize()
+        task_dict_list = [task.serialize() for task in task_list]
         submission_hash = submission.submission_hash
         # submission_hash = submission.submission_hash
         try:
             c.trigger_dag(dag_id=self.dag_name, run_id=f"dag_run_{submission_hash}",
-                conf={'submission_dict': submission_dict, 'task0_dict':task0_dict, 
-                'task1_dict':task1_dict, 'mdata':mdata}
+                conf={'submission_dict': submission_dict, 'task_dict_list':task_dict_list, 'mdata':mdata}
             ) #, conf={'loop_num': loop_num})
             Variable.set(self.var_name, 'begin')
         except DagRunAlreadyExists:
