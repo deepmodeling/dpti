@@ -9,7 +9,7 @@ today = datetime.date.today().strftime("%b-%d-%Y")
 # with open(path.join(NAME, '_date.py'), 'w') as fp :
 #     fp.write('date = \'%s\'' % today)
 
-install_requires=['apache-airflow>2.0', 'scipy', 'numpy', 'pymbar']
+install_requires=['apache-airflow>2.0', 'scipy', 'numpy', 'pymbar', 'dargs']
 
 setuptools.setup(
     name='dpti',
@@ -21,10 +21,10 @@ setuptools.setup(
     long_description="",
     long_description_content_type="text/markdown",
     url="",
-    python_requires=">3.7",
-    packages=['dpti', 'dpti/lib'],
+    python_requires=">3.6",
+    packages=['dpti', 'dpti/lib', 'dpti/dags'],
     classifiers=[
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.6",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
     ],
     keywords='free energy thermodynamics integration deepmd-kit',

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+from operator import sub
 import os, sys, json, argparse, glob, shutil, time
+from typing import Optional
 import numpy as np
 import scipy.constants as pc
 
@@ -10,14 +12,25 @@ from dpti.lib.utils import create_path, relative_link_file
 from dpti.lib.utils import block_avg
 from dpti.lib.lammps import get_natoms
 from dpti.ti import _gen_lammps_input
-# from dpti import ti
+from dpti import ti
+import dargs
+from dargs import dargs, Argument, Variant
+
+# from dpti.workflow
 # from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
 # from dpgen.dispatcher.Dispatcher import Dispatcher
 try:
+    from dpdispatcher.batch_object import Machine
     from dpdispatcher.submission import Submission, Task, Resources
     from dpdispatcher.batch_object import BatchObject
 except ImportError:
     pass
+
+# try:
+#     from airflow.exceptions import AirflowFailException, AirflowSkipException, DagNotFound, DagRunAlreadyExists
+#     from airflow.api.client.local_client import Client
+# except ImportError:
+#     pass
 
 # def _group_slurm_jobs(ssh_sess,
 #                       resources,
@@ -124,11 +137,11 @@ def _make_tasks_onephase(temp,
 def _setup_dpdt (task_path, jdata) :
     name_0 = jdata['phase_i']['name']
     name_1 = jdata['phase_ii']['name']
-    conf_0 = jdata['phase_i']['equi_conf']
-    conf_1 = jdata['phase_ii']['equi_conf']
+    conf_0 = os.path.join(task_path, '../', jdata['phase_i']['equi_conf'])
+    conf_1 = os.path.join(task_path, '../', jdata['phase_ii']['equi_conf'])
     conf_0 = os.path.abspath(conf_0)
     conf_1 = os.path.abspath(conf_1)
-    model = jdata['model']
+    model = os.path.join(task_path, '../', jdata['model'])
     if model:
         model = os.path.abspath(model)
 
@@ -154,11 +167,12 @@ def make_dpdt (temp,
                inte_dir,
                task_path,
                mdata,
-               natoms = None,
-               shift = [0, 0],
-               verbose = False,
+               natoms=None,
+               shift=[0, 0],
+               verbose=False,
                if_meam=False,
-               meam_model=None) :
+               meam_model=None,
+               workflow=None):
     assert(os.path.isdir(task_path))    
 
     if if_meam:
@@ -225,11 +239,14 @@ def make_dpdt (temp,
     if new_task :
         if verbose :
             print('# dpdt: do not find any matched record, run new task from %d ' % counter)
-        jdata = json.load(open('in.json', 'r'))        
+
+        with open('in.json', 'r') as j:
+            jdata = json.load(j)
         # make new task
-        work_path = os.path.join('database', 'task.%06d' % counter)
+        work_base = os.path.abspath(os.path.join('database', 'task.%06d' % counter))
+
         _make_tasks_onephase(temp, pres, 
-                             os.path.join(work_path, '0'),
+                             os.path.join(work_base, '0'),
                              jdata,
                              ens = jdata['phase_i'].get('ens', None),
                              conf_file = conf_0,
@@ -237,7 +254,7 @@ def make_dpdt (temp,
                              if_meam=if_meam,
                              meam_model=meam_model)
         _make_tasks_onephase(temp, pres, 
-                             os.path.join(work_path, '1'),
+                             os.path.join(work_base, '1'),
                              jdata, 
                              ens = jdata['phase_ii'].get('ens', None),
                              conf_file = conf_1,
@@ -245,14 +262,13 @@ def make_dpdt (temp,
                              if_meam=if_meam,
                              meam_model=meam_model)
         # submit new task
-        resources_dict = mdata['resources']
-        batch_dict = mdata['batch']
-        resources = Resources(**resources_dict)
-        batch = BatchObject(jdata=batch_dict)
+
+        # if workflow is None:
+        machine = Machine.load_from_machine_dict(mdata)
+        resources = machine.resources
+        batch = machine.batch
+
         command = 'lmp -i in.lammps'
-        # resources = mdata['resources']
-        # lmp_exec = mdata['command']
-        # command = lmp_exec + " -i in.lammps"
         forward_files = ['conf.lmp', 'in.lammps', 'graph.pb']
         if if_meam:
             meam_library_basename = os.path.basename(meam_model['library'])
@@ -260,28 +276,30 @@ def make_dpdt (temp,
             forward_files.extend([meam_library_basename, meam_potential_basename])
         backward_files = ['log.lammps', 'out.lmp']
 
-        task1 = Task(
-            command=command,
-            task_work_path='0/',
-            forward_files=forward_files,
-            backward_files=backward_files
-        )
-        task2 = Task(
-            command=command,
-            task_work_path='1/',
-            forward_files=forward_files,
-            backward_files=backward_files
-        )
+        task_list = []
+        for ii in range(2):
+            task = Task(
+                command=command,
+                task_work_path=f'{ii}/',
+                forward_files=forward_files,
+                backward_files=backward_files
+            )
+            task_list.append(task)
 
         submission = Submission(
-            work_base=work_path,
+            work_base=work_base,
             resources=resources,
             forward_common_files=[],
             backward_common_files=[],
             batch=batch,
-            task_list=[task1, task2])
-        
-        submission.run_submission()
+        )
+        if workflow is None:
+            submission.register_task_list(task_list=task_list)
+            # submission.generate_jobs()
+            submission.run_submission()
+        else:
+        # client.trigg
+            workflow.trigger_loop(submission=submission, task_list=task_list, mdata=mdata)
 
         # run_tasks = ['0', '1']        
 
@@ -305,8 +323,8 @@ def make_dpdt (temp,
         #                   backward_files)
 
         # collect resutls
-        log_0 = os.path.join(work_path, '0', 'log.lammps')
-        log_1 = os.path.join(work_path, '1', 'log.lammps')
+        log_0 = os.path.join(work_base, '0', 'log.lammps')
+        log_1 = os.path.join(work_base, '1', 'log.lammps')
         if natoms == None :
             natoms = [get_natoms('conf.0.lmp'), get_natoms('conf.1.lmp')]
         stat_skip = jdata['stat_skip']
@@ -317,7 +335,7 @@ def make_dpdt (temp,
         dh = t1['h'] - t0['h'] - (shift[1] - shift[0])
         with open(os.path.join('database', 'dpdt.out'), 'a') as fp:
             fp.write('%.16e %.16e %.16e %.16e\n' % \
-                     (temp, pres, dv, dh))            
+                    (temp, pres, dv, dh))            
     os.chdir(cwd)
     return [dv, dh]
 
@@ -333,7 +351,9 @@ class GibbsDuhemFunc (object):
                   shift = [0, 0],
                   verbose = False,
                   if_meam=False,
-                  meam_model=None):
+                  meam_model=None,
+                  workflow=None
+    ):
         self.jdata = jdata
         self.mdata = mdata
         self.task_path = task_path
@@ -344,7 +364,8 @@ class GibbsDuhemFunc (object):
         self.shift = shift
         self.if_meam = if_meam
         self.meam_model = meam_model
-        
+        self.workflow = workflow
+
         # self.dispatcher = Dispatcher(mdata['machine'], context_type = 'lazy-local', batch_type = 'pbs')
         if os.path.isdir(task_path) :
             print('find path ' + task_path + ' use it. The user should guarantee the consistency between the jdata and the found work path ')
@@ -363,8 +384,10 @@ class GibbsDuhemFunc (object):
                                  self.shift,
                                  self.verbose,
                                  if_meam=self.if_meam,
-                                 meam_model=self.meam_model)
+                                 meam_model=self.meam_model,
+                                 workflow=self.workflow)
             return [dh / (x * dv) * self.ev2bar * self.pref]
+
         elif self.inte_dir == 'p' :
             # x: pres, y: temp
             [dv, dh] = make_dpdt(y, x,
@@ -374,24 +397,100 @@ class GibbsDuhemFunc (object):
                                  self.shift,
                                  self.verbose,
                                  if_meam=self.if_meam,
-                                 meam_model=self.meam_model)
+                                 meam_model=self.meam_model,
+                                 workflow=self.workflow)
             return [(y * dv) / dh / self.ev2bar * (1/self.pref)]
 
+# def gdi_main_loop(jdata, mdata, gdidata, begin=None, end=None, direction=None,
+#     initial_value=None, step_value=None, abs_tol=10, rel_tol=0.01, if_water=None,
+#     output=None, first_step=None, shift=[0.0, 0.0], verbose=None, if_meam=None, workflow=None):
+
+def gdi_main_loop(jdata, mdata, gdidata_dict, gdidata_cli={}, workflow=None):
+
+    gdiargs = [
+        Argument("begin", float, optional=False),
+        Argument("end", float, optional=False),
+        Argument("direction", str, optional=False),
+        Argument("initial_value", float, optional=False),
+        Argument("step_value", [list, float], optional=True, default=None),
+        Argument("abs_tol", float, optional=True, default=10,),
+        Argument("rel_tol", float, optional=True, default=0.01),
+        Argument("if_water", bool, optional=True, default=None),
+        Argument("output", str, optional=True, default="new_job/"),
+        Argument("first_step", float, optional=True, default=None),
+        Argument("shift", list, optional=True, default=[0.0, 0.0]),
+        Argument("verbose", bool, optional=True, default=True),
+        Argument("if_meam", bool, optional=True, default=None),
+    ]
+
+    gdidata_format = Argument("gdidata", dict, gdiargs)
+
+    gdidata = gdidata_dict.copy()
+    gdidata = gdidata_format.normalize_value(gdidata_cli)
+    gdidata = gdidata_format.normalize_value(gdidata_dict)
+
+    with open(os.path.join(os.path.dirname(os.path.abspath(gdidata['output'])), 
+            'gdidata.run.json'), 'w') as f:
+        json.dump(gdidata, f, indent=4)
+
+    natoms = None
+    if gdidata['if_water']:
+        conf_0 = jdata['phase_i']['equi_conf']
+        conf_1 = jdata['phase_ii']['equi_conf']
+        natoms = [get_natoms(conf_0), get_natoms(conf_1)]
+        natoms = [ii // 3  for ii in natoms]
+    print ('# natoms: ', natoms)
+    print ('# shifts: ', gdidata['shift'])
+    meam_model = jdata.get('meam_model', None)
+
+    # with open('')
+
+    gdf = GibbsDuhemFunc(jdata,
+                        mdata,
+                        task_path=gdidata['output'],
+                        inte_dir=gdidata['direction'],
+                        natoms = natoms,
+                        shift = gdidata['shift'],
+                        verbose = gdidata['verbose'],
+                        if_meam=gdidata['if_meam'],
+                        meam_model=meam_model,
+                        workflow=workflow)
+
+    sol = solve_ivp(gdf,
+                    [gdidata['begin'], gdidata['end']],
+                    [gdidata['initial_value']],
+                    t_eval = gdidata['step_value'],
+                    method = 'RK23',
+                    atol=gdidata['abs_tol'],
+                    rtol=gdidata['rel_tol'],
+                    first_step = gdidata['first_step']
+                    )
+
+    if gdidata['direction'] == 't' :
+        tmp = np.concatenate([sol.t, sol.y[0]])
+    else :
+        tmp = np.concatenate([sol.y[0], sol.t])        
+
+    tmp = np.reshape(tmp, [2,-1])
+    np.savetxt(os.path.join(gdidata['output'], 'pb.out'), tmp.T)
+    return True
 
 def _main () :
     parser = argparse.ArgumentParser(
         description="Compute the phase boundary via Gibbs-Duhem integration")
-    parser.add_argument('PARAM', type=str ,
+    parser.add_argument('PARAM', type=str,
                         help='json parameter file')
-    parser.add_argument('MACHINE', type=str ,
+    parser.add_argument('MACHINE', type=str,
                         help='json machine file')
-    parser.add_argument('-b','--begin', type=float ,
+    parser.add_argument('-g', '--gdidata-json', type=str, default=None,
+                        help='json gdi integration file')
+    parser.add_argument('-b','--begin', type=float, default=None,
                         help='start of the integration')
-    parser.add_argument('-e','--end', type=float ,
+    parser.add_argument('-e','--end', type=float, default=None,
                         help='end of the integration')
-    parser.add_argument('-d','--direction', type=str, choices=['t','p'],
+    parser.add_argument('-d','--direction', type=str, choices=['t','p'], default=None,
                         help='direction of the integration, along T or P')
-    parser.add_argument('-i','--initial-value', type=float,
+    parser.add_argument('-i','--initial-value', type=float, default=None,
                         help='the initial value of T (direction=p) or P (direction=t)')
     parser.add_argument('-s','--step-value', type=float, nargs = '+',
                         help='the T (direction=t) or P (direction=p) values must be evaluated')
@@ -399,56 +498,51 @@ def _main () :
                         help='the absolute tolerance of the integration')
     parser.add_argument('-r','--rel-tol', type=float, default = 1e-2,
                         help='the relative tolerance of the integration')
-    parser.add_argument('-w','--water', action = 'store_true',
+    parser.add_argument('-w','--if-water', action = 'store_true',
                         help='assumes water molecules: nmols = natoms//3')
     parser.add_argument('-o','--output', type=str, default = 'new_job',
                         help='the output folder for the job')
-    parser.add_argument('-f','--first-step', type=float, default = None,
+    parser.add_argument('-f','--first-step', type=float, default=None,
                         help='the first step size of the integrator')
     parser.add_argument('-S','--shift', type=float, nargs = 2, default = [0.0, 0.0],
                         help='the output folder for the job')
     parser.add_argument('-v','--verbose', action = 'store_true',
                         help='print detailed infomation')
-    parser.add_argument("-z", "--meam", help="whether use meam instead of dp", action="store_true")
+    parser.add_argument("-z", "--if-meam", help="whether use meam instead of dp", action="store_true")
     args = parser.parse_args()
-    
-    jdata = json.load(open(args.PARAM))
-    mdata = json.load(open(args.MACHINE))
-    natoms = None
-    if args.water :
-        conf_0 = jdata['phase_i']['equi_conf']
-        conf_1 = jdata['phase_ii']['equi_conf']
-        natoms = [get_natoms(conf_0), get_natoms(conf_1)]
-        natoms = [ii // 3  for ii in natoms]
-    print ('# natoms: ', natoms)
-    print ('# shifts: ', args.shift)
-    meam_model = jdata.get('meam_model', None)
-    gdf = GibbsDuhemFunc(jdata,
-                         mdata,
-                         args.output,
-                         args.direction,
-                         natoms = natoms,
-                         shift = args.shift,
-                         verbose = args.verbose,
-                         if_meam=args.meam,
-                         meam_model=meam_model)
-    sol = solve_ivp(gdf,
-                    [args.begin, args.end],
-                    [args.initial_value],
-                    t_eval = args.step_value,
-                    method = 'RK23',
-                    atol=args.abs_tol,
-                    rtol=args.rel_tol,
-                    first_step = args.first_step)
 
-    if args.direction == 't' :
-        tmp = np.concatenate([sol.t, sol.y[0]])
-    else :
-        tmp = np.concatenate([sol.y[0], sol.t])        
+    with open(args.PARAM) as j:
+        jdata = json.load(j)
+    with open(args.MACHINE) as m:
+        mdata = json.load(m)
 
-    tmp = np.reshape(tmp, [2,-1])
-    np.savetxt(os.path.join(args.output, 'pb.out'), tmp.T)
+    if args.gdidata_json:
+        with open(args.gdidata_json) as g:
+            gdidata_dict = json.load(g)
+    else:
+        gdidata_dict=None
 
+    gdidata_cli = dict(begin=args.begin, end=args.end,
+        direction=args.direction, initial_value=args.initial_value, step_value=args.step_value, 
+        abs_tol=args.abs_tol, rel_tol=args.rel_tol, if_water=args.if_water, output=args.output,
+        first_step=args.first_step, shift=args.shift, verbose=args.verbose, if_meam=args.if_meam
+    )
+
+    return_value = gdi_main_loop(jdata=jdata, 
+        mdata=mdata,
+        gdidata_dict=gdidata_dict,
+        gdidata_cli=gdidata_cli,
+        workflow=None)
+    # gdidata_run = gdiargs
+
+
+
+    # return_value = gdi_main_loop(jdata=jdata, mdata=mdata, gdidata=gdidata, begin=args.begin, end=args.end,
+    #     direction=args.direction, initial_value=args.initial_value, step_value=args.step_value, 
+    #     abs_tol=args.abs_tol, rel_tol=args.rel_tol, if_water=args.if_water, output=args.output,
+    #     first_step=args.first_step, shift=args.shift, verbose=args.verbose, if_meam=args.if_meam, workflow=None)
+
+    return return_value
 
 if __name__ == '__main__' :
     _main()        
