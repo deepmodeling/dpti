@@ -284,6 +284,7 @@ def make_dpdt (temp,
                 forward_files=forward_files,
                 backward_files=backward_files
             )
+            task_list.append(task)
 
         submission = Submission(
             work_base=work_base,
