@@ -212,12 +212,14 @@ def _make_tasks(iter_name, jdata, step) :
     equi_conf = os.path.abspath(equi_conf)
     model = jdata['model']
     model = os.path.abspath(model)
-    model_mass_map = jdata['model_mass_map']
+    mass_map = jdata['mass_map']
     nsteps = jdata['nsteps']
-    dt = jdata['dt']
+    # dt = jdata['dt']
+    timestep = jdata['timestep']
     bparam = jdata['bond_param']
     sparam = jdata['soft_param']
-    stat_freq = jdata['stat_freq']
+    # stat_freq = jdata['stat_freq']
+    thermo_freq = jdata['thermo_freq']
     ens = jdata['ens']
     temp = jdata['temp']
     pres = jdata['pres']
@@ -245,19 +247,19 @@ def _make_tasks(iter_name, jdata, step) :
         lmp_str \
             = _gen_lammps_input(step,
                                 'conf.lmp', 
-                                model_mass_map, 
+                                mass_map, 
                                 all_lambda[idx],
                                 'graph.pb',
                                 bparam,
                                 sparam,
                                 nsteps, 
-                                dt, 
+                                timestep, 
                                 ens, 
                                 temp, 
                                 pres, 
                                 tau_t = tau_t,
                                 tau_p = tau_p,
-                                prt_freq = stat_freq, 
+                                prt_freq = thermo_freq, 
                                 copies = copies)
         with open('in.lammps', 'w') as fp :
             fp.write(lmp_str)
