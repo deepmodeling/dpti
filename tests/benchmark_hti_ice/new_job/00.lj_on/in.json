@@ -1,0 +1,57 @@
+{
+    "equi_conf": "conf.lmp",
+    "ncopies": [
+        1,
+        1,
+        1
+    ],
+    "lambda_lj_on": [
+        "0.000:0.100:0.0125",
+        "0.100:0.200:0.025",
+        "0.200:1.000:0.2",
+        "1"
+    ],
+    "lambda_deep_on": [
+        "0.0:0.1:0.025",
+        "0.1:1.0:0.1125",
+        "1"
+    ],
+    "lambda_spring_off": [
+        "0.000:0.750:0.125",
+        "0.750:0.875:0.0625",
+        "0.875:1.000:0.03125",
+        "1"
+    ],
+    "protect_eps": 1e-08,
+    "model": "graph.pb",
+    "mass_map": [
+        16,
+        2
+    ],
+    "spring_k": 0.5,
+    "soft_param": {
+        "epsilon": 0.02,
+        "element_num": 2,
+        "sigma_0_0": 3.15,
+        "sigma_0_1": 0.987,
+        "sigma_1_1": 0.987,
+        "activation": 0.5,
+        "n": 1.0,
+        "alpha_lj": 0.5,
+        "rcut": 6.0,
+        "_comment": "that's all"
+    },
+    "crystal": "frenkel",
+    "langevin": true,
+    "nsteps": 200000,
+    "timestep": 0.0005,
+    "thermo_freq": 10,
+    "stat_skip": 10000,
+    "stat_bsize": 2000,
+    "temp": 150.0,
+    "if_meam": false,
+    "_comment": "that's all",
+    "reference": "einstein",
+    "switch": "three-step",
+    "step": "lj_on"
+}
