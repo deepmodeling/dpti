@@ -792,6 +792,7 @@ def post_tasks(iter_name, jdata, natoms = None, method = 'inte', scheme = 's'):
         tinfo = tinfo1
     elif switch == 'three-step':
         subtask_name = os.path.join(iter_name, '00.lj_on')
+        print(f'# HTI three-step integration [value, stt_err, sys_err]')
         if method == 'inte' :
             e0, err0, tinfo0 = _post_tasks(subtask_name, jdata, natoms = natoms, scheme = scheme, switch = switch, step = 'lj_on')
         elif method == 'mbar':
@@ -806,7 +807,7 @@ def post_tasks(iter_name, jdata, natoms = None, method = 'inte', scheme = 's'):
             e1, err1, tinfo1 = _post_tasks_mbar(subtask_name, jdata, natoms = natoms, switch = switch, step = 'deep_on')
         else :
             raise RuntimeError('unknow method for integration')
-        print('# fe of deep_off:   %20.12f  %10.3e %10.3e' % (e1, err1[0], err1[1]))
+        print('# fe of deep_on:   %20.12f  %10.3e %10.3e' % (e1, err1[0], err1[1]))
         subtask_name = os.path.join(iter_name, '02.spring_off')
         if method == 'inte' :
             e2, err2, tinfo2 = _post_tasks(subtask_name, jdata, natoms = natoms, scheme = scheme, switch = switch, step = 'spring_off')
@@ -816,7 +817,6 @@ def post_tasks(iter_name, jdata, natoms = None, method = 'inte', scheme = 's'):
             raise RuntimeError('unknow method for integration')
         print('# fe of spring_off: %20.12f  %10.3e %10.3e' % (e2, err2[0], err2[1]))
         de = e0 + e1 + e2
-        print(f'# HTI three-step error err0 err1 err2 [stt_err, sys_err] {err0} {err1} {err2}')
         stt_err = np.sqrt(np.square(err0[0]) + np.square(err1[0]) + np.square(err2[0]))
         sys_err = ((err0[1]) + (err1[1]) + (err2[1]))
         err = [stt_err, sys_err]
