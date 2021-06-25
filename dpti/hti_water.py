@@ -4,19 +4,19 @@ import os, sys, json, argparse, glob, shutil
 import numpy as np
 import scipy.constants as pc
 
-import einstein
-import lib.lmp as lmp
-import lib.water as water
+from dpti import einstein
+from dpti.lib import lmp
+from  dpti.lib import water
 import pymbar
-from lib.utils import create_path
-from lib.utils import copy_file_list
-from lib.utils import block_avg
-from lib.utils import integrate_range
+from dpti.lib.utils import create_path
+from dpti.lib.utils import copy_file_list
+from dpti.lib.utils import block_avg
+from dpti.lib.utils import integrate_range
 # from lib.utils import integrate_sys_err
-from lib.utils import compute_nrefine
-from lib.utils import parse_seq
-from lib.utils import get_task_file_abspath
-from lib.lammps import get_thermo
+from dpti.lib.utils import compute_nrefine
+from dpti.lib.utils import parse_seq
+from dpti.lib.utils import get_task_file_abspath
+from dpti.lib.lammps import get_thermo
 
 def _ff_angle_on(lamb,
                  model, 
@@ -700,7 +700,9 @@ def _main ():
                              help='the error required')
 
     args = parser.parse_args()
+    return exec_args(args=args, parser=None)
 
+def exec_args(args, parser):
     if args.command is None :
         parser.print_help()
         exit

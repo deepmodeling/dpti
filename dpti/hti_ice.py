@@ -4,9 +4,9 @@ import os, sys, json, argparse, glob, shutil
 import numpy as np
 import scipy.constants as pc
 
-import einstein
-import hti
-import lib.lmp as lmp
+from dpti import einstein
+from dpti import  hti
+from dpti.lib import lmp
 
 def _main ():
     parser = argparse.ArgumentParser(
@@ -58,12 +58,16 @@ def _main ():
                              help='print the refinement and exit')
     args = parser.parse_args()
 
+    return exec_args(args=args, parser=parser)
+
+def exec_args(args, parser):
     if args.command is None :
         parser.print_help()
         exit
     if args.command == 'gen' :
         output = args.output
-        jdata = json.load(open(args.PARAM, 'r'))
+        with open(args.PARAM, 'r') as j:
+            jdata = json.load(j)
         if 'crystal' in jdata and jdata['crystal'] == 'frenkel' :
             print('# gen task with Frenkel\'s Einstein crystal')
         else :
