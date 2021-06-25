@@ -337,31 +337,31 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's
     all_fe_err = []
     all_fe_sys_err = []
     
-    if all_e is not None:
-        print('switch to test integral mode by yuanfengbo')
-        array_e = np.asarray(all_e, dtype='float64')
-        array_t = np.asarray(all_t, dtype='float64')
-        array_t_delta = array_t[1:] - array_t[:-1]
-        array_e_delta = array_e[1:] - array_e[:-1]
-        array_b = array_e_delta / array_t_delta
-        array_a = array_e[:-1] - array_t[:-1] * array_b 
-        array_diff_e = array_a * (array_t[1:] - array_t[:-1])/(array_t[1:]*array_t[:-1]) + array_b * np.log(array_t[1:]/array_t[:-1])
+    # if all_e is not None:
+    #     print('switch to test integral mode by yuanfengbo')
+    #     array_e = np.asarray(all_e, dtype='float64')
+    #     array_t = np.asarray(all_t, dtype='float64')
+    #     array_t_delta = array_t[1:] - array_t[:-1]
+    #     array_e_delta = array_e[1:] - array_e[:-1]
+    #     array_b = array_e_delta / array_t_delta
+    #     array_a = array_e[:-1] - array_t[:-1] * array_b 
+    #     array_diff_e = array_a * (array_t[1:] - array_t[:-1])/(array_t[1:]*array_t[:-1]) + array_b * np.log(array_t[1:]/array_t[:-1])
         
-        print('!!!', array_a, array_b, all_e , array_t_delta, array_e_delta, array_diff_e)
+    #     print('!!!', array_a, array_b, all_e , array_t_delta, array_e_delta, array_diff_e)
         
-        # for ii in range(0, len(array_t)):
-        for ii in range(len(array_t)-1, -1, -1):
-            e1 = (Eo / (array_t[-1]) + np.sum(array_diff_e[ii:])) * array_t[ii]
-            # e1 = (Eo / (array_t[0]) - np.sum(array_diff_e[0:ii])) * array_t[ii]
-            all_temps.append(array_t[ii])
-            err = 0
-            sys_err = 0
-            all_press.append(jdata['pres'])
-            all_fe.append(e1)
-            all_fe_err.append(err)
-            all_fe_sys_err.append(sys_err)
+    #     # for ii in range(0, len(array_t)):
+    #     for ii in range(len(array_t)-1, -1, -1):
+    #         e1 = (Eo / (array_t[-1]) + np.sum(array_diff_e[ii:])) * array_t[ii]
+    #         # e1 = (Eo / (array_t[0]) - np.sum(array_diff_e[0:ii])) * array_t[ii]
+    #         all_temps.append(array_t[ii])
+    #         err = 0
+    #         sys_err = 0
+    #         all_press.append(jdata['pres'])
+    #         all_fe.append(e1)
+    #         all_fe_err.append(err)
+    #         all_fe_sys_err.append(sys_err)
 
-        return np.asarray(all_temps), np.asarray(all_press), np.asarray(all_fe), np.asarray(all_fe_err), np.asarray(all_fe_sys_err)
+    #     return np.asarray(all_temps), np.asarray(all_press), np.asarray(all_fe), np.asarray(all_fe_err), np.asarray(all_fe_sys_err)
             
             
         
