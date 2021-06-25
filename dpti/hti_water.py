@@ -686,6 +686,11 @@ def _main ():
                              help='the method of thermodynamic integration')
     parser_comp.add_argument('-s','--scheme', type=str, default = 'simpson', 
                              help='the numeric integration scheme')
+    parser_comp.add_argument('-g', '--pv', type=float, default = None,
+                             help='press*vol value override to calculate Gibbs free energy')
+    parser_comp.add_argument('-G', '--pv-err', type=float, default = None,
+                             help='press*vol error')
+
     parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
     parser_comp.add_argument('-i', '--input', type=str, required=True,
                              help='input job')
@@ -718,12 +723,20 @@ def _main ():
         print ('# numb atoms: %d' % natoms)
         print ('# numb  mols: %d' % nmols)        
         print_format = '%20.12f  %10.3e  %10.3e'
-        if args.type == 'helmholtz' :
-            print('# Helmholtz free ener per mol (err) [eV]:')
-            print(print_format % (fe, fe_err[0], fe_err[1]))
-        if args.type == 'gibbs' :
-            pv = thermo_info['pv']
-            pv_err = thermo_info['pv_err']
+        # if args.type == 'helmholtz' :
+        print('# Helmholtz free ener per mol (err) [eV]:')
+        print(print_format % (fe, fe_err[0], fe_err[1]))
+        if args.type == 'gibbs':
+            if args.pv is not None:
+                pv = args.pv
+                print(f"# use manual pv=={pv}")
+            else:
+                pv = thermo_info['pv']
+            if args.pv_err is not None:
+                pv_err = args.pv_err
+                print(f"# use manual pv_err=={pv_err}")
+            else:
+                pv_err = thermo_info['pv_err']
             e1 = fe + pv
             e1_err = np.sqrt(fe_err[0]**2 + pv_err**2)
             print('# Gibbs free ener per mol (err) [eV]:')
