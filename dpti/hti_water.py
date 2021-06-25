@@ -235,8 +235,10 @@ def _make_tasks(iter_name, jdata, step) :
     os.symlink(os.path.join('..', 'in.json'), 'in.json')
     os.symlink(os.path.join('..', 'conf.lmp'), 'orig.lmp')
     os.symlink(os.path.join('..', 'graph.pb'), 'graph.pb')
-    lines = water.add_bonds(open('orig.lmp').read().split('\n'))
-    open('conf.lmp', 'w').write('\n'.join(lines))
+    with open('orig.lmp', 'r') as f:
+        lines = water.add_bonds(f.read().split('\n'))
+    with open('conf.lmp', 'w') as c:
+        c.write('\n'.join(lines))
     os.chdir(cwd)
     for idx in range(len(all_lambda)) :
         work_path = os.path.join(iter_name, 'task.%06d' % idx)
@@ -710,15 +712,19 @@ def exec_args(args, parser):
         exit
     if args.command == 'gen' :
         output = args.output
-        jdata = json.load(open(args.PARAM, 'r'))
+        with open(args.PARAM, 'r') as j:
+            jdata = json.load(j)
         make_tasks(output, jdata)
     if args.command == 'refine' :
         refine_tasks(args.input, args.output, args.error)
     elif args.command == 'compute' :
-        fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
-        sys_data = lmp.to_system_data(fp_conf.read().split('\n'))
+        with open(os.path.join(args.JOB, 'conf.lmp'), 'r') as conf_lmp:
+            # fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
+            sys_data = lmp.to_system_data(conf_lmp.split('\n'))
         natoms = sum(sys_data['atom_numbs'])
-        jdata = json.load(open(os.path.join(args.JOB, 'in.json'), 'r'))
+        with open(os.path.join(args.JOB, 'in.json'), 'r') as j:
+            jdata = json.load(j)
+
         if 'copies' in jdata :
             natoms *= np.prod(jdata['copies'])
         nmols = natoms // 3
