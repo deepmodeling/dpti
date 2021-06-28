@@ -388,7 +388,7 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's
         all_fe.append(e1)
         all_fe_err.append(err)
         all_fe_sys_err.append(sys_err)
-    return all_temps, all_press, all_fe, all_fe_err, all_fe_sys_err
+    return np.asarray(all_temps), np.asarray(all_press), np.asarray(all_fe), np.asarray(all_fe_err), np.asarray(all_fe_sys_err)
 
 def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, scheme = 'simpson', shift = 0.0) :
     equi_conf = get_task_file_abspath(iter_name, jdata['equi_conf'])
