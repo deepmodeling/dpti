@@ -545,13 +545,20 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
                    % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]])))
             # print(all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]))
     # result_file.close()
+
+    data = dict(all_temps=all_temps.tolist(), all_press=all_press.tolist(),
+        all_fe=all_fe.tolist(), all_fe_stat_err=all_fe_err.tolist(), all_fe_inte_err=all_fe_sys_err.tolist(), 
+        all_fe_tot_err=np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist())
+
     data = [all_temps.tolist(), all_press.tolist(), 
         all_fe.tolist(), all_fe_err.tolist(), all_fe_sys_err.tolist(), 
         np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist()]
     info = dict(start_point_info=info0, end_point_info=info1, data=data)
-    print('result', result)
-    open(os.path.join(iter_name, '../', 'result'), 'w').write(result)
-    open(os.path.join(iter_name, 'result.json'), 'w').write(json.dumps(info))
+    # print('result', result)
+    with open(os.path.join(iter_name, '../', 'result'), 'w') as f:
+        f.write(result)
+    with open(os.path.join(iter_name, 'result.json'), 'w') as f:
+        f.write(json.dumps(info))
     return info
 
 
