@@ -63,7 +63,7 @@ def _main ():
         ti.make_tasks(output, jdata)
     elif args.command == 'compute' :
         job = args.JOB
-        jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
+        jdata = json.load(open(os.path.join(job, 'ti_settings.json'), 'r'))
         equi_conf = get_task_file_abspath(job, jdata['equi_conf'])
         natoms = get_natoms(equi_conf)
         if 'copies' in jdata :
