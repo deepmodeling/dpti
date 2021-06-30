@@ -550,9 +550,9 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
         all_fe=all_fe.tolist(), all_fe_stat_err=all_fe_err.tolist(), all_fe_inte_err=all_fe_sys_err.tolist(), 
         all_fe_tot_err=np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist())
 
-    data = [all_temps.tolist(), all_press.tolist(), 
-        all_fe.tolist(), all_fe_err.tolist(), all_fe_sys_err.tolist(), 
-        np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist()]
+    # data = [all_temps.tolist(), all_press.tolist(), 
+    #     all_fe.tolist(), all_fe_err.tolist(), all_fe_sys_err.tolist(), 
+    #     np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist()]
     info = dict(start_point_info=info0, end_point_info=info1, data=data)
     # print('result', result)
     with open(os.path.join(iter_name, '../', 'result'), 'w') as f:
