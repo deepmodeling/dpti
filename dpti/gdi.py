@@ -19,12 +19,7 @@ from dargs import dargs, Argument, Variant
 # from dpti.workflow
 # from lib.RemoteJob import SSHSession, JobStatus, SlurmJob, PBSJob
 # from dpgen.dispatcher.Dispatcher import Dispatcher
-try:
-    from dpdispatcher.batch_object import Machine
-    from dpdispatcher.submission import Submission, Task, Resources
-    from dpdispatcher.batch_object import BatchObject
-except ImportError:
-    pass
+from dpdispatcher import Submission, Task, Resources, Machine
 
 # try:
 #     from airflow.exceptions import AirflowFailException, AirflowSkipException, DagNotFound, DagRunAlreadyExists
@@ -264,9 +259,8 @@ def make_dpdt (temp,
         # submit new task
 
         # if workflow is None:
-        machine = Machine.load_from_machine_dict(mdata)
-        resources = machine.resources
-        batch = machine.batch
+        machine = Machine.load_from_dict(mdata['machine'])
+        resources = Resources.load_from_dict(mdata['resources'])
 
         command = 'lmp -i in.lammps'
         forward_files = ['conf.lmp', 'in.lammps', 'graph.pb']
@@ -288,10 +282,10 @@ def make_dpdt (temp,
 
         submission = Submission(
             work_base=work_base,
+            machine=machine,
             resources=resources,
             forward_common_files=[],
             backward_common_files=[],
-            batch=batch,
         )
         if workflow is None:
             submission.register_task_list(task_list=task_list)
