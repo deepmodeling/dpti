@@ -593,7 +593,7 @@ def spring_inte(temp, kk, r0) :
 def compute_ideal_mol(iter_name) :
     jdata = json.load(open(os.path.join(iter_name, 'in.json')))
     ens = jdata['ens']
-    mass_map = jdata['model_mass_map']
+    mass_map = jdata['mass_map']
     conf_lines = open(os.path.join(iter_name, 'orig.lmp')).read().split('\n')
     data_sys = lmp.system_data(conf_lines)
     vol = np.linalg.det(data_sys['cell'])
@@ -720,7 +720,7 @@ def exec_args(args, parser):
     elif args.command == 'compute' :
         with open(os.path.join(args.JOB, 'conf.lmp'), 'r') as conf_lmp:
             # fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
-            sys_data = lmp.to_system_data(conf_lmp.split('\n'))
+            sys_data = lmp.to_system_data(conf_lmp.read().split('\n'))
         natoms = sum(sys_data['atom_numbs'])
         with open(os.path.join(args.JOB, 'in.json'), 'r') as j:
             jdata = json.load(j)
