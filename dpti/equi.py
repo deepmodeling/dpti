@@ -335,6 +335,7 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi
         Argument("stat_skip", int),
         Argument("stat_bsize", int),
         Argument("if_dump_avg_posi", bool, optional=True, default=False),
+        Argument("is_water", bool, optional=True, default=False, alias=['if_water']),
         Argument("if_meam", bool, optional=True, default=False),
         Argument("meam_model", list, optional=True, default=False),
     ]
