@@ -473,7 +473,7 @@ def _gen_lammps_input (conf_file,
 
 def make_tasks(iter_name, jdata, ref='einstein', switch = 'one-step', if_meam=None):
     if if_meam is None:
-        if_meam = jdata['if_meam']
+        if_meam = jdata.get('if_meam', False)
     equi_conf = os.path.abspath(jdata['equi_conf'])
     meam_model = jdata.get('meam_model', None)
     model = os.path.abspath(jdata['model'])
