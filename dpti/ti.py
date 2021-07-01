@@ -140,23 +140,27 @@ def make_tasks(iter_name, jdata, if_meam=None):
     path = jdata['path']
     if 'nvt' in ens :
         if path == 't' :
-            temp_list = parse_seq(jdata['temp_seq'])
+            temp_seq = get_first_matched_key_from_dict(jdata, ['temp_seq', 'temps'])
+            temp_list = parse_seq(temp_seq)
             tau_t = jdata['tau_t']
             ntasks = len(temp_list)
         else :
             raise RuntimeError('supported path of nvt ens is \'t\'')
     elif 'npt' in ens :
         if path == 't' :
-            temp_list = parse_seq(jdata['temp_seq'])
-            pres = jdata['pres']
+            temp_seq = get_first_matched_key_from_dict(jdata, ['temp_seq', 'temps'])
+            temp_list = parse_seq(temp_seq)
+            pres = get_first_matched_key_from_dict(jdata, ['pres', 'press'])
             ntasks = len(temp_list)
         elif path == 't-ginv' :
-            temp_list = parse_seq_ginv(jdata['temp_list'])
-            pres = jdata['pres']
+            temp_seq = get_first_matched_key_from_dict(jdata, ['temp_seq', 'temps'])
+            temp_list = parse_seq_ginv(temp_seq)
+            pres = get_first_matched_key_from_dict(jdata, ['pres', 'press'])
             ntasks = len(temp_list)
         elif path == 'p' :
-            temp = jdata['temp']
-            pres_list = parse_seq(jdata['pres_seq'])
+            temp_seq = get_first_matched_key_from_dict(jdata, ['temp', 'temps'])
+            pres_seq = get_first_matched_key_from_dict(jdata, ['pres_seq', 'press'])
+            pres_list = parse_seq(pres_seq)
             ntasks = len(pres_list)
         else :
             raise RuntimeError('supported path of npt ens are \'t\' or \'p\'')
