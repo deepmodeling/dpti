@@ -16,6 +16,7 @@ from dpti.lib.utils import integrate_range
 from dpti.lib.utils import compute_nrefine
 from dpti.lib.utils import parse_seq
 from dpti.lib.utils import get_task_file_abspath
+from dpti.lib.utils import get_first_matched_key_from_dict
 from dpti.lib.lammps import get_thermo
 
 def _ff_angle_on(lamb,
@@ -212,14 +213,17 @@ def _make_tasks(iter_name, jdata, step) :
     equi_conf = os.path.abspath(equi_conf)
     model = jdata['model']
     model = os.path.abspath(model)
-    mass_map = jdata['mass_map']
+    # mass_map = jdata['mass_map']
+    mass_map = get_first_matched_key_from_dict(jdata, ['mass_map', 'model_mass_map'])
     nsteps = jdata['nsteps']
     # dt = jdata['dt']
-    timestep = jdata['timestep']
+    # timestep = jdata['timestep']
+    timestep = get_first_matched_key_from_dict(jdata, ['timestep', 'dt'])
     bparam = jdata['bond_param']
     sparam = jdata['soft_param']
     # stat_freq = jdata['stat_freq']
-    thermo_freq = jdata['thermo_freq']
+    # thermo_freq = jdata['thermo_freq']
+    thermo_freq = get_first_matched_key_from_dict(jdata, ['thermo_freq', 'stat_freq'])
     ens = jdata['ens']
     temp = jdata['temp']
     pres = jdata['pres']
