@@ -53,7 +53,9 @@ def _main ():
                              help='the error required')
 
     args = parser.parse_args()
+    return exec_args(args=args, parser=parser)
 
+def exec_args(args, parser=None):
     if args.command is None :
         parser.print_help()
         exit
@@ -78,7 +80,6 @@ def _main ():
     elif args.command == 'refine' :
         ti.refine_task(args.input, args.output, args.error)
 
-    
 if __name__ == '__main__' :
     _main()
         
