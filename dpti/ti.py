@@ -158,7 +158,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
             pres = get_first_matched_key_from_dict(jdata, ['pres', 'press'])
             ntasks = len(temp_list)
         elif path == 'p' :
-            temp_seq = get_first_matched_key_from_dict(jdata, ['temp', 'temps'])
+            temp = get_first_matched_key_from_dict(jdata, ['temp', 'temps'])
             pres_seq = get_first_matched_key_from_dict(jdata, ['pres_seq', 'press'])
             pres_list = parse_seq(pres_seq)
             ntasks = len(pres_list)
