@@ -321,10 +321,10 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi
 
     equi_args = [
         Argument("equi_conf", str),
-        Argument("mass_map", list),
+        Argument("mass_map", list, alias=['model_mass_map']),
         Argument("model", str),
         Argument("nsteps", int),
-        Argument("timestep", float),
+        Argument("timestep", float, alias=['dt']),
         Argument("ens", str),
         Argument("temp", int),
         Argument("pres", int),
@@ -353,7 +353,8 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi
     equi_pre_settings = jdata.copy()
     equi_pre_settings.update(equi_kwargs_settings)
 
-    equi_settings = equi_format.normalize(equi_pre_settings)
+    equi_settings = equi_format.normalize_value(equi_pre_settings)
+
     task_abs_dir = create_path(iter_name)
 
     if npt_dir is not None:
