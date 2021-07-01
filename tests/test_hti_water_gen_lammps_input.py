@@ -17,7 +17,7 @@ class TestHtiWaterGenLammpsInput(unittest.TestCase):
         self.maxDiff = None
 
     @patch('numpy.random')
-    def test_cli_gen_tasks(self, patch_random):
+    def test_hti_water_gen_tasks(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
         args = MagicMock(output='tmp_hti_water/new_job/',  
             command='gen',
@@ -34,6 +34,26 @@ class TestHtiWaterGenLammpsInput(unittest.TestCase):
         for file in check_file_list:
             f1 = os.path.join('benchmark_hti_water/new_job/', file)
             f2 = os.path.join('tmp_hti_water/new_job/', file)
+            self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1,f2))
+
+    @patch('numpy.random')
+    def test_hti_water_gen_old_json_gen_tasks(self, patch_random):
+        patch_random.randint = MagicMock(return_value=7858)
+        args = MagicMock(output='tmp_hti_water/old_json_job/',  
+            command='gen',
+            PARAM='benchmark_hti_water/hti_water.json.old'
+        )
+        hti_water.exec_args(args=args, parser=None)
+        check_file_list = [
+            'conf.lmp', 
+            '00.angle_on/task.000002/conf.lmp',
+            '00.angle_on/task.000002/in.lammps',
+            '01.deep_on/task.000003/in.lammps',
+            '02.bond_angle_off/task.000004/in.lammps'
+        ]
+        for file in check_file_list:
+            f1 = os.path.join('benchmark_hti_water/new_job/', file)
+            f2 = os.path.join('tmp_hti_water/old_json_job/', file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1,f2))
 
     @classmethod

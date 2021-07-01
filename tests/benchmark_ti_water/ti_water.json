@@ -1,0 +1,21 @@
+{
+    "equi_conf":"benchmark_ti_water/conf.lmp",
+    "copies":	[1,1,1],
+    "model":	"benchmark_ti_water/graph.pb",
+    "mass_map": [
+        16,
+        2
+    ],
+    "nsteps":	400000,
+    "timestep":	0.0005,
+    "ens":	"npt-iso",
+    "path":	"t",
+    "temp_seq":	["300:600:10", "600"],
+    "pres":	10000,
+    "tau_t":	0.1,
+    "tau_p":	0.5,
+    "thermo_freq":	10,
+    "stat_skip":	20000,
+    "stat_bsize":	5000,
+    "_comment": "that's all"
+}

@@ -1,0 +1,56 @@
+{
+    "equi_conf": "benchmark_hti_water/nvt_out.lmp",
+    "lambda_angle_on": [
+        "0.00:0.05:0.00625",
+        "0.05:0.10:0.0125",
+        "0.10:0.20:0.025",
+        "0.20:1.00:0.1",
+        "1"
+    ],
+    "lambda_deep_on": [
+        "0.00:0.20:0.05",
+        "0.20:1.00:0.20",
+        "1"
+    ],
+    "lambda_bond_angle_off": [
+        "0.0:1.0:0.25",
+        "1"
+    ],
+    "protect_eps": 1e-08,
+    "model": "graph.pb",
+    "model_mass_map": [
+        16,
+        2
+    ],
+    "bond_param": {
+        "bond_k": 4,
+        "bond_l": 0.9872238410688942,
+        "angle_k": 0.4,
+        "angle_t": 106.41090532956247,
+        "_comment": "that's all"
+    },
+    "soft_param": {
+        "epsilon": 0.02,
+        "element_num": 2,
+        "sigma_oo": 3.3,
+        "sigma_oh": 1.1,
+        "sigma_hh": 1.1,
+        "activation": 0.5,
+        "n": 1.0,
+        "alpha_lj": 0.5,
+        "rcut": 6.0,
+        "_comment": "that's all"
+    },
+    "nsteps": 1200000,
+    "dt": 0.0005,
+    "ens": "nvt",
+    "temp": 300.000000,
+    "pres": 1,
+    "tau_t": 0.1,
+    "tau_p": 0.5,
+    "stat_freq": 10,
+    "stat_skip": 20000,
+    "stat_bsize": 5000,
+    "is_water": true,
+    "_comment": "that's all"
+}
