@@ -7,6 +7,7 @@ import pymbar
 
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 from dpti.lib.utils import create_path, relative_link_file
+from dpti.lib.utils import get_first_matched_key_from_dict
 from dpti.lib.utils import copy_file_list
 from dpti.lib.utils import block_avg
 from dpti.lib.utils import integrate_range
@@ -127,10 +128,13 @@ def make_tasks(iter_name, jdata, if_meam=None):
     model = jdata['model']
     meam_model = jdata.get('meam_model', None)
     # model = os.path.abspath(model)
-    mass_map = jdata['mass_map']
+    # mass_map = jdata['mass_map']
+    mass_map = get_first_matched_key_from_dict(jdata, ['model_mass_map', 'mass_map'])
     nsteps = jdata['nsteps']
-    timestep = jdata['timestep']
-    thermo_freq = jdata['thermo_freq']
+    # timestep = jdata['timestep']
+    timestep = get_first_matched_key_from_dict(jdata, ['timestep', 'dt'])
+    # thermo_freq = jdata['thermo_freq']
+    thermo_freq = get_first_matched_key_from_dict(jdata, ['thermo_freq', 'stat_freq'])
     # thermos = jdata['thermos']
     ens = jdata['ens']
     path = jdata['path']
