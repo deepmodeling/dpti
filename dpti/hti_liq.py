@@ -218,7 +218,13 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None) :
     
     sparam = jdata.get('soft_param', {})
     if sparam:
-        element_num=sparam.get('element_num', 1)
+        if 'sigma_oo' in sparam:
+            sparam['sigma_0_0'] = sparam['sigma_oo']
+            sparam['sigma_0_1'] = sparam['sigma_oh']
+            sparam['sigma_1_1'] = sparam['sigma_hh']
+
+        # element_num=sparam.get('element_num', 1)
+        element_num = len(mass_map)
         sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
         sigma_key_name_list = ['sigma_'+str(t[0])+'_'+str(t[1]) for t in sigma_key_index ]
         for sigma_key_name in sigma_key_name_list:
