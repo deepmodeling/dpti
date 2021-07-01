@@ -13,6 +13,7 @@ from dpti.lib.utils import block_avg
 from dpti.lib.utils import integrate
 from dpti.lib.utils import integrate_sys_err
 from dpti.lib.utils import parse_seq
+from dpti.lib.utils import get_first_matched_key_from_dict
 from dpti.lib.lammps import get_thermo
 from dpti.lib.lammps import get_natoms
 
@@ -199,14 +200,17 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None) :
         raise RuntimeError('unknow step')
     equi_conf = jdata['equi_conf']
     equi_conf = os.path.abspath(equi_conf)
-    mass_map = jdata['mass_map']
+    # mass_map = jdata['mass_map']
+    mass_map = get_first_matched_key_from_dict(jdata, ['mass_map', 'model_mass_map'])
     model = jdata.get('model', None)
     if model:
         model = os.path.abspath(model)
     soft_param = jdata['soft_param']
     nsteps = jdata['nsteps']
-    timestep = jdata['timestep']
-    thermo_freq = jdata['thermo_freq']
+    # timestep = jdata['timestep']
+    timestep = get_first_matched_key_from_dict(jdata, ['timestep', 'dt'])
+    # thermo_freq = jdata['thermo_freq']
+    thermo_freq = get_first_matched_key_from_dict(jdata, ['thermo_freq', 'stat_freq'])
     copies = None
     if 'copies' in jdata :
         copies = jdata['copies']
