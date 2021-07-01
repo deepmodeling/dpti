@@ -13,6 +13,23 @@ float_protect = 1e-14
 def make_iter_name (iter_index) :
     return "iter." + (iter_format % iter_index)
 
+
+def get_first_matched_key_from_dict(dct, lst):
+    value = None
+    for key in lst:
+        if key in dct:
+            value = dct[key]
+            return value
+    raise KeyError(f"not found key in dct={dct}, lst={lst}")
+
+
+def create_dict_not_empty_key(**kwargs):
+    dct = {}
+    for k,v in kwargs.items():
+        if v is not None:
+            dct[k] = v
+    return dct
+
 # def create_path (path) :
 #     path += '/'
 #     if os.path.isdir(path) : 
