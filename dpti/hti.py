@@ -16,7 +16,8 @@ from dpti.lib.utils import integrate_range_hti
 # from lib.utils import integrate_sys_err
 from dpti.lib.utils import compute_nrefine
 from dpti.lib.utils import parse_seq
-from dpti.lib.utils import get_task_file_abspath, get_first_matched_key_from_dict
+from dpti.lib.utils import get_task_file_abspath
+from dpti.lib.utils import get_first_matched_key_from_dict
 from dpti.lib.lammps import get_thermo
 from dpti.lib.lammps import get_natoms
 
@@ -564,6 +565,13 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
 
     sparam = jdata.get('soft_param', {})
     if sparam:
+        # update for fields in jsons relating to water
+
+        if 'sigma_oo' in sparam:
+            sparam['sigma_0_0'] = sparam['sigma_oo']
+            sparam['sigma_0_1'] = sparam['sigma_oh']
+            sparam['sigma_1_1'] = sparam['sigma_hh']
+
         element_num=sparam.get('element_num', 1)
         sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
         sigma_key_name_list = ['sigma_'+str(t[0])+'_'+str(t[1]) for t in sigma_key_index ]
