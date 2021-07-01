@@ -91,6 +91,26 @@ class TestEquiMakeTask(unittest.TestCase):
             f2 = os.path.join(test_dir, file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1,f2))
 
+    @patch('numpy.random')
+    def test_water_npt(self, patch_random):
+        patch_random.randint = MagicMock(return_value=7858)
+        test_name = 'npt_water'
+
+        benchmark_dir = os.path.join(self.benchmark_dir, test_name)
+        test_dir = os.path.join(self.test_dir, test_name)
+
+
+        json_file = os.path.join(benchmark_dir, 'npt.json')
+        with open(json_file) as f:
+            jdata = json.load(f)
+        dpti.equi.make_task(iter_name=test_dir, jdata=jdata)
+
+        check_file_list = ['in.lammps']
+        for file in check_file_list:
+            f1 = os.path.join(benchmark_dir, file)
+            f2 = os.path.join(test_dir, file)
+            self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1,f2))
+
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree('tmp_equi/')

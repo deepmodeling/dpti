@@ -58,5 +58,4 @@ class TestTiWaterGenLammpsInput(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        pass
-        # shutil.rmtree('tmp_ti_water/')
+        shutil.rmtree('tmp_ti_water/')
