@@ -4,15 +4,15 @@ import os, sys, json, argparse, glob, shutil
 import numpy as np
 import scipy.constants as pc
 
-from lib.utils import create_path
-from lib.utils import copy_file_list
-from lib.utils import block_avg
-from lib.utils import integrate
-from lib.utils import integrate_sys_err
-from lib.utils import parse_seq
-from lib.utils import get_task_file_abspath
-from lib.lammps import get_thermo
-from lib.lammps import get_natoms
+from dpti.lib.utils import create_path
+from dpti.lib.utils import copy_file_list
+from dpti.lib.utils import block_avg
+from dpti.lib.utils import integrate
+from dpti.lib.utils import integrate_sys_err
+from dpti.lib.utils import parse_seq
+from dpti.lib.utils import get_task_file_abspath
+from dpti.lib.lammps import get_thermo
+from dpti.lib.lammps import get_natoms
 
 from dpti import ti
 
