@@ -8,6 +8,7 @@ dpti.egg-info/
 !tests/benchmark_hti_liq/*/*/task*/
 !tests/benchmark_hti_ice/*/*/task*/
 !tests/benchmark_hti_water/*/*/task*/
+!tests/benchmark_ti_water/*/task*
 # *.pb
 # !tests/graph.pb
 __pycache__
