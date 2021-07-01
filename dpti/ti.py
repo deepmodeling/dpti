@@ -140,24 +140,24 @@ def make_tasks(iter_name, jdata, if_meam=None):
     path = jdata['path']
     if 'nvt' in ens :
         if path == 't' :
-            temp_seq = parse_seq(jdata['temp_seq'])
+            temp_list = parse_seq(jdata['temp_seq'])
             tau_t = jdata['tau_t']
-            ntasks = len(temp_seq)
+            ntasks = len(temp_list)
         else :
             raise RuntimeError('supported path of nvt ens is \'t\'')
     elif 'npt' in ens :
         if path == 't' :
-            temp_seq = parse_seq(jdata['temp_seq'])
+            temp_list = parse_seq(jdata['temp_seq'])
             pres = jdata['pres']
-            ntasks = len(temp_seq)
+            ntasks = len(temp_list)
         elif path == 't-ginv' :
-            temp_seq = parse_seq_ginv(jdata['temp_seq'])
+            temp_list = parse_seq_ginv(jdata['temp_list'])
             pres = jdata['pres']
-            ntasks = len(temp_seq)
+            ntasks = len(temp_list)
         elif path == 'p' :
             temp = jdata['temp']
-            pres_seq = parse_seq(jdata['pres_seq'])
-            ntasks = len(pres_seq)
+            pres_list = parse_seq(jdata['pres_seq'])
+            ntasks = len(pres_list)
         else :
             raise RuntimeError('supported path of npt ens are \'t\' or \'p\'')
         tau_t = jdata['tau_t']
@@ -240,7 +240,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     nsteps, 
                                     timestep,
                                     ens,
-                                    temp_seq[ii],
+                                    temp_list[ii],
                                     pres=pres,
                                     tau_t = tau_t,
                                     thermo_freq = thermo_freq, 
@@ -248,7 +248,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     if_meam=if_meam,
                                     meam_model=meam_model
                                     )
-            thermo_out = temp_seq[ii]
+            thermo_out = temp_list[ii]
             # with open('thermo.out', 'w') as fp :
             #     fp.write('%f' % temps[ii])
         elif 'npt' in ens and (path == 't' or path == 't-ginv'):
@@ -259,7 +259,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     nsteps, 
                                     timestep,
                                     ens,
-                                    temp_seq[ii],
+                                    temp_list[ii],
                                     pres,
                                     tau_t = tau_t,
                                     tau_p = tau_p,
@@ -268,7 +268,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     if_meam=if_meam,
                                     meam_model=meam_model
                                     )
-            thermo_out = temp_seq[ii]
+            thermo_out = temp_list[ii]
             # with open('thermo.out', 'w') as fp :
             #     fp.write('%f' % (temps[ii]))
         elif 'npt' in ens and path == 'p' :
@@ -280,7 +280,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     timestep,
                                     ens,
                                     temp,
-                                    pres_seq[ii],
+                                    pres_list[ii],
                                     tau_t = tau_t,
                                     tau_p = tau_p,
                                     thermo_freq = thermo_freq, 
@@ -288,7 +288,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     if_meam=if_meam,
                                     meam_model=meam_model
                                 )
-            thermo_out = pres_seq[ii]
+            thermo_out = pres_list[ii]
         else:
             raise RuntimeError('invalid ens or path setting' )
         
