@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os, sys, json, argparse, glob, shutil
+from re import T
 import numpy as np
 import scipy.constants as pc
 import pymbar
@@ -15,7 +16,7 @@ from dpti.lib.utils import integrate_range_hti
 # from lib.utils import integrate_sys_err
 from dpti.lib.utils import compute_nrefine
 from dpti.lib.utils import parse_seq
-from dpti.lib.utils import get_task_file_abspath
+from dpti.lib.utils import get_task_file_abspath, get_first_matched_key_from_dict
 from dpti.lib.lammps import get_thermo
 from dpti.lib.lammps import get_natoms
 
@@ -529,10 +530,9 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
     if 'crystal' not in jdata:
         print('do not find crystal in jdata, assume vega')
         jdata['crystal'] = 'vega'
+
     crystal = jdata['crystal']
     protect_eps = jdata['protect_eps']
-
-    
 
     if switch == 'one-step':
         all_lambda = parse_seq(jdata['lambda'])
@@ -555,9 +555,11 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
     equi_conf = os.path.abspath(equi_conf)
     model = jdata['model']
     model = os.path.abspath(model)
-    mass_map = jdata['mass_map']
+    # mass_map = jdata['mass_map']
+    mass_map = get_first_matched_key_from_dict(jdata, ['mass_map', 'model_mass_map'])
     nsteps = jdata['nsteps']
-    timestep = jdata['timestep']
+    # timestep = jdata['timestep']
+    timestep = get_first_matched_key_from_dict(jdata, ['timestep', 'dt'])
     spring_k = jdata['spring_k']
 
     sparam = jdata.get('soft_param', {})
@@ -576,7 +578,8 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
         m_spring_k = []
         for ii in mass_map :
             m_spring_k.append(spring_k * ii)
-    thermo_freq = jdata['thermo_freq']
+    # thermo_freq = jdata['thermo_freq']
+    thermo_freq = get_first_matched_key_from_dict(jdata, ['thermo_freq', 'stat_freq'])
     copies = None
     if 'copies' in jdata :
         copies = jdata['copies']
