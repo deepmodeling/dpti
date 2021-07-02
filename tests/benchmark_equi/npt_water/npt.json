@@ -1,0 +1,19 @@
+{
+    "equi_conf":	"benchmark_equi/npt_water/conf.lmp",
+    "model":		"benchmark_equi/npt_water/graph.pb",
+    "model_mass_map":	[16, 2],
+    "nsteps":		1000000,
+    "dt":		0.0005,
+    "ens":		"npt-tri",
+    "temp":		50,
+    "pres":		1,
+    "tau_t":		0.1,
+    "tau_p":		0.5,
+
+    "stat_freq":	10,
+    "dump_freq":	100000,
+    "stat_skip":	30000,
+    "stat_bsize":	10000,
+
+    "_comment":		"that's all"
+}

@@ -7,8 +7,7 @@ from aiida.engine import calcfunction, workfunction
 from aiida.orm import Int, Dict, Str
 
 # from dpdispatcher.lazy_local_context import LazyLocalContext
-from dpdispatcher.submission import Submission, Job, Task, Resources
-from dpdispatcher.batch_object import BatchObject
+from dpdispatcher.submission import Submission, Machine, Task, Resources
 from dpti import equi, hti, hti_liq, ti
 import subprocess as sp
 
@@ -18,15 +17,14 @@ def get_empty_submission(job_work_dir):
     machine_file = os.path.join(job_work_dir, '../', '../', '../', 'machine.json')
     with open(machine_file, 'r') as f:
         mdata = json.load(f)
-    batch_dict = mdata['batch']
-    resources_dict = mdata['resources']
-    batch = BatchObject(jdata=batch_dict)
-    resources = Resources(**resources_dict)
+
+    machine = Machine.load_from_dict(mdata['machine'])
+    resources = Resources.load_from_dict(mdata['resources'])
 
     submission = Submission(
         work_base=job_work_dir, 
         resources=resources, 
-        batch=batch, 
+        machine=machine, 
     )
     return submission
 
