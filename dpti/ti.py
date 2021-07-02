@@ -7,6 +7,7 @@ import pymbar
 
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 from dpti.lib.utils import create_path, relative_link_file
+from dpti.lib.utils import get_first_matched_key_from_dict
 from dpti.lib.utils import copy_file_list
 from dpti.lib.utils import block_avg
 from dpti.lib.utils import integrate_range
@@ -127,33 +128,40 @@ def make_tasks(iter_name, jdata, if_meam=None):
     model = jdata['model']
     meam_model = jdata.get('meam_model', None)
     # model = os.path.abspath(model)
-    mass_map = jdata['mass_map']
+    # mass_map = jdata['mass_map']
+    mass_map = get_first_matched_key_from_dict(jdata, ['model_mass_map', 'mass_map'])
     nsteps = jdata['nsteps']
-    timestep = jdata['timestep']
-    thermo_freq = jdata['thermo_freq']
+    # timestep = jdata['timestep']
+    timestep = get_first_matched_key_from_dict(jdata, ['timestep', 'dt'])
+    # thermo_freq = jdata['thermo_freq']
+    thermo_freq = get_first_matched_key_from_dict(jdata, ['thermo_freq', 'stat_freq'])
     # thermos = jdata['thermos']
     ens = jdata['ens']
     path = jdata['path']
     if 'nvt' in ens :
         if path == 't' :
-            temp_seq = parse_seq(jdata['temp_seq'])
+            temp_seq = get_first_matched_key_from_dict(jdata, ['temp_seq', 'temps'])
+            temp_list = parse_seq(temp_seq)
             tau_t = jdata['tau_t']
-            ntasks = len(temp_seq)
+            ntasks = len(temp_list)
         else :
             raise RuntimeError('supported path of nvt ens is \'t\'')
     elif 'npt' in ens :
         if path == 't' :
-            temp_seq = parse_seq(jdata['temp_seq'])
-            pres = jdata['pres']
-            ntasks = len(temp_seq)
+            temp_seq = get_first_matched_key_from_dict(jdata, ['temp_seq', 'temps'])
+            temp_list = parse_seq(temp_seq)
+            pres = get_first_matched_key_from_dict(jdata, ['pres', 'press'])
+            ntasks = len(temp_list)
         elif path == 't-ginv' :
-            temp_seq = parse_seq_ginv(jdata['temp_seq'])
-            pres = jdata['pres']
-            ntasks = len(temp_seq)
+            temp_seq = get_first_matched_key_from_dict(jdata, ['temp_seq', 'temps'])
+            temp_list = parse_seq_ginv(temp_seq)
+            pres = get_first_matched_key_from_dict(jdata, ['pres', 'press'])
+            ntasks = len(temp_list)
         elif path == 'p' :
-            temp = jdata['temp']
-            pres_seq = parse_seq(jdata['pres_seq'])
-            ntasks = len(pres_seq)
+            temp = get_first_matched_key_from_dict(jdata, ['temp', 'temps'])
+            pres_seq = get_first_matched_key_from_dict(jdata, ['pres_seq', 'press'])
+            pres_list = parse_seq(pres_seq)
+            ntasks = len(pres_list)
         else :
             raise RuntimeError('supported path of npt ens are \'t\' or \'p\'')
         tau_t = jdata['tau_t']
@@ -236,7 +244,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     nsteps, 
                                     timestep,
                                     ens,
-                                    temp_seq[ii],
+                                    temp_list[ii],
                                     pres=pres,
                                     tau_t = tau_t,
                                     thermo_freq = thermo_freq, 
@@ -244,7 +252,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     if_meam=if_meam,
                                     meam_model=meam_model
                                     )
-            thermo_out = temp_seq[ii]
+            thermo_out = temp_list[ii]
             # with open('thermo.out', 'w') as fp :
             #     fp.write('%f' % temps[ii])
         elif 'npt' in ens and (path == 't' or path == 't-ginv'):
@@ -255,7 +263,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     nsteps, 
                                     timestep,
                                     ens,
-                                    temp_seq[ii],
+                                    temp_list[ii],
                                     pres,
                                     tau_t = tau_t,
                                     tau_p = tau_p,
@@ -264,7 +272,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     if_meam=if_meam,
                                     meam_model=meam_model
                                     )
-            thermo_out = temp_seq[ii]
+            thermo_out = temp_list[ii]
             # with open('thermo.out', 'w') as fp :
             #     fp.write('%f' % (temps[ii]))
         elif 'npt' in ens and path == 'p' :
@@ -276,7 +284,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     timestep,
                                     ens,
                                     temp,
-                                    pres_seq[ii],
+                                    pres_list[ii],
                                     tau_t = tau_t,
                                     tau_p = tau_p,
                                     thermo_freq = thermo_freq, 
@@ -284,7 +292,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                                     if_meam=if_meam,
                                     meam_model=meam_model
                                 )
-            thermo_out = pres_seq[ii]
+            thermo_out = pres_list[ii]
         else:
             raise RuntimeError('invalid ens or path setting' )
         
@@ -337,31 +345,31 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's
     all_fe_err = []
     all_fe_sys_err = []
     
-    if all_e is not None:
-        print('switch to test integral mode by yuanfengbo')
-        array_e = np.asarray(all_e, dtype='float64')
-        array_t = np.asarray(all_t, dtype='float64')
-        array_t_delta = array_t[1:] - array_t[:-1]
-        array_e_delta = array_e[1:] - array_e[:-1]
-        array_b = array_e_delta / array_t_delta
-        array_a = array_e[:-1] - array_t[:-1] * array_b 
-        array_diff_e = array_a * (array_t[1:] - array_t[:-1])/(array_t[1:]*array_t[:-1]) + array_b * np.log(array_t[1:]/array_t[:-1])
+    # if all_e is not None:
+    #     print('switch to test integral mode by yuanfengbo')
+    #     array_e = np.asarray(all_e, dtype='float64')
+    #     array_t = np.asarray(all_t, dtype='float64')
+    #     array_t_delta = array_t[1:] - array_t[:-1]
+    #     array_e_delta = array_e[1:] - array_e[:-1]
+    #     array_b = array_e_delta / array_t_delta
+    #     array_a = array_e[:-1] - array_t[:-1] * array_b 
+    #     array_diff_e = array_a * (array_t[1:] - array_t[:-1])/(array_t[1:]*array_t[:-1]) + array_b * np.log(array_t[1:]/array_t[:-1])
         
-        print('!!!', array_a, array_b, all_e , array_t_delta, array_e_delta, array_diff_e)
+    #     print('!!!', array_a, array_b, all_e , array_t_delta, array_e_delta, array_diff_e)
         
-        # for ii in range(0, len(array_t)):
-        for ii in range(len(array_t)-1, -1, -1):
-            e1 = (Eo / (array_t[-1]) + np.sum(array_diff_e[ii:])) * array_t[ii]
-            # e1 = (Eo / (array_t[0]) - np.sum(array_diff_e[0:ii])) * array_t[ii]
-            all_temps.append(array_t[ii])
-            err = 0
-            sys_err = 0
-            all_press.append(jdata['pres'])
-            all_fe.append(e1)
-            all_fe_err.append(err)
-            all_fe_sys_err.append(sys_err)
+    #     # for ii in range(0, len(array_t)):
+    #     for ii in range(len(array_t)-1, -1, -1):
+    #         e1 = (Eo / (array_t[-1]) + np.sum(array_diff_e[ii:])) * array_t[ii]
+    #         # e1 = (Eo / (array_t[0]) - np.sum(array_diff_e[0:ii])) * array_t[ii]
+    #         all_temps.append(array_t[ii])
+    #         err = 0
+    #         sys_err = 0
+    #         all_press.append(jdata['pres'])
+    #         all_fe.append(e1)
+    #         all_fe_err.append(err)
+    #         all_fe_sys_err.append(sys_err)
 
-        return np.asarray(all_temps), np.asarray(all_press), np.asarray(all_fe), np.asarray(all_fe_err), np.asarray(all_fe_sys_err)
+    #     return np.asarray(all_temps), np.asarray(all_press), np.asarray(all_fe), np.asarray(all_fe_err), np.asarray(all_fe_sys_err)
             
             
         
@@ -388,7 +396,7 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's
         all_fe.append(e1)
         all_fe_err.append(err)
         all_fe_sys_err.append(sys_err)
-    return all_temps, all_press, all_fe, all_fe_err, all_fe_sys_err
+    return np.asarray(all_temps), np.asarray(all_press), np.asarray(all_fe), np.asarray(all_fe_err), np.asarray(all_fe_sys_err)
 
 def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, scheme = 'simpson', shift = 0.0) :
     equi_conf = get_task_file_abspath(iter_name, jdata['equi_conf'])
@@ -545,13 +553,20 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
                    % (all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]])))
             # print(all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]))
     # result_file.close()
-    data = [all_temps.tolist(), all_press.tolist(), 
-        all_fe.tolist(), all_fe_err.tolist(), all_fe_sys_err.tolist(), 
-        np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist()]
+
+    data = dict(all_temps=all_temps.tolist(), all_press=all_press.tolist(),
+        all_fe=all_fe.tolist(), all_fe_stat_err=all_fe_err.tolist(), all_fe_inte_err=all_fe_sys_err.tolist(), 
+        all_fe_tot_err=np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist())
+
+    # data = [all_temps.tolist(), all_press.tolist(), 
+    #     all_fe.tolist(), all_fe_err.tolist(), all_fe_sys_err.tolist(), 
+    #     np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist()]
     info = dict(start_point_info=info0, end_point_info=info1, data=data)
-    print('result', result)
-    open(os.path.join(iter_name, '../', 'result'), 'w').write(result)
-    open(os.path.join(iter_name, 'result.json'), 'w').write(json.dumps(info))
+    # print('result', result)
+    with open(os.path.join(iter_name, '../', 'result'), 'w') as f:
+        f.write(result)
+    with open(os.path.join(iter_name, 'result.json'), 'w') as f:
+        f.write(json.dumps(info))
     return info
 
 

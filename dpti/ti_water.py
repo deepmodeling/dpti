@@ -4,17 +4,17 @@ import os, sys, json, argparse, glob, shutil
 import numpy as np
 import scipy.constants as pc
 
-from lib.utils import create_path
-from lib.utils import copy_file_list
-from lib.utils import block_avg
-from lib.utils import integrate
-from lib.utils import integrate_sys_err
-from lib.utils import parse_seq
-from lib.utils import get_task_file_abspath
-from lib.lammps import get_thermo
-from lib.lammps import get_natoms
+from dpti.lib.utils import create_path
+from dpti.lib.utils import copy_file_list
+from dpti.lib.utils import block_avg
+from dpti.lib.utils import integrate
+from dpti.lib.utils import integrate_sys_err
+from dpti.lib.utils import parse_seq
+from dpti.lib.utils import get_task_file_abspath
+from dpti.lib.lammps import get_thermo
+from dpti.lib.lammps import get_natoms
 
-import dpti.ti
+from dpti import ti
 
 def _main ():
     parser = argparse.ArgumentParser(
@@ -53,7 +53,9 @@ def _main ():
                              help='the error required')
 
     args = parser.parse_args()
+    return exec_args(args=args, parser=parser)
 
+def exec_args(args, parser=None):
     if args.command is None :
         parser.print_help()
         exit
@@ -63,7 +65,7 @@ def _main ():
         ti.make_tasks(output, jdata)
     elif args.command == 'compute' :
         job = args.JOB
-        jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
+        jdata = json.load(open(os.path.join(job, 'ti_settings.json'), 'r'))
         equi_conf = get_task_file_abspath(job, jdata['equi_conf'])
         natoms = get_natoms(equi_conf)
         if 'copies' in jdata :
@@ -78,7 +80,6 @@ def _main ():
     elif args.command == 'refine' :
         ti.refine_task(args.input, args.output, args.error)
 
-    
 if __name__ == '__main__' :
     _main()
         

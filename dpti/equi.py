@@ -6,7 +6,7 @@ import scipy.constants as pc
 
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 import dpti
-from dpti.lib.utils import create_path, relative_link_file
+from dpti.lib.utils import create_dict_not_empty_key, create_path, relative_link_file
 from dpti.lib.utils import block_avg, link_file_in_dict
 from dpti.lib.water import compute_bonds
 from dpti.lib.water import posi_diff
@@ -16,6 +16,8 @@ from dpti.lib.utils import get_task_file_abspath
 from dpti.lib.lammps import get_natoms, get_last_dump, get_thermo
 from dpti.lib.lmp import from_system_data
 from dpti.lib.dump import system_data
+
+from dargs import dargs, Argument, Variant
 # from lib import dump 
 # from .lib import lammps
 # from .lib import dump
@@ -316,22 +318,44 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi
     # jfile_path = os.path.abspath(jfile)
     # with open(jfile, 'r') as f:
     #     jdata = json.load(f)
+
+    equi_args = [
+        Argument("equi_conf", str),
+        Argument("mass_map", list, alias=['model_mass_map']),
+        Argument("model", str),
+        Argument("nsteps", int),
+        Argument("timestep", float, alias=['dt']),
+        Argument("ens", str),
+        Argument("temp", int),
+        Argument("pres", int),
+        Argument("tau_t", float),
+        Argument("tau_p", float),
+        Argument("thermo_freq", int, alias=['stat_freq']),
+        Argument("dump_freq", int),
+        Argument("stat_skip", int),
+        Argument("stat_bsize", int),
+        Argument("if_dump_avg_posi", bool, optional=True, default=False),
+        Argument("is_water", bool, optional=True, default=False, alias=['if_water']),
+        Argument("if_meam", bool, optional=True, default=False),
+        Argument("meam_model", list, optional=True, default=False),
+    ]
+
+    equi_format = Argument("equi", dict, equi_args)
+
+    equi_kwargs_settings = create_dict_not_empty_key(
+        ens=ens,
+        temp=temp,
+        pres=pres,
+        if_dump_avg_posi=if_dump_avg_posi,
+        npt_dir=npt_dir
+    )
+
+    equi_pre_settings = jdata.copy()
+    equi_pre_settings.update(equi_kwargs_settings)
+
+    equi_settings = equi_format.normalize_value(equi_pre_settings)
+
     task_abs_dir = create_path(iter_name)
-    equi_cli_settings = {}
-    for k in ['ens', 'temp', 'pres', 'if_dump_avg_posi']:
-        if eval(k) is None:
-            assert k in jdata, f"kv-pair:{k} must in jdata:{jdata}"
-        else:
-            equi_cli_settings[k] = eval(k)
-
-    if npt_dir is not None:
-        equi_cli_settings['npt_dir'] = npt_dir
-
-    equi_settings = jdata.copy()
-    equi_settings.update(equi_cli_settings)
-    # print(equi_cli_settings)
-    # print(equi_settings)
-    # print(npt_dir)
 
     if npt_dir is not None:
         npt_avg_conf_lmp = npt_equi_conf(npt_dir)
@@ -357,8 +381,8 @@ def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi
 
     with open(os.path.join(task_abs_dir, 'jdata.json'), 'w') as f:
         json.dump(jdata, f, indent=4)
-    with open(os.path.join(task_abs_dir, 'equi_cli_setting.json'), 'w') as f:
-        json.dump(equi_cli_settings, f, indent=4)
+    with open(os.path.join(task_abs_dir, 'equi_kwargs_setting.json'), 'w') as f:
+        json.dump(equi_kwargs_settings, f, indent=4)
     with open(os.path.join(task_abs_dir, 'equi_settings.json'), 'w') as f:
         json.dump(equi_settings, f, indent=4)
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os, sys, json, argparse, glob, shutil
+from re import T
 import numpy as np
 import scipy.constants as pc
 import pymbar
@@ -16,6 +17,7 @@ from dpti.lib.utils import integrate_range_hti
 from dpti.lib.utils import compute_nrefine
 from dpti.lib.utils import parse_seq
 from dpti.lib.utils import get_task_file_abspath
+from dpti.lib.utils import get_first_matched_key_from_dict
 from dpti.lib.lammps import get_thermo
 from dpti.lib.lammps import get_natoms
 
@@ -471,7 +473,7 @@ def _gen_lammps_input (conf_file,
 
 def make_tasks(iter_name, jdata, ref='einstein', switch = 'one-step', if_meam=None):
     if if_meam is None:
-        if_meam = jdata['if_meam']
+        if_meam = jdata.get('if_meam', False)
     equi_conf = os.path.abspath(jdata['equi_conf'])
     meam_model = jdata.get('meam_model', None)
     model = os.path.abspath(jdata['model'])
@@ -529,10 +531,9 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
     if 'crystal' not in jdata:
         print('do not find crystal in jdata, assume vega')
         jdata['crystal'] = 'vega'
+
     crystal = jdata['crystal']
     protect_eps = jdata['protect_eps']
-
-    
 
     if switch == 'one-step':
         all_lambda = parse_seq(jdata['lambda'])
@@ -555,14 +556,25 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
     equi_conf = os.path.abspath(equi_conf)
     model = jdata['model']
     model = os.path.abspath(model)
-    mass_map = jdata['mass_map']
+    # mass_map = jdata['mass_map']
+    mass_map = get_first_matched_key_from_dict(jdata, ['mass_map', 'model_mass_map'])
     nsteps = jdata['nsteps']
-    timestep = jdata['timestep']
+    # timestep = jdata['timestep']
+    timestep = get_first_matched_key_from_dict(jdata, ['timestep', 'dt'])
     spring_k = jdata['spring_k']
 
     sparam = jdata.get('soft_param', {})
     if sparam:
-        element_num=sparam.get('element_num', 1)
+        # update for fields in jsons relating to water
+
+        if 'sigma_oo' in sparam:
+            sparam['sigma_0_0'] = sparam['sigma_oo']
+            sparam['sigma_0_1'] = sparam['sigma_oh']
+            sparam['sigma_1_1'] = sparam['sigma_hh']
+
+        element_num = len(mass_map)
+        sparam['element_num'] = element_num
+
         sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
         sigma_key_name_list = ['sigma_'+str(t[0])+'_'+str(t[1]) for t in sigma_key_index ]
         for sigma_key_name in sigma_key_name_list:
@@ -576,7 +588,8 @@ def _make_tasks(iter_name, jdata, ref, switch = 'one-step', step = 'both', link 
         m_spring_k = []
         for ii in mass_map :
             m_spring_k.append(spring_k * ii)
-    thermo_freq = jdata['thermo_freq']
+    # thermo_freq = jdata['thermo_freq']
+    thermo_freq = get_first_matched_key_from_dict(jdata, ['thermo_freq', 'stat_freq'])
     copies = None
     if 'copies' in jdata :
         copies = jdata['copies']
@@ -792,6 +805,7 @@ def post_tasks(iter_name, jdata, natoms = None, method = 'inte', scheme = 's'):
         tinfo = tinfo1
     elif switch == 'three-step':
         subtask_name = os.path.join(iter_name, '00.lj_on')
+        print(f'# HTI three-step integration [value, stt_err, sys_err]')
         if method == 'inte' :
             e0, err0, tinfo0 = _post_tasks(subtask_name, jdata, natoms = natoms, scheme = scheme, switch = switch, step = 'lj_on')
         elif method == 'mbar':
@@ -806,7 +820,7 @@ def post_tasks(iter_name, jdata, natoms = None, method = 'inte', scheme = 's'):
             e1, err1, tinfo1 = _post_tasks_mbar(subtask_name, jdata, natoms = natoms, switch = switch, step = 'deep_on')
         else :
             raise RuntimeError('unknow method for integration')
-        print('# fe of deep_off:   %20.12f  %10.3e %10.3e' % (e1, err1[0], err1[1]))
+        print('# fe of deep_on:   %20.12f  %10.3e %10.3e' % (e1, err1[0], err1[1]))
         subtask_name = os.path.join(iter_name, '02.spring_off')
         if method == 'inte' :
             e2, err2, tinfo2 = _post_tasks(subtask_name, jdata, natoms = natoms, scheme = scheme, switch = switch, step = 'spring_off')
@@ -816,7 +830,6 @@ def post_tasks(iter_name, jdata, natoms = None, method = 'inte', scheme = 's'):
             raise RuntimeError('unknow method for integration')
         print('# fe of spring_off: %20.12f  %10.3e %10.3e' % (e2, err2[0], err2[1]))
         de = e0 + e1 + e2
-        print(f'# HTI three-step error err0 err1 err2 [stt_err, sys_err] {err0} {err1} {err2}')
         stt_err = np.sqrt(np.square(err0[0]) + np.square(err1[0]) + np.square(err2[0]))
         sys_err = ((err0[1]) + (err1[1]) + (err2[1]))
         err = [stt_err, sys_err]

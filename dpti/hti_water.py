@@ -4,19 +4,20 @@ import os, sys, json, argparse, glob, shutil
 import numpy as np
 import scipy.constants as pc
 
-import einstein
-import lib.lmp as lmp
-import lib.water as water
+from dpti import einstein
+from dpti.lib import lmp
+from  dpti.lib import water
 import pymbar
-from lib.utils import create_path
-from lib.utils import copy_file_list
-from lib.utils import block_avg
-from lib.utils import integrate_range
+from dpti.lib.utils import create_path
+from dpti.lib.utils import copy_file_list
+from dpti.lib.utils import block_avg
+from dpti.lib.utils import integrate_range
 # from lib.utils import integrate_sys_err
-from lib.utils import compute_nrefine
-from lib.utils import parse_seq
-from lib.utils import get_task_file_abspath
-from lib.lammps import get_thermo
+from dpti.lib.utils import compute_nrefine
+from dpti.lib.utils import parse_seq
+from dpti.lib.utils import get_task_file_abspath
+from dpti.lib.utils import get_first_matched_key_from_dict
+from dpti.lib.lammps import get_thermo
 
 def _ff_angle_on(lamb,
                  model, 
@@ -212,12 +213,17 @@ def _make_tasks(iter_name, jdata, step) :
     equi_conf = os.path.abspath(equi_conf)
     model = jdata['model']
     model = os.path.abspath(model)
-    model_mass_map = jdata['model_mass_map']
+    # mass_map = jdata['mass_map']
+    mass_map = get_first_matched_key_from_dict(jdata, ['mass_map', 'model_mass_map'])
     nsteps = jdata['nsteps']
-    dt = jdata['dt']
+    # dt = jdata['dt']
+    # timestep = jdata['timestep']
+    timestep = get_first_matched_key_from_dict(jdata, ['timestep', 'dt'])
     bparam = jdata['bond_param']
     sparam = jdata['soft_param']
-    stat_freq = jdata['stat_freq']
+    # stat_freq = jdata['stat_freq']
+    # thermo_freq = jdata['thermo_freq']
+    thermo_freq = get_first_matched_key_from_dict(jdata, ['thermo_freq', 'stat_freq'])
     ens = jdata['ens']
     temp = jdata['temp']
     pres = jdata['pres']
@@ -233,8 +239,10 @@ def _make_tasks(iter_name, jdata, step) :
     os.symlink(os.path.join('..', 'in.json'), 'in.json')
     os.symlink(os.path.join('..', 'conf.lmp'), 'orig.lmp')
     os.symlink(os.path.join('..', 'graph.pb'), 'graph.pb')
-    lines = water.add_bonds(open('orig.lmp').read().split('\n'))
-    open('conf.lmp', 'w').write('\n'.join(lines))
+    with open('orig.lmp', 'r') as f:
+        lines = water.add_bonds(f.read().split('\n'))
+    with open('conf.lmp', 'w') as c:
+        c.write('\n'.join(lines))
     os.chdir(cwd)
     for idx in range(len(all_lambda)) :
         work_path = os.path.join(iter_name, 'task.%06d' % idx)
@@ -245,19 +253,19 @@ def _make_tasks(iter_name, jdata, step) :
         lmp_str \
             = _gen_lammps_input(step,
                                 'conf.lmp', 
-                                model_mass_map, 
+                                mass_map, 
                                 all_lambda[idx],
                                 'graph.pb',
                                 bparam,
                                 sparam,
                                 nsteps, 
-                                dt, 
+                                timestep, 
                                 ens, 
                                 temp, 
                                 pres, 
                                 tau_t = tau_t,
                                 tau_p = tau_p,
-                                prt_freq = stat_freq, 
+                                prt_freq = thermo_freq, 
                                 copies = copies)
         with open('in.lammps', 'w') as fp :
             fp.write(lmp_str)
@@ -589,7 +597,7 @@ def spring_inte(temp, kk, r0) :
 def compute_ideal_mol(iter_name) :
     jdata = json.load(open(os.path.join(iter_name, 'in.json')))
     ens = jdata['ens']
-    mass_map = jdata['model_mass_map']
+    mass_map = jdata['mass_map']
     conf_lines = open(os.path.join(iter_name, 'orig.lmp')).read().split('\n')
     data_sys = lmp.system_data(conf_lines)
     vol = np.linalg.det(data_sys['cell'])
@@ -686,6 +694,11 @@ def _main ():
                              help='the method of thermodynamic integration')
     parser_comp.add_argument('-s','--scheme', type=str, default = 'simpson', 
                              help='the numeric integration scheme')
+    parser_comp.add_argument('-g', '--pv', type=float, default = None,
+                             help='press*vol value override to calculate Gibbs free energy')
+    parser_comp.add_argument('-G', '--pv-err', type=float, default = None,
+                             help='press*vol error')
+
     parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
     parser_comp.add_argument('-i', '--input', type=str, required=True,
                              help='input job')
@@ -695,21 +708,27 @@ def _main ():
                              help='the error required')
 
     args = parser.parse_args()
+    return exec_args(args=args, parser=None)
 
+def exec_args(args, parser):
     if args.command is None :
         parser.print_help()
         exit
     if args.command == 'gen' :
         output = args.output
-        jdata = json.load(open(args.PARAM, 'r'))
+        with open(args.PARAM, 'r') as j:
+            jdata = json.load(j)
         make_tasks(output, jdata)
     if args.command == 'refine' :
         refine_tasks(args.input, args.output, args.error)
     elif args.command == 'compute' :
-        fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
-        sys_data = lmp.to_system_data(fp_conf.read().split('\n'))
+        with open(os.path.join(args.JOB, 'conf.lmp'), 'r') as conf_lmp:
+            # fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
+            sys_data = lmp.to_system_data(conf_lmp.read().split('\n'))
         natoms = sum(sys_data['atom_numbs'])
-        jdata = json.load(open(os.path.join(args.JOB, 'in.json'), 'r'))
+        with open(os.path.join(args.JOB, 'in.json'), 'r') as j:
+            jdata = json.load(j)
+
         if 'copies' in jdata :
             natoms *= np.prod(jdata['copies'])
         nmols = natoms // 3
@@ -718,12 +737,20 @@ def _main ():
         print ('# numb atoms: %d' % natoms)
         print ('# numb  mols: %d' % nmols)        
         print_format = '%20.12f  %10.3e  %10.3e'
-        if args.type == 'helmholtz' :
-            print('# Helmholtz free ener per mol (err) [eV]:')
-            print(print_format % (fe, fe_err[0], fe_err[1]))
-        if args.type == 'gibbs' :
-            pv = thermo_info['pv']
-            pv_err = thermo_info['pv_err']
+        # if args.type == 'helmholtz' :
+        print('# Helmholtz free ener per mol (err) [eV]:')
+        print(print_format % (fe, fe_err[0], fe_err[1]))
+        if args.type == 'gibbs':
+            if args.pv is not None:
+                pv = args.pv
+                print(f"# use manual pv=={pv}")
+            else:
+                pv = thermo_info['pv']
+            if args.pv_err is not None:
+                pv_err = args.pv_err
+                print(f"# use manual pv_err=={pv_err}")
+            else:
+                pv_err = thermo_info['pv_err']
             e1 = fe + pv
             e1_err = np.sqrt(fe_err[0]**2 + pv_err**2)
             print('# Gibbs free ener per mol (err) [eV]:')

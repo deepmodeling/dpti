@@ -4,9 +4,9 @@ import os, sys, json, argparse, glob, shutil
 import numpy as np
 import scipy.constants as pc
 
-import einstein
-import hti
-import lib.lmp as lmp
+from dpti import einstein
+from dpti import  hti
+from dpti.lib import lmp
 
 def _main ():
     parser = argparse.ArgumentParser(
@@ -42,6 +42,10 @@ def _main ():
                              help='the numeric integration scheme')
     parser_comp.add_argument('-S','--shift', type=float, default = 0.0, 
                              help='a constant shift in the energy/mole computation, will be removed from FE')
+    parser_comp.add_argument('-g', '--pv', type=float, default = None,
+                             help='press*vol value override to calculate Gibbs free energy')
+    parser_comp.add_argument('-G', '--pv-err', type=float, default = None,
+                             help='press*vol error')
 
     parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
     parser_comp.add_argument('-i', '--input', type=str, required=True,
@@ -54,12 +58,16 @@ def _main ():
                              help='print the refinement and exit')
     args = parser.parse_args()
 
+    return exec_args(args=args, parser=parser)
+
+def exec_args(args, parser):
     if args.command is None :
         parser.print_help()
         exit
     if args.command == 'gen' :
         output = args.output
-        jdata = json.load(open(args.PARAM, 'r'))
+        with open(args.PARAM, 'r') as j:
+            jdata = json.load(j)
         if 'crystal' in jdata and jdata['crystal'] == 'frenkel' :
             print('# gen task with Frenkel\'s Einstein crystal')
         else :
@@ -101,6 +109,7 @@ def _main ():
                 note_pauling = '      '
             e0 += pauling_corr
         else :
+            note_pauling = '      '
             pauling_corr = 0
         # compute integration
         de, de_err, thermo_info = hti.post_tasks(job, jdata, natoms = nmols, method = args.inte_method, scheme = args.scheme)
@@ -115,12 +124,20 @@ def _main ():
         print(('# fe integration              ' + print_format) \
               % (de, de_err[0], de_err[1]))        
         print( '# fe const shift              %20.12f' % args.shift)
-        if args.type == 'helmholtz' :
-            print('# Helmholtz free ener per mol (stat_err inte_err) [eV]:')
-            print(print_format % (e0 + de - args.shift, de_err[0], de_err[1]))
+        # if args.type == 'helmholtz' :
+        print('# Helmholtz free ener per mol (stat_err inte_err) [eV]:')
+        print(print_format % (e0 + de - args.shift, de_err[0], de_err[1]))
         if args.type == 'gibbs' :
-            pv = thermo_info['pv']
-            pv_err = thermo_info['pv_err']
+            if args.pv is not None:
+                pv = args.pv
+                print(f"# use manual pv=={pv}")
+            else:
+                pv = thermo_info['pv']
+            if args.pv_err is not None:
+                pv_err = args.pv_err
+                print(f"# use manual pv_err=={pv_err}")
+            else:
+                pv_err = thermo_info['pv_err']
             e1 = e0 + de + pv - args.shift
             e1_err = np.sqrt(de_err[0]**2 + pv_err**2)
             print('# Gibbs free ener per mol (stat_err inte_err) [eV]:')
