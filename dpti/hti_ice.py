@@ -103,7 +103,7 @@ def exec_args(args, parser):
                     pauling_corr = -pc.Boltzmann * temp / pc.electron_volt * 0.3686
                     note_pauling = '(ice3)'
                 else:
-                    raise RuntimeError(f'unknow partial_disorder {partial_disorder}')
+                    raise RuntimeError(f'unknow partial_disorder {args.partial_disorder}')
             else:
                 pauling_corr = -pc.Boltzmann * temp / pc.electron_volt * np.log(1.5)
                 note_pauling = '      '
@@ -113,6 +113,7 @@ def exec_args(args, parser):
             pauling_corr = 0
         # compute integration
         de, de_err, thermo_info = hti.post_tasks(job, jdata, natoms = nmols, method = args.inte_method, scheme = args.scheme)
+        info = thermo_info.copy()
         # printing
         print_format = '%20.12f  %10.3e  %10.3e'
         hti.print_thermo_info(thermo_info)
@@ -142,6 +143,16 @@ def exec_args(args, parser):
             e1_err = np.sqrt(de_err[0]**2 + pv_err**2)
             print('# Gibbs free ener per mol (stat_err inte_err) [eV]:')
             print(print_format % (e1, e1_err, de_err[1]))
+        free_energy_type=args.type
+        info['free_energy_type'] = free_energy_type
+        info['pv'] = pv
+        info['pv_err'] = pv_err
+        # info['de'] = de
+        # info['de_err'] = de_err
+        info['e1'] = e1
+        info['e1_err'] = e1_err
+        open(os.path.join(job, 'result.json'), 'w').write(json.dumps(info))
+        return info
 
 
 if __name__ == '__main__' :
