@@ -463,7 +463,8 @@ def compute_task(job, free_energy_type='helmholtz', scheme='simpson', manual_pv=
     # info['de_err'] = de_err
     info['e1'] = e1
     info['e1_err'] = e1_err
-    open(os.path.join(job, 'result.json'), 'w').write(json.dumps(info))
+    with open(os.path.join(job, 'result.json'), 'w') as result:
+        result.write(json.dumps(info))
     return info
 
 def _main ():
