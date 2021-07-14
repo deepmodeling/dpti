@@ -104,7 +104,7 @@ def NPT_start(start_info):
 @task(trigger_rule='none_failed_or_skipped')
 def NPT_sim(job_work_dir):
     task = Task(command='lmp -i in.lammps', task_work_path='./', 
-        forward_files=['in.lammps', '*lmp', 'graph.pb'], backward_files=['log.lammps'])
+        forward_files=['in.lammps', '*lmp', 'graph.pb'], backward_files=['log.lammps', 'dump.equi']) # Files to transfer forward and backwards
     submission = get_empty_submission(job_work_dir)
     submission.register_task_list([task])
     submission.run_submission()
