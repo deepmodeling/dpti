@@ -387,11 +387,11 @@ def _thermo_inte(jdata, Eo, Eo_err, all_t, integrand, integrand_err, scheme = 's
             sys_err *= all_t[ii]
             all_temps.append(all_t[ii])
             if 'npt' in ens :
-                all_press.append(jdata['pres'])
+                all_press.append(get_first_matched_key_from_dict(jdata, ['pres', 'press']))
         elif path == 'p':
             e1 = Eo + diff_e        
             err = np.sqrt(np.square(Eo_err) + np.square(err))
-            all_temps.append(jdata['temp'])
+            all_temps.append(get_first_matched_key_from_dict(jdata, ['temp', 'temps']))
             all_press.append(all_t[ii])
         all_fe.append(e1)
         all_fe_err.append(err)

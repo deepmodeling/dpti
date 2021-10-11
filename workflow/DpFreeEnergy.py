@@ -37,6 +37,7 @@ def get_empty_submission(job_work_dir):
 def all_start_check():
     context = get_current_context()
     print(context)
+    print('debug77878', os.getcwd())
 
     dag_run = context['params']
     work_base_dir = dag_run['work_base_dir']
@@ -316,6 +317,7 @@ def TI_end(job_work_dir, start_info, HTI_end_info):
 
 default_args = {
     'owner': 'fengbo',
+    'retries': 0,
     'start_date': datetime(2021, 1, 1, 8, 00)
 }
 

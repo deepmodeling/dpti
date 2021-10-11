@@ -17,7 +17,6 @@ from airflow.models import Variable, DagRun
 from numpy.core.fromnumeric import var
 # from dpdispatcher.
 from dpdispatcher.submission import Submission, Task
-from dpdispatcher.batch_object import Machine
 
 import time
 import uuid
@@ -140,12 +139,14 @@ class GDIDAGFactory:
             print('mdata', mdata)
             print('debug:task_dict', task_dict)
 
-            machine = Machine.load_from_machine_dict(mdata)
-            batch = machine.batch
+            machine = Machine.load_from_dict(mdata['machine'])
+            resources = Resources.load_from_dict(mdata['resources'])
             submission = Submission.deserialize(
                 submission_dict=submission_dict,
-                batch=batch
+                machine=machine
             )
+            submission.resources = resources
+
             submission.register_task(task=Task.deserialize(task_dict=task_dict))
             submission.run_submission()
             # md_return = prepare_return
