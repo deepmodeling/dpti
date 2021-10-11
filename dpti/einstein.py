@@ -5,6 +5,7 @@ import numpy as np
 import scipy.constants as pc
 # from . import lib
 from dpti.lib import lmp
+from dpti.lib.utils import get_first_matched_key_from_dict
 # from lib import lmp
 
 def compute_lambda(temp, mass) :
@@ -26,7 +27,8 @@ def ideal_gas_fe(job):
     equi_conf = os.path.abspath(equi_conf)
     os.chdir(cwd)
     temp = jdata['temp']
-    mass_map = jdata['mass_map']
+    # mass_map = jdata['mass_map']
+    mass_map = get_first_matched_key_from_dict(jdata, ['mass_map', 'model_mass_map'])
     if 'copies' in jdata :
         ncopies = np.prod(jdata['copies'])
     else :
@@ -63,7 +65,8 @@ def free_energy(job) :
     equi_conf = os.path.abspath(equi_conf)
     os.chdir(cwd)
     temp = jdata['temp']
-    mass_map = jdata['mass_map']
+    # mass_map = jdata['mass_map']
+    mass_map = get_first_matched_key_from_dict(jdata, ['mass_map', 'model_mass_map'])
     spring_k = jdata['spring_k']
     if type(spring_k) is not list:
         m_spring_k = []
@@ -126,7 +129,8 @@ def frenkel(job):
     equi_conf = os.path.abspath(equi_conf)
     os.chdir(cwd)
     temp = jdata['temp']
-    mass_map = jdata['mass_map']
+    # mass_map = jdata['mass_map']
+    mass_map = get_first_matched_key_from_dict(jdata, ['mass_map', 'model_mass_map'])
     s_spring_k = jdata['spring_k']
     spring_k = jdata['spring_k']
     assert(type(spring_k) is not list)
