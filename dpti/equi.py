@@ -533,7 +533,7 @@ def _print_thermo_info(info, more_head = '') :
     ptr += '# Pyz     [bar]:  %20.8f %20.8f\n' % (info['pyz'], info['pyz_err'])
     rho = (18 * 1e-3 / (info['v'] * pc.Avogadro * pc.angstrom**3))
     rho_err = (info['v'] / (info['v'] - info['v_err'] ) - 1) * rho
-    ptr += '# water density [kg/m^3] : %10.5f (%10.5f)' % (rho, rho_err)
+    ptr += '# density [kg/m^3] : %10.5f (%10.5f)\n' % (rho, rho_err)
     print(ptr)
     return ptr
 
