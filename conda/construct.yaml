@@ -1,12 +1,12 @@
 {% set version = os.popen('git describe --tags --abbrev=0').read().strip('\n').lstrip('v').replace('-', '_') %}
 
-name: dpgen
+name: dpti
 version: {{ version }}
 
 channels:
-  - defaults
-  - conda-forge
+  - file:///usr/share/miniconda/conda-bld/
   - deepmodeling
+  - conda-forge
 
 specs:
   - python 3.8

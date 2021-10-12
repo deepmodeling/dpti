@@ -1,32 +1,32 @@
 name: release_conda_and_github
 
 on:
+  workflow_dispatch:
+    inputs:
+      comment:
+        description: 'extra info for this github action'
+        required: false
+        default: 'manually triggered'
   push:
     tags:
-      - 'v*'
+      - '*'
 
 jobs:
-  conda-publish:
+  construct-and-release:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: publish-to-conda
-      uses: felix5572/conda-publish-action@v1.9
       with:
-        subdir: 'conda'
-        anacondatoken: ${{ secrets.ANACONDA_TOKEN }}
-        platforms: 'noarch'
-  construct-and-publish:
-    runs-on: ubuntu-latest
-    needs: conda-publish
-    steps:
-    - uses: actions/checkout@master
-    - uses: s-weigand/setup-conda@v1
-    - run: conda install constructor jinja2 -y
-    - run: constructor ./conda
+        fetch-depth: 0
+    - name: Setup conda
+      uses: s-weigand/setup-conda@release
+      with:
+        conda-channels: conda-forge, deepmodeling
+    - run: conda install constructor jinja2 conda-build -c deepmodeling -c conda-forge -y
+    - run: cd ./conda/dpti/ && conda build . -c deepmodeling -c conda-forge && cd ../../
+    - run: constructor ./conda/
     - name: Upload to release
       uses: softprops/action-gh-release@master
-      if: startsWith(github.ref, 'refs/tags/')
       with:
         files: dpti-*.sh
         repository: ${{ env.GITHUB_REPOSITORY }}
