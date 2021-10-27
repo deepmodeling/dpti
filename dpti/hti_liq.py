@@ -281,7 +281,7 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None) :
 
 def make_tasks(iter_name, jdata, if_meam=None) :
     if not if_meam :
-        if_meam = jdata['if_meam']
+        if_meam = jdata.get('if_meam', False)
     equi_conf = os.path.abspath(jdata['equi_conf'])
     if jdata.get('model', None):
         model = os.path.abspath(jdata['model'])
