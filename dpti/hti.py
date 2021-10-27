@@ -874,7 +874,7 @@ def _post_tasks(iter_name, jdata, natoms = None, scheme = 's', switch = 'one-ste
         sa, se = block_avg(data[:, 8], skip = stat_skip, block_size = stat_bsize)
         da, de = block_avg(data[:, 9], skip = stat_skip, block_size = stat_bsize)
         etot, etot_err = block_avg(data[:, 3], skip = stat_skip, block_size = stat_bsize)
-        enthalpy, _ = block_avg(data[:, 5], skip = stat_skip, block_size = stat_bsize)
+        enthalpy, _ = block_avg(data[:, 4], skip = stat_skip, block_size = stat_bsize)
         msd_xyz = data[-1,-1]
         sa /= natoms
         se /= np.sqrt(natoms)
