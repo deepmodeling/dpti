@@ -49,5 +49,5 @@
   "thermo_freq": 10,
   "stat_skip": 100,
   "stat_bsize": 10,
-  "temp": null,
+  "temp": null
 }
