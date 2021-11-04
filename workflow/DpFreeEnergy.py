@@ -59,7 +59,8 @@ def all_start_check():
     else:
         pass
 
-    conf_lmp_abs_path = os.path.join(work_base_abs_dir, conf_lmp)
+    conf_lmp_name = os.path.basename(conf_lmp)
+    conf_lmp_abs_path = os.path.join(work_base_abs_dir, conf_lmp_name)
     assert os.path.isfile(conf_lmp_abs_path) is True,  f'structure file {conf_lmp_abs_path} must exist'
     assert str(ti_path) in ["t", "p"], f'value for "path" must be "t" or "p" '
 
