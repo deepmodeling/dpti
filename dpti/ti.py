@@ -224,8 +224,10 @@ def make_tasks(iter_name, jdata, if_meam=None):
         # os.chdir(work_path)
 
         relative_link_file(equi_conf, task_abs_dir)
+        task_model = model
         if model:
             relative_link_file(model, task_abs_dir)
+            task_model = os.path.basename(model)
         if if_meam:
             relative_link_file(meam_model['library'], task_abs_dir)
             relative_link_file(meam_model['potential'], task_abs_dir)
@@ -239,8 +241,8 @@ def make_tasks(iter_name, jdata, if_meam=None):
         if 'nvt' in ens and path == 't' :
             lmp_str \
                 = _gen_lammps_input(os.path.basename(equi_conf),
-                                    mass_map, 
-                                    model,
+                                    mass_map,
+                                    task_model,
                                     nsteps, 
                                     timestep,
                                     ens,
@@ -258,8 +260,8 @@ def make_tasks(iter_name, jdata, if_meam=None):
         elif 'npt' in ens and (path == 't' or path == 't-ginv'):
             lmp_str \
                 = _gen_lammps_input(os.path.basename(equi_conf),
-                                    mass_map, 
-                                    model,
+                                    mass_map,
+                                    task_model,
                                     nsteps, 
                                     timestep,
                                     ens,
@@ -278,8 +280,8 @@ def make_tasks(iter_name, jdata, if_meam=None):
         elif 'npt' in ens and path == 'p' :
             lmp_str \
                 = _gen_lammps_input(os.path.basename(equi_conf),
-                                    mass_map, 
-                                    model,
+                                    mass_map,
+                                    task_model,
                                     nsteps, 
                                     timestep,
                                     ens,
