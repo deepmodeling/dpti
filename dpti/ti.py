@@ -204,19 +204,15 @@ def make_tasks(iter_name, jdata, if_meam=None):
 
     # cwd = os.getcwd()
     # os.chdir(iter_name)
-    relative_link_file(equi_conf, job_abs_dir)
+    ti_settings['equi_conf'] = relative_link_file(equi_conf, job_abs_dir)
     if model:
-        relative_link_file(model, job_abs_dir)
+        ti_settings['model'] = relative_link_file(model, job_abs_dir)
     if if_meam:
         relative_link_file(meam_model['library'], job_abs_dir)
         relative_link_file(meam_model['potential'], job_abs_dir)
 
-    with open(os.path.join(job_abs_dir, 
-        'ti_settings.json'), 'w') as fp:
-        json.dump(ti_settings, fp, indent=4)
-
     with open(os.path.join(job_abs_dir, 'ti_settings.json'),'w') as f:
-            json.dump(ti_settings, f, indent=4)
+        json.dump(ti_settings, f, indent=4)
 
     for ii in range(ntasks) :
         task_dir = os.path.join(job_abs_dir, 'task.%06d' % ii)
