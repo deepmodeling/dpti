@@ -155,7 +155,7 @@ def NVT_start(start_info, *, NPT_end_info):
 def NVT_sim(job_work_dir):
     submission = get_empty_submission(job_work_dir)
     task = Task(command='lmp -i in.lammps', task_work_path='./',
-        forward_files=['in.lammps', '*lmp', 'graph.pb'], backward_files=['log.lammps'])
+        forward_files=['in.lammps', '*lmp', 'graph.pb'], backward_files=['log.lammps', 'out.lmp'])
     submission.register_task_list([task])
     submission.run_submission()
     return job_work_dir
