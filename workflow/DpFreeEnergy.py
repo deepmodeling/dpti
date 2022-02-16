@@ -60,7 +60,8 @@ def all_start_check():
     else:
         pass
 
-    conf_lmp_abs_path = os.path.join(work_base_abs_dir, conf_lmp)
+    conf_lmp_name = os.path.basename(conf_lmp)
+    conf_lmp_abs_path = os.path.join(work_base_abs_dir, conf_lmp_name)
     assert os.path.isfile(conf_lmp_abs_path) is True,  f'structure file {conf_lmp_abs_path} must exist'
     assert str(ti_path) in ["t", "p"], f'value for "path" must be "t" or "p" '
 
@@ -155,7 +156,7 @@ def NVT_start(start_info, *, NPT_end_info):
 def NVT_sim(job_work_dir):
     submission = get_empty_submission(job_work_dir)
     task = Task(command='lmp -i in.lammps', task_work_path='./',
-        forward_files=['in.lammps', '*lmp', 'graph.pb'], backward_files=['log.lammps'])
+        forward_files=['in.lammps', '*lmp', 'graph.pb'], backward_files=['log.lammps', 'out.lmp'])
     submission.register_task_list([task])
     submission.run_submission()
     return job_work_dir

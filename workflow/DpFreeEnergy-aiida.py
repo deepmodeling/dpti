@@ -40,7 +40,8 @@ def all_start_check(dag_run):
 
     work_base_abs_dir = os.path.realpath(work_base_dir)
 
-    dag_work_dirname=str(target_temp)+'K-'+str(target_pres)+'bar-'+str(conf_lmp)
+    conf_lmp_name = os.path.basename(conf_lmp)
+    dag_work_dirname=str(target_temp)+'K-'+str(target_pres)+'bar-'+str(conf_lmp_name)
     dag_work_dir=os.path.join(work_base_abs_dir, dag_work_dirname)
     
     assert os.path.isdir(work_base_dir) is True,  f'work_base_dir {work_base_dir} must exist '
