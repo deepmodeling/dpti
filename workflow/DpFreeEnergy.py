@@ -12,32 +12,14 @@ from airflow.utils.dates import days_ago
 from airflow.exceptions import AirflowSkipException, AirflowFailException
 
 # from dpdispatcher.lazy_local_context import LazyLocalContext
-from dpdispatcher import Submission, Task, Resources, Machine
 from dpti import equi, hti, hti_liq, ti
 import subprocess as sp
 
-def get_empty_submission(job_work_dir):
-    context = get_current_context()
-    dag_run = context['params']
-    work_base_dir = dag_run['work_base_dir']
-
-    with open(os.path.join(work_base_dir, 'machine.json'), 'r') as f:
-        mdata = json.load(f)
-    machine = Machine.load_from_dict(mdata['machine'])
-    resources = Resources.load_from_dict(mdata['resources'])
-
-    submission = Submission(
-        work_base=job_work_dir, 
-        resources=resources, 
-        machine=machine, 
-    )
-    return submission
 
 @task()
 def all_start_check():
     context = get_current_context()
     print(context)
-    print('debug77878', os.getcwd())
 
     dag_run = context['params']
     work_base_dir = dag_run['work_base_dir']
@@ -60,8 +42,7 @@ def all_start_check():
     else:
         pass
 
-    conf_lmp_name = os.path.basename(conf_lmp)
-    conf_lmp_abs_path = os.path.join(work_base_abs_dir, conf_lmp_name)
+    conf_lmp_abs_path = os.path.join(work_base_abs_dir, conf_lmp)
     assert os.path.isfile(conf_lmp_abs_path) is True,  f'structure file {conf_lmp_abs_path} must exist'
     assert str(ti_path) in ["t", "p"], f'value for "path" must be "t" or "p" '
 
@@ -105,9 +86,12 @@ def NPT_start(start_info):
 
 @task(trigger_rule='none_failed_or_skipped')
 def NPT_sim(job_work_dir):
+    from dpti.dags.utils import get_empty_submission
+    from dpdispatcher import Task
     task = Task(command='lmp -i in.lammps', task_work_path='./', 
         forward_files=['in.lammps', '*lmp', 'graph.pb'], backward_files=['log.lammps', 'dump.equi']) # Files to transfer forward and backwards
-    submission = get_empty_submission(job_work_dir)
+    context = get_current_context()
+    submission = get_empty_submission(job_work_dir, context=context)
     submission.register_task_list([task])
     submission.run_submission()
     return job_work_dir
@@ -154,9 +138,12 @@ def NVT_start(start_info, *, NPT_end_info):
 
 @task(trigger_rule='none_failed_or_skipped')
 def NVT_sim(job_work_dir):
-    submission = get_empty_submission(job_work_dir)
+    from dpti.dags.utils import get_empty_submission
+    from dpdispatcher import Task
+    context = get_current_context()
+    submission = get_empty_submission(job_work_dir, context=context)
     task = Task(command='lmp -i in.lammps', task_work_path='./',
-        forward_files=['in.lammps', '*lmp', 'graph.pb'], backward_files=['log.lammps', 'out.lmp'])
+        forward_files=['in.lammps', '*lmp', 'graph.pb'], backward_files=['log.lammps'])
     submission.register_task_list([task])
     submission.run_submission()
     return job_work_dir
@@ -210,13 +197,16 @@ def HTI_start(start_info, *, NVT_end_info={}):
 
 @task()
 def HTI_sim(job_work_dir):
+    from dpti.dags.utils import get_empty_submission
+    from dpdispatcher import Task
     task_abs_dir_list = glob.glob(os.path.join(job_work_dir, './*/task*'))
     task_dir_list = [os.path.relpath(ii, start=job_work_dir ) for ii in task_abs_dir_list]
 
     task_list = [ Task(command='lmp -i in.lammps', 
         task_work_path=ii, forward_files=['in.lammps', '*lmp', 'graph.pb'], backward_files=['log.lammps']) 
         for ii in task_dir_list ]
-    submission = get_empty_submission(job_work_dir)
+    context = get_current_context()
+    submission = get_empty_submission(job_work_dir, context=context)
     # submission.forward_common_files = 
     submission.register_task_list(task_list=task_list)
     submission.run_submission()
@@ -288,9 +278,12 @@ def TI_start(start_info, *, HTI_end_info=None):
 
 @task()
 def TI_sim(job_work_dir):
+    from dpti.dags.utils import get_empty_submission
+    from dpdispatcher import Task
     task_abs_dir_list = glob.glob(os.path.join(job_work_dir, './task*'))
     task_dir_list = [os.path.relpath(ii, start=job_work_dir ) for ii in task_abs_dir_list]
-    submission = get_empty_submission(job_work_dir)
+    context = get_current_context()
+    submission = get_empty_submission(job_work_dir, context=context)
     task_list = [ Task(command='lmp -i in.lammps', task_work_path=ii, 
          forward_files=['in.lammps', '*lmp', 'graph.pb'], backward_files=['log.lammps']) for ii in task_dir_list]
     submission.register_task_list(task_list=task_list)
@@ -318,7 +311,6 @@ def TI_end(job_work_dir, start_info, HTI_end_info):
 
 default_args = {
     'owner': 'fengbo',
-    'retries': 0,
     'start_date': datetime(2021, 1, 1, 8, 00)
 }
 
