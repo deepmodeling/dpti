@@ -1,0 +1,34 @@
+name: release_conda_and_github
+
+on:
+  workflow_dispatch:
+    inputs:
+      comment:
+        description: 'extra info for this github action'
+        required: false
+        default: 'manually triggered'
+  push:
+    tags:
+      - '*'
+
+jobs:
+  construct-and-release:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Setup conda
+      uses: s-weigand/setup-conda@release
+      with:
+        conda-channels: conda-forge, deepmodeling
+    - run: conda install constructor jinja2 conda-build -c deepmodeling -c conda-forge -y
+    - run: cd ./conda/dpti/ && conda build . -c deepmodeling -c conda-forge && cd ../../
+    - run: constructor ./conda/
+    - name: Upload to release
+      uses: softprops/action-gh-release@master
+      with:
+        files: dpti-*.sh
+        repository: ${{ env.GITHUB_REPOSITORY }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
