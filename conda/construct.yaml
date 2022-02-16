@@ -1,0 +1,20 @@
+{% set version = os.popen('git describe --tags --abbrev=0').read().strip('\n').lstrip('v').replace('-', '_') %}
+
+name: dpti
+version: {{ version }}
+
+channels:
+  - file:///usr/share/miniconda/conda-bld/
+  - deepmodeling
+  - conda-forge
+
+specs:
+  - python 3.8
+  - pip
+  - dpti
+  - apache-airflow
+  - apache-airflow-providers-postgres
+
+ignore_duplicate_files: True
+
+license_file: ../LICENSE

@@ -1122,10 +1122,12 @@ def compute_task(job, free_energy_type='helmholtz', method='inte', scheme='simps
         if manual_pv is None:
             pv = thermo_info['pv']
         else: 
+            print(f"# use manual_pv={manual_pv}")
             pv = manual_pv
         if manual_pv_err is None:
             pv_err = thermo_info['pv_err']
         else:
+            print(f"# use manual_pv_err={manual_pv_err}")
             pv_err = manual_pv_err
         e1 = e0 + de + pv
         e1_err = np.sqrt(de_err[0]**2 + pv_err**2)

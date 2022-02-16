@@ -9,6 +9,7 @@ import scipy.constants as pc
 from scipy.integrate import solve_ivp
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 from dpti.lib.utils import create_path, relative_link_file
+from dpti.lib.utils import get_first_matched_key_from_dict
 from dpti.lib.utils import block_avg
 from dpti.lib.lammps import get_natoms
 from dpti.ti import _gen_lammps_input
@@ -78,11 +79,14 @@ def _make_tasks_onephase(temp,
     if graph_file:
         graph_abs_file = os.path.abspath(graph_file)
     
-    mass_map = jdata['mass_map']
+    # mass_map = jdata['mass_map']
+    mass_map = get_first_matched_key_from_dict(jdata, ['mass_map', 'model_mass_map'])
     # MD simulation protocol
     nsteps = jdata['nsteps']
-    timestep = jdata['timestep']
-    thermo_freq = jdata['thermo_freq']
+    # timestep = jdata['timestep']
+    timestep = get_first_matched_key_from_dict(jdata, ['timestep', 'dt'])
+    # thermo_freq = jdata['thermo_freq']
+    thermo_freq = get_first_matched_key_from_dict(jdata, ['thermo_freq', 'stat_freq'])
     tau_t = jdata['tau_t']
     tau_p = jdata['tau_p']
 
@@ -369,6 +373,7 @@ class GibbsDuhemFunc (object):
         self.ev2bar = pc.electron_volt / (pc.angstrom ** 3) * 1e-5
 
     def __call__ (self, x, y) :
+        print('__call__', x, y)
         if self.inte_dir == 't' :
             # x: temp, y: pres
             [dv, dh] = make_dpdt(x, y,
@@ -399,7 +404,7 @@ class GibbsDuhemFunc (object):
 #     initial_value=None, step_value=None, abs_tol=10, rel_tol=0.01, if_water=None,
 #     output=None, first_step=None, shift=[0.0, 0.0], verbose=None, if_meam=None, workflow=None):
 
-def gdi_main_loop(jdata, mdata, gdidata_dict, gdidata_cli={}, workflow=None):
+def gdi_main_loop(jdata, mdata, gdidata_dict={}, gdidata_cli={}, workflow=None):
 
     gdiargs = [
         Argument("begin", float, optional=False),
@@ -419,9 +424,13 @@ def gdi_main_loop(jdata, mdata, gdidata_dict, gdidata_cli={}, workflow=None):
 
     gdidata_format = Argument("gdidata", dict, gdiargs)
 
-    gdidata = gdidata_dict.copy()
     gdidata = gdidata_format.normalize_value(gdidata_cli)
-    gdidata = gdidata_format.normalize_value(gdidata_dict)
+
+    if gdidata_dict:
+        # gdidata = gdidata_dict.copy()
+        gdidata = gdidata_format.normalize_value(gdidata_dict)
+    print('debug', gdidata)
+    # raise RuntimeError('gdidata')
 
     with open(os.path.join(os.path.dirname(os.path.abspath(gdidata['output'])), 
             'gdidata.run.json'), 'w') as f:
