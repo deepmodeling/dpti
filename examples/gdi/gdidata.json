@@ -1,0 +1,9 @@
+{
+    "begin": 10000,
+    "end": 13500,
+    "initial_value": 270,
+    "abs_tol": 2,
+    "rel_tol": 0.001,
+    "verbose": true,
+    "direction": "p"
+}
