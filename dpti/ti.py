@@ -78,7 +78,7 @@ def _gen_lammps_input (conf_file,
         ret += f'pair_coeff      * * {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
     else:
         ret += 'pair_style      deepmd %s\n' % model
-        ret += 'pair_coeff\n'
+        ret += 'pair_coeff      * *\n'
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % timestep
@@ -441,6 +441,7 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
         all_t.append(tt)
         # get energy stat
         log_name = os.path.join(ii, 'log.lammps')
+        print('log_name:', log_name)
         data = get_thermo(log_name)
         np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
         ea, ee = block_avg(data[:, stat_col], 

@@ -81,7 +81,7 @@ def gen_equi_force_field(model, if_meam=False, meam_model=None):
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
     if not if_meam:
         ret += 'pair_style      deepmd %s\n' % model
-        ret += 'pair_coeff\n'
+        ret += 'pair_coeff      * *\n'
     else:
         meam_library = meam_model['library']
         meam_potential = meam_model['potential']

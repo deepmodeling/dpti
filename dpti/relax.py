@@ -31,7 +31,7 @@ def _gen_lammps_relax (conf_file,
         ret+= "mass            %d %f\n" %(jj+1, mass_map[jj])
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
     ret += 'pair_style      deepmd %s\n' % model
-    ret += 'pair_coeff\n'
+    ret += 'pair_coeff      * *\n'
     ret += '# --------------------- MD SETTINGS ----------------------\n'
     ret += 'neighbor        1.0 bin\n'
     ret += 'thermo          ${THERMO_FREQ}\n'

@@ -118,6 +118,7 @@ def block_avg(inp, skip = 0, block_size = 10) :
     naive_err = np.std(inp) / np.sqrt(len(inp) - 1)
     # block avg
     data_chunks = np.array(data_chunks)
+    # print('data_chunks.shape: ', data_chunks.shape)
     data_block = np.average(data_chunks, axis = 1)
     block_avg = np.average(data_block)
     if len(data_block) != 1 :
