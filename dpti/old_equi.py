@@ -65,7 +65,7 @@ def _gen_lammps_input (conf_file,
         ret += f'pair_coeff      * * {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
         ret += 'pair_style      deepmd %s\n' % model
-        ret += 'pair_coeff\n'
+        ret += 'pair_coeff * *\n'
     ret += '# --------------------- MD SETTINGS ----------------------\n'    
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % dt
