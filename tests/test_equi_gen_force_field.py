@@ -14,7 +14,7 @@ class TestEquiForceField(unittest.TestCase):
         ret1 = textwrap.dedent("""\
         # --------------------- FORCE FIELDS ---------------------
         pair_style      deepmd graph.pb
-        pair_coeff
+        pair_coeff * *
         """)
         ret2 = dpti.equi.gen_equi_force_field(**input)
         self.assertEqual(ret1, ret2)

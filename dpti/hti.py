@@ -266,7 +266,7 @@ def _ff_two_steps(lamb,
     ret = ''
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
     ret += 'pair_style      deepmd %s\n' % model
-    ret += 'pair_coeff\n'
+    ret += 'pair_coeff * *\n'
     
     if step == 'both' or step == 'spring_off':                
         var_spring = True
@@ -439,7 +439,7 @@ def _gen_lammps_input (conf_file,
 #         ret += "mass            %d %f\n" %(jj+1, mass_map[jj])
 #     ret += '# --------------------- FORCE FIELDS ---------------------\n'
 #     ret += 'pair_style      deepmd %s\n' % model
-#     ret += 'pair_coeff\n'
+#     ret += 'pair_coeff * *\n'
 #     ret += 'fix             l_deep all adapt 1 pair deepmd scale * * v_LAMBDA\n'
 #     ret += 'compute         e_deep all pe pair\n'
 #     ret += '# --------------------- MD SETTINGS ----------------------\n'    
