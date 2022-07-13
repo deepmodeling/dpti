@@ -30,7 +30,7 @@ change_box      all triclinic
 mass            1 118.710000
 # --------------------- FORCE FIELDS ---------------------
 pair_style      deepmd graph.pb
-pair_coeff
+pair_coeff * *
 group           type_1 type 1
 144 atoms in group type_1
 fix             l_spring_1 type_1 spring/self 1.6619400000e+00
