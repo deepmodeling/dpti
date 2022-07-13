@@ -51,7 +51,7 @@ class TestTiGenLammpsInput(unittest.TestCase):
         mass            1 118.710000
         # --------------------- FORCE FIELDS ---------------------
         pair_style      deepmd graph.pb
-        pair_coeff
+        pair_coeff * *
         # --------------------- MD SETTINGS ----------------------
         neighbor        1.0 bin
         timestep        0.002

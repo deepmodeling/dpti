@@ -19,7 +19,7 @@ mass            1 16.000000
 mass            2 2.000000
 # --------------------- FORCE FIELDS ---------------------
 pair_style      deepmd graph.pb
-pair_coeff
+pair_coeff * *
 # --------------------- MD SETTINGS ----------------------
 neighbor        1.0 bin
 timestep        0.0005

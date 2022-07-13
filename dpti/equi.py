@@ -81,7 +81,7 @@ def gen_equi_force_field(model, if_meam=False, meam_model=None):
     ret += '# --------------------- FORCE FIELDS ---------------------\n'
     if not if_meam:
         ret += 'pair_style      deepmd %s\n' % model
-        ret += 'pair_coeff\n'
+        ret += 'pair_coeff * *\n'
     else:
         meam_library = meam_model['library']
         meam_potential = meam_model['potential']
@@ -222,7 +222,7 @@ def gen_equi_lammps_input(nsteps,
 #         ret += 'pair_coeff      * * /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
 #     else:
 #         ret += 'pair_style      deepmd %s\n' % model
-#         ret += 'pair_coeff\n'
+#         ret += 'pair_coeff * *\n'
 #     ret += '# --------------------- MD SETTINGS ----------------------\n'    
 #     ret += 'neighbor        1.0 bin\n'
 #     ret += 'timestep        %s\n' % dt
