@@ -613,7 +613,7 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms = None) :
     for ii in all_tasks :
         log_name = os.path.join(ii, 'log.lammps')
         data = get_thermo(log_name)
-        np.savetxt(os.path.join(ii, 'data'), data, fmt = '%16.6f')
+        np.savetxt(os.path.join(ii, 'data'), data, fmt = '%20.6f')
         block_u = []
         if path == 't' or path == 't-ginv':
             this_e = data[stat_skip::1, stat_col]
