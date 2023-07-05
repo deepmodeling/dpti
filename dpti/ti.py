@@ -83,14 +83,15 @@ def _gen_lammps_input (conf_file,
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % timestep
     ret += 'thermo          ${THERMO_FREQ}\n'
-    ret += 'thermo_modify   4*8 format %20.6f\n'
     ret += 'compute         allmsd all msd\n'
     if ens == 'nvt' :        
         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
+        ret += 'thermo_modify   4*8 format %20.6f\n'
     elif 'npt' in ens :
         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
+        ret += 'thermo_modify   4*8 format %20.6f\n'
     else :
-        raise RuntimeError('unknow ensemble %s\n' % ens)                
+        raise RuntimeError('unknow ensemble %s\n' % ens) 
     ret += '# dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z\n'
     if ens == 'nvt' :
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
