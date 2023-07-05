@@ -83,7 +83,7 @@ def _gen_lammps_input (conf_file,
     ret += 'neighbor        1.0 bin\n'
     ret += 'timestep        %s\n' % timestep
     ret += 'thermo          ${THERMO_FREQ}\n'
-    ret += 'thermo_modify   4*8 format %20.6f
+    ret += 'thermo_modify   4*8 format %20.6f\n'
     ret += 'compute         allmsd all msd\n'
     if ens == 'nvt' :        
         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
