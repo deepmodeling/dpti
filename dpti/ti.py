@@ -86,10 +86,12 @@ def _gen_lammps_input (conf_file,
     ret += 'compute         allmsd all msd\n'
     if ens == 'nvt' :        
         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
+        ret += 'thermo_modify   4*8 format %20.6f\n'
     elif 'npt' in ens :
         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n'
+        ret += 'thermo_modify   4*8 format %20.6f\n'
     else :
-        raise RuntimeError('unknow ensemble %s\n' % ens)                
+        raise RuntimeError('unknow ensemble %s\n' % ens) 
     ret += '# dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z\n'
     if ens == 'nvt' :
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
@@ -442,7 +444,7 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
         # get energy stat
         log_name = os.path.join(ii, 'log.lammps')
         data = get_thermo(log_name)
-        np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
+        np.savetxt(os.path.join(ii, 'data'), data, fmt = '%20.6f')
         ea, ee = block_avg(data[:, stat_col], 
                            skip = stat_skip, 
                            block_size = stat_bsize)
@@ -488,7 +490,7 @@ def post_tasks(iter_name, jdata, Eo, Eo_err = 0, To = None, natoms = None, schem
     all_print = np.array(all_print)
     np.savetxt(os.path.join(iter_name, 'ti.out'), 
                all_print.T, 
-               fmt = '%.8e', 
+               fmt = '%.12e', 
                header = 't/p Integrand U/V U/V_err enthalpy msd_xyz')
 
     info0 = _compute_thermo(os.path.join(all_tasks[ 0], 'log.lammps'), natoms, stat_skip, stat_bsize)
@@ -612,7 +614,7 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms = None) :
     for ii in all_tasks :
         log_name = os.path.join(ii, 'log.lammps')
         data = get_thermo(log_name)
-        np.savetxt(os.path.join(ii, 'data'), data, fmt = '%.6e')
+        np.savetxt(os.path.join(ii, 'data'), data, fmt = '%20.6f')
         block_u = []
         if path == 't' or path == 't-ginv':
             this_e = data[stat_skip::1, stat_col]
