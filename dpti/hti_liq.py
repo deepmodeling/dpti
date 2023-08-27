@@ -225,6 +225,8 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None) :
 
         # element_num=sparam.get('element_num', 1)
         element_num = len(mass_map)
+        sparam['element_num'] = element_num
+
         sigma_key_index = filter(lambda t:t[0] <= t[1], ((i,j) for i in range(element_num) for j in range(element_num)))
         sigma_key_name_list = ['sigma_'+str(t[0])+'_'+str(t[1]) for t in sigma_key_index ]
         for sigma_key_name in sigma_key_name_list:
