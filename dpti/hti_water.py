@@ -673,7 +673,7 @@ def post_tasks(iter_name, natoms, method = 'inte', scheme = 's') :
 
 
 def add_module_subparsers(main_subparsers):
-    module_parser = main_subparsers.add_parser('hti_liq', help='Hamiltonian thermodynamic integration for liquid water')
+    module_parser = main_subparsers.add_parser('hti_water', help='Hamiltonian thermodynamic integration for liquid water')
     module_subparsers = module_parser.add_subparsers(help='commands of Hamiltonian thermodynamic integration for liquid water', dest='command', required=True)
 
     parser_gen = module_subparsers.add_parser('gen', help='Generate a job')
