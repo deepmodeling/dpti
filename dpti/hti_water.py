@@ -597,7 +597,7 @@ def spring_inte(temp, kk, r0) :
 def compute_ideal_mol(iter_name) :
     jdata = json.load(open(os.path.join(iter_name, 'in.json')))
     ens = jdata['ens']
-    mass_map = jdata['mass_map']
+    mass_map = get_first_matched_key_from_dict(jdata, ['mass_map', 'model_mass_map'])
     conf_lines = open(os.path.join(iter_name, 'orig.lmp')).read().split('\n')
     data_sys = lmp.system_data(conf_lines)
     vol = np.linalg.det(data_sys['cell'])
@@ -722,6 +722,7 @@ def exec_args(args, parser):
     if args.command == 'refine' :
         refine_tasks(args.input, args.output, args.error)
     elif args.command == 'compute' :
+        job = args.JOB
         with open(os.path.join(args.JOB, 'conf.lmp'), 'r') as conf_lmp:
             # fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
             sys_data = lmp.to_system_data(conf_lmp.read().split('\n'))
@@ -733,6 +734,7 @@ def exec_args(args, parser):
             natoms *= np.prod(jdata['copies'])
         nmols = natoms // 3
         fe, fe_err, thermo_info = post_tasks(args.JOB, nmols, method = args.inte_method)
+        info = thermo_info.copy()
         _print_thermo_info(thermo_info)
         print ('# numb atoms: %d' % natoms)
         print ('# numb  mols: %d' % nmols)        
@@ -755,6 +757,17 @@ def exec_args(args, parser):
             e1_err = np.sqrt(fe_err[0]**2 + pv_err**2)
             print('# Gibbs free ener per mol (err) [eV]:')
             print(print_format % (e1, e1_err, fe_err[1]))
+        free_energy_type=args.type
+        info['free_energy_type'] = free_energy_type
+        info['pv'] = pv
+        info['pv_err'] = pv_err
+        # info['de'] = de
+        # info['de_err'] = de_err
+        info['e1'] = e1
+        info['e1_err'] = e1_err
+        with open(os.path.join(job, 'result.json'), 'w') as result:
+            result.write(json.dumps(info))
+        return info
     
 if __name__ == '__main__' :
     _main()
