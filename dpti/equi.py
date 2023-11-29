@@ -314,7 +314,7 @@ def extract(job_dir, output) :
         f.write(conf_lmp)
     # open(output, 'w').write(conf_lmp)
 
-def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi=None, npt_dir=None):
+def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi=True, npt_dir=None):
     # jfile_path = os.path.abspath(jfile)
     # with open(jfile, 'r') as f:
     #     jdata = json.load(f)
