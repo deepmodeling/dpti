@@ -102,7 +102,7 @@ def NPT_start(start_info):
     print(task_jdata)
     cwd = os.getcwd()
     os.chdir(work_base_abs_dir)
-    equi.make_task(job_work_dir, task_jdata)
+    equi.make_task(job_work_dir, task_jdata, if_dump_avg_posi=True)
     os.chdir(cwd)
     return job_work_dir
 
@@ -110,7 +110,7 @@ def NPT_start(start_info):
 @task(trigger_rule='none_failed_or_skipped')
 def NPT_sim(job_work_dir):
     task = Task(command='lmp -i in.lammps', task_work_path='./', 
-        forward_files=['in.lammps', '*lmp', 'graph.pb'], backward_files=['log.lammps'])
+        forward_files=['in.lammps', '*lmp', 'graph.pb'], backward_files=['log.lammps', 'dump.equi'])
     submission = get_empty_submission(job_work_dir)
     submission.register_task_list([task])
     submission.run_submission()
@@ -220,10 +220,10 @@ def HTI_sim(HTI_init_info):
     task_dir_list = [os.path.relpath(ii, start=job_work_dir ) for ii in task_abs_dir_list]
 
     task_list = [ Task(command='lmp -i in.lammps', 
-        task_work_path=ii, forward_files=['in.lammps', '*lmp', 'graph.pb'], backward_files=['log.lammps']) 
+        task_work_path=ii, forward_files=['in.lammps', '*lmp'], backward_files=['log.lammps']) 
         for ii in task_dir_list ]
     submission = get_empty_submission(job_work_dir)
-    # submission.forward_common_files = 
+    submission.forward_common_files = ['graph.pb']
     submission.register_task_list(task_list=task_list)
     submission.run_submission()
     return job_work_dir
