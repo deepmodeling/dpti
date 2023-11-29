@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 from os import path
-# from  dpdispatcher import NAME,SHORT_CMD
+from dpti import NAME,SHORT_CMD
 import setuptools, datetime
 
 today = datetime.date.today().strftime("%b-%d-%Y")
 # with open(path.join(NAME, '_date.py'), 'w') as fp :
 #     fp.write('date = \'%s\'' % today)
 
-install_requires=['apache-airflow>2.0', 'scipy', 'numpy', 'pymbar', 'dargs', 'dpdispatcher>=0.3']
+install_requires=['apache-airflow>2.0', 'scipy', 'numpy', 'pymbar', 'dargs', 'dpdispatcher>=0.3', 'sqlalchemy>=1.4.28,<2.0']
 
 setuptools.setup(
     name='dpti',
@@ -33,7 +33,7 @@ setuptools.setup(
     #     'docs': ['sphinx', 'recommonmark', 'sphinx_rtd_theme'],
     # },
         entry_points={
-        #   'console_scripts': [
-        #       SHORT_CMD+'= dpdispatcher.dpdisp:main']
+           'console_scripts': [
+               SHORT_CMD+'= dpti.main:main']
     }
 )
