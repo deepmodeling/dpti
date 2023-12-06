@@ -17,7 +17,7 @@ from dpti.lib.lammps import get_natoms
 from dpti import ti
 
 def add_module_subparsers(main_subparsers):
-    module_parser = main_subparsers.add_parser('ti', help='thermodynamic integration along isothermal or isobaric paths for water')
+    module_parser = main_subparsers.add_parser('ti_water', help='thermodynamic integration along isothermal or isobaric paths for water')
     module_subparsers = module_parser.add_subparsers(help='commands of thermodynamic integration along isothermal or isobaric paths for water', dest='command', required=True)
 
     parser_gen = module_subparsers.add_parser('gen', help='Generate a job')
