@@ -395,7 +395,7 @@ class TestHtiGenLammpsInput(unittest.TestCase):
         thermo_style    custom step ke pe etotal enthalpy temp press vol v_l_spring c_e_diff[1] c_allmsd[*]
         thermo_modify   format 9 %.16e
         thermo_modify   format 10 %.16e
-        # dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz
+        dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz
         fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}
         # --------------------- INITIALIZE -----------------------
         velocity        all create ${TEMP} 7858
