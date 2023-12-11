@@ -16,10 +16,26 @@ from dpti.lib.lammps import get_natoms
 
 from dpti import ti
 
+def _main ():
+    parser = argparse.ArgumentParser(
+        description="thermodynamic integration along isothermal or isobaric paths for water")
+    main_subparsers = parser.add_subparsers(title='modules', description='the subcommands of dpti', help='module-level help', dest='module', required=True)
+    add_subparsers(main_subparsers)
+    args = parser.parse_args()
+    exec_args(args, parser)
+
+def exec_args(args, parser):
+    if hasattr(args, 'func'):
+        args.func(args)
+    else:
+        parser.print_help()
+
 def add_module_subparsers(main_subparsers):
     module_parser = main_subparsers.add_parser('ti_water', help='thermodynamic integration along isothermal or isobaric paths for water')
     module_subparsers = module_parser.add_subparsers(help='commands of thermodynamic integration along isothermal or isobaric paths for water', dest='command', required=True)
+    add_subparsers(module_subparsers)
 
+def add_subparsers(module_subparsers):
     parser_gen = module_subparsers.add_parser('gen', help='Generate a job')
     parser_gen.add_argument('PARAM', type=str ,
                             help='json parameter file')
@@ -77,3 +93,6 @@ def handle_compute(args):
 
 def handle_refine(args):
     ti.refine_task(args.input, args.output, args.error)
+
+if __name__ == '__main__':
+    _main()
