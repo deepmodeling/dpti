@@ -671,11 +671,26 @@ def post_tasks(iter_name, natoms, method = 'inte', scheme = 's') :
     sys_err = ((err0[1]) + (err1[1]) + (err2[1]))
     return fe, [err,sys_err], tinfo2
 
+def _main ():
+    parser = argparse.ArgumentParser(
+        description="Compute free energy of liquid water by Hamiltonian TI")
+    main_subparsers = parser.add_subparsers(title='modules', description='the subcommands of dpti', help='module-level help', dest='module', required=True)
+    add_subparsers(main_subparsers)
+    args = parser.parse_args()
+    exec_args(args, parser)
+
+def exec_args(args, parser):
+    if hasattr(args, 'func'):
+        args.func(args)
+    else:
+        parser.print_help()
 
 def add_module_subparsers(main_subparsers):
     module_parser = main_subparsers.add_parser('hti_water', help='Hamiltonian thermodynamic integration for liquid water')
     module_subparsers = module_parser.add_subparsers(help='commands of Hamiltonian thermodynamic integration for liquid water', dest='command', required=True)
+    add_subparsers(module_subparsers)
 
+def add_subparsers(module_subparsers):
     parser_gen = module_subparsers.add_parser('gen', help='Generate a job')
     parser_gen.add_argument('PARAM', type=str ,
                             help='json parameter file')
@@ -764,3 +779,6 @@ def handle_compute(args):
     with open(os.path.join(job, 'result.json'), 'w') as result:
         result.write(json.dumps(info))
     return info
+
+if __name__ == '__main__':
+    _main()

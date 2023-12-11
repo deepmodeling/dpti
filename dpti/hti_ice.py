@@ -10,7 +10,7 @@ from dpti.lib import lmp
 
 def _main ():
     parser = argparse.ArgumentParser(
-        description="Compute free energy by Hamiltonian TI")
+        description="Compute free energy of ice by Hamiltonian TI")
     main_subparsers = parser.add_subparsers(title='modules', description='the subcommands of dpti', help='module-level help', dest='module', required=True)
     add_subparsers(main_subparsers)
     args = parser.parse_args()
