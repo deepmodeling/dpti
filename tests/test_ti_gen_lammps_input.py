@@ -58,7 +58,7 @@ class TestTiGenLammpsInput(unittest.TestCase):
         thermo          ${THERMO_FREQ}
         compute         allmsd all msd
         thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]
-        thermo_modify   4*8 format %20.6f
+        thermo_modify   format 4*8 %20.6f
         # dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z
         fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}
         fix             mzero all momentum 10 linear 1 1 1
