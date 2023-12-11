@@ -8,10 +8,26 @@ from dpti import einstein
 from dpti import  hti
 from dpti.lib import lmp
 
+def _main ():
+    parser = argparse.ArgumentParser(
+        description="Compute free energy by Hamiltonian TI")
+    main_subparsers = parser.add_subparsers(title='modules', description='the subcommands of dpti', help='module-level help', dest='module', required=True)
+    add_subparsers(main_subparsers)
+    args = parser.parse_args()
+    exec_args(args, parser)
+
+def exec_args(args, parser):
+    if hasattr(args, 'func'):
+        args.func(args)
+    else:
+        parser.print_help()
+
 def add_module_subparsers(main_subparsers):
     module_parser = main_subparsers.add_parser('hti_ice', help='Hamiltonian thermodynamic integration for ice')
     module_subparsers = module_parser.add_subparsers(help='commands of Hamiltonian thermodynamic integration for ice', dest='command', required=True)
+    add_subparsers(module_subparsers)
 
+def add_subparsers(module_subparsers):
     parser_gen = module_subparsers.add_parser('gen', help='Generate a job')
     parser_gen.add_argument('PARAM', type=str ,
                             help='json parameter file')
@@ -20,7 +36,7 @@ def add_module_subparsers(main_subparsers):
     parser_gen.add_argument('-s','--switch', type=str, default = 'one-step',
                             choices = ['one-step', 'two-step', 'three-step'],
                             help='one-step: switching on DP and switching off spring simultanenously.\
-                            two-step: 1 switching on DP, 2 switching off spring.\
+                            two-step: 1 switching on DP, 2 switching off spring.\n\
                             three-step: 1 switching on soft LJ, 2 switching on DP, 3 switching off spring and soft LJ.')
     parser_gen.set_defaults(func=handle_gen)
 
@@ -151,3 +167,6 @@ def handle_compute(args):
     with open(os.path.join(job, 'result.json'), 'w') as result:
         result.write(json.dumps(info))
     return info
+
+if __name__ == '__main__':
+    _main()
