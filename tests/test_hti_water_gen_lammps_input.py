@@ -20,7 +20,7 @@ class TestHtiWaterGenLammpsInput(unittest.TestCase):
     def test_hti_water_gen_tasks(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
         args = MagicMock(output='tmp_hti_water/new_job/',  
-            command='gen',
+            func = hti_water.handle_gen,
             PARAM='benchmark_hti_water/hti_water.json'
         )
         hti_water.exec_args(args=args, parser=None)
@@ -40,7 +40,7 @@ class TestHtiWaterGenLammpsInput(unittest.TestCase):
     def test_hti_water_gen_old_json_gen_tasks(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
         args = MagicMock(output='tmp_hti_water/old_json_job/',  
-            command='gen',
+            func = hti_water.handle_gen,
             PARAM='benchmark_hti_water/hti_water.json.old'
         )
         hti_water.exec_args(args=args, parser=None)

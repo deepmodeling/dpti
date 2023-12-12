@@ -362,7 +362,7 @@ def _gen_lammps_input (conf_file,
         ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_deep c_e_deep c_allmsd[*]\n'
     ret += 'thermo_modify   format 9 %.16e\n'
     ret += 'thermo_modify   format 10 %.16e\n'
-    ret += '# dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
+    ret += 'dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
     if ens == 'nvt' :
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
     elif ens == 'nvt-langevin' :
@@ -1187,12 +1187,11 @@ def hti_phase_trans_analyze(job, jdata=None):
 
     return if_phase_trans
 
-def _main ():
-    parser = argparse.ArgumentParser(
-        description="Compute free energy by Hamiltonian TI")
-    subparsers = parser.add_subparsers(title='Valid subcommands', dest='command')
+def add_module_subparsers(main_subparsers):
+    module_parser = main_subparsers.add_parser('hti', help='Hamiltonian thermodynamic integration for atomic solid')
+    module_subparsers = module_parser.add_subparsers(help='commands of Hamiltonian thermodynamic integration for atomic solid', dest='command', required=True)
 
-    parser_gen = subparsers.add_parser('gen', help='Generate a job')
+    parser_gen = module_subparsers.add_parser('gen', help='generate a job')
     parser_gen.add_argument('PARAM', type=str ,
                             help='json parameter file')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
@@ -1203,40 +1202,35 @@ def _main ():
                             two-step: 1 switching on DP, 2 switching off spring.\
                             three-step: 1 switching on soft LJ, 2 switching on DP, 3 switching off spring and soft LJ.')
     parser_gen.add_argument("-z", "--meam", help="whether use meam instead of dp", action="store_true")
+    parser_gen.set_defaults(func=handle_gen)
 
-    parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
-    parser_comp.add_argument('JOB', type=str ,
+    parser_compute = module_subparsers.add_parser('compute', help= 'Compute the result of a job')
+    parser_compute.add_argument('JOB', type=str ,
                              help='folder of the job')
-    parser_comp.add_argument('-t','--type', type=str, default = 'helmholtz', 
+    parser_compute.add_argument('-t','--type', type=str, default = 'helmholtz', 
                              choices=['helmholtz', 'gibbs'], 
                              help='the type of free energy')
-    parser_comp.add_argument('-m','--inte-method', type=str, default = 'inte', 
+    parser_compute.add_argument('-m','--inte-method', type=str, default = 'inte', 
                              choices=['inte', 'mbar'], 
                              help='the method of thermodynamic integration')
-    parser_comp.add_argument('-s','--scheme', type=str, default = 'simpson', 
+    parser_compute.add_argument('-s','--scheme', type=str, default = 'simpson', 
                              help='the numeric integration scheme')
-    parser_comp.add_argument('-g', '--pv', type=float, default = None,
+    parser_compute.add_argument('-g', '--pv', type=float, default = None,
                              help='press*vol value override to calculate Gibbs free energy')
-    parser_comp.add_argument('-G', '--pv-err', type=float, default = None,
+    parser_compute.add_argument('-G', '--pv-err', type=float, default = None,
                              help='press*vol error')
-    args = parser.parse_args()
-
-    if args.command is None :
-        parser.print_help()
-        exit
-    if args.command == 'gen' :
-        output = args.output
-        jdata = json.load(open(args.PARAM, 'r'))
-        if 'crystal' in jdata and jdata['crystal'] == 'frenkel' :
-            print('# gen task with Frenkel\'s Einstein crystal')
-        else :
-            print('# gen task with Vega\'s Einstein molecule')
-        print('output:', output)
-        make_tasks(output, jdata, ref='einstein', switch=args.switch, if_meam=args.meam)
-    elif args.command == 'compute' :
-        compute_task(job=args.JOB, free_energy_type=args.type, method=args.inte_method, scheme=args.scheme, manual_pv=args.pv, manual_pv_err=args.pv_err)
-      #   if 'reference' not in jdata :
-      #       jdata['reference'] = 'einstein'
+    parser_compute.set_defaults(func=handle_compute)
     
-if __name__ == '__main__' :
-    _main()
+def handle_gen(args):
+    jdata = json.load(open(args.PARAM, 'r'))
+    if 'crystal' in jdata and jdata['crystal'] == 'frenkel' :
+        print('# gen task with Frenkel\'s Einstein crystal')
+    else :
+        print('# gen task with Vega\'s Einstein molecule')
+    print('output:', args.output)
+    make_tasks(args.output, jdata, ref='einstein', switch=args.switch, if_meam=args.meam)
+
+def handle_compute(args):
+    compute_task(job=args.JOB, free_energy_type=args.type, method=args.inte_method, scheme=args.scheme, manual_pv=args.pv, manual_pv_err=args.pv_err)
+    # if 'reference' not in jdata :
+    #     jdata['reference'] = 'einstein'

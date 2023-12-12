@@ -27,7 +27,7 @@ def get_thermo(filename) :
     with open(filename, 'r') as fp :
         fc = fp.read().split('\n')
     for sl in range(len(fc)) :
-        if 'Step KinEng PotEng TotEng' in fc[sl] :
+        if 'Step ' in fc[sl] :
             break
     nwords = len(fc[sl+1].split())
     data = []

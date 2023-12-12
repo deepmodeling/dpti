@@ -106,7 +106,7 @@ class TestRelativeLinkFile(unittest.TestCase):
         relative_link_file('graph.pb', 'relative_link_file_test_dir/')
 
     def test_other_place(self):
-        relative_link_file('../setup.py', 'relative_link_file_test_dir/')
+        relative_link_file('../pyproject.toml', 'relative_link_file_test_dir/')
 
     def test_abs_path(self):
         abs_path = os.path.abspath(__file__)

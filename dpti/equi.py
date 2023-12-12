@@ -315,9 +315,6 @@ def extract(job_dir, output) :
     # open(output, 'w').write(conf_lmp)
 
 def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi=None, npt_dir=None):
-    # jfile_path = os.path.abspath(jfile)
-    # with open(jfile, 'r') as f:
-    #     jdata = json.load(f)
 
     equi_args = [
         Argument("equi_conf", str),
@@ -577,12 +574,13 @@ def post_task(iter_name, natoms = None, is_water = None) :
     # open(, 'w').write(json.dumps(info)).close()
     return info_dict
 
-def _main ():
-    parser = argparse.ArgumentParser(
-        description="Equilibrium simulation")
-    subparsers = parser.add_subparsers(title='Valid subcommands', dest='command')
+def add_module_subparsers(main_subparsers):
+    module_parser = main_subparsers.add_parser('equi', help='equilibration simulations')
+    module_subparsers = module_parser.add_subparsers(help='commands for equilibration simulations', dest='command', required=True)
+    add_subparsers(module_subparsers)
 
-    parser_gen = subparsers.add_parser('gen', help='Generate a job')
+def add_subparsers(module_subparsers):
+    parser_gen = module_subparsers.add_parser('gen', help='generate a job')
     parser_gen.add_argument('PARAM', type=str ,
                             help='json parameter file')
     parser_gen.add_argument('-e','--ensemble', type=str,
@@ -597,42 +595,55 @@ def _main ():
                             help='use conf computed from NPT simulation')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
-    # parser_gen.add_argument("-z", "--meam", help="whether use meam instead of dp", action="store_true")
+    parser_gen.set_defaults(func=handle_gen)
 
-    parser_comp = subparsers.add_parser('extract', help= 'Extract the conf')
-    parser_comp.add_argument('JOB', type=str ,
+    parser_extract = module_subparsers.add_parser('extract', help= 'extract the conf')
+    parser_extract.add_argument('JOB', type=str ,
                              help='folder of the job')
-    parser_comp.add_argument('-o','--output', type=str, default = 'conf.lmp',
+    parser_extract.add_argument('-o','--output', type=str, default = 'conf.lmp',
                              help='output conf file name')
+    parser_extract.set_defaults(func=handle_extract)
 
-    parser_stat = subparsers.add_parser('stat-bond', help= 'Statistic of the bonds')
+    parser_stat = module_subparsers.add_parser('stat-bond', help= 'Statistic of the bonds')
     parser_stat.add_argument('JOB', type=str ,
                              help='folder of the job')
     parser_stat.add_argument('-s','--skip', type=int, default = 1,
                              help='skip this number of frames')
+    parser_stat.set_defaults(func=handle_stat_bond)
 
-    parser_stat = subparsers.add_parser('compute', help= 'Compute thermodynamics')
-    parser_stat.add_argument('JOB', type=str ,
+    parser_compute = module_subparsers.add_parser('compute', help= 'Compute thermodynamics')
+    parser_compute.add_argument('JOB', type=str ,
                              help='folder of the job')
+    parser_compute.set_defaults(func=handle_compute)
 
+def handle_gen(args):
+    jdata = json.load(open(args.PARAM, 'r'))
+    # jfile = os.path.abspath(args.PARAM)
+    make_task(args.output, jdata, args.ensemble, args.temperature, args.pressure, args.avg_posi, args.conf_npt,)
+
+def handle_extract(args):
+    extract(args.JOB, args.output)
+
+def handle_stat_bond(args):
+    b, a = water_bond(args.JOB, args.skip)
+    print(b, a/np.pi*180)
+
+def handle_compute(args):
+    post_task(args.JOB)
+
+def _main ():
+    parser = argparse.ArgumentParser(
+        description="equilibration simulations")
+    main_subparsers = parser.add_subparsers(title='modules', description='the subcommands of dpti', help='module-level help', dest='module', required=True)
+    add_subparsers(main_subparsers)
     args = parser.parse_args()
+    exec_args(args, parser)
 
-    
-    if args.command is None :
+def exec_args(args, parser):
+    if hasattr(args, 'func'):
+        args.func(args)
+    else:
         parser.print_help()
-        exit
-    if args.command == 'gen' :
-        jdata = json.load(open(args.PARAM, 'r'))
-        # jfile = os.path.abspath(args.PARAM)
-        make_task(args.output, jdata, args.ensemble, args.temperature, args.pressure, args.avg_posi, args.conf_npt,)
-    elif args.command == 'extract' :
-        extract(args.JOB, args.output)
-    elif args.command == 'stat-bond' :
-        b, a = water_bond(args.JOB, args.skip)
-        print(b, a/np.pi*180)
-    elif args.command == 'compute' :
-        post_task(args.JOB)
 
-
-if __name__ == '__main__' :
+if __name__ == '__main__':
     _main()

@@ -173,7 +173,7 @@ def _gen_lammps_input (step,
     ret += 'thermo_modify   format 9 %.16e\n'
     ret += 'thermo_modify   format 10 %.16e\n'
     ret += 'thermo_modify   format 11 %.16e\n'
-    ret += '# dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z\n'
+    ret += 'dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z\n'
     if ens == 'nvt' :
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
     elif ens == 'npt-iso' or ens == 'npt':
@@ -597,7 +597,7 @@ def spring_inte(temp, kk, r0) :
 def compute_ideal_mol(iter_name) :
     jdata = json.load(open(os.path.join(iter_name, 'in.json')))
     ens = jdata['ens']
-    mass_map = jdata['mass_map']
+    mass_map = get_first_matched_key_from_dict(jdata, ['mass_map', 'model_mass_map'])
     conf_lines = open(os.path.join(iter_name, 'orig.lmp')).read().split('\n')
     data_sys = lmp.system_data(conf_lines)
     vol = np.linalg.det(data_sys['cell'])
@@ -671,90 +671,114 @@ def post_tasks(iter_name, natoms, method = 'inte', scheme = 's') :
     sys_err = ((err0[1]) + (err1[1]) + (err2[1]))
     return fe, [err,sys_err], tinfo2
 
-
 def _main ():
     parser = argparse.ArgumentParser(
-        description="Compute free energy by Hamiltonian TI")
-    subparsers = parser.add_subparsers(title='Valid subcommands', dest='command')
+        description="Compute free energy of liquid water by Hamiltonian TI")
+    main_subparsers = parser.add_subparsers(title='modules', description='the subcommands of dpti', help='module-level help', dest='module', required=True)
+    add_subparsers(main_subparsers)
+    args = parser.parse_args()
+    exec_args(args, parser)
 
-    parser_gen = subparsers.add_parser('gen', help='Generate a job')
+def exec_args(args, parser):
+    if hasattr(args, 'func'):
+        args.func(args)
+    else:
+        parser.print_help()
+
+def add_module_subparsers(main_subparsers):
+    module_parser = main_subparsers.add_parser('hti_water', help='Hamiltonian thermodynamic integration for liquid water')
+    module_subparsers = module_parser.add_subparsers(help='commands of Hamiltonian thermodynamic integration for liquid water', dest='command', required=True)
+    add_subparsers(module_subparsers)
+
+def add_subparsers(module_subparsers):
+    parser_gen = module_subparsers.add_parser('gen', help='Generate a job')
     parser_gen.add_argument('PARAM', type=str ,
                             help='json parameter file')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
+    parser_gen.set_defaults(func=handle_gen)
 
-    parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
-    parser_comp.add_argument('JOB', type=str ,
+    parser_compute = module_subparsers.add_parser('compute', help= 'Compute the result of a job')
+    parser_compute.add_argument('JOB', type=str ,
                              help='folder of the job')
-    parser_comp.add_argument('-t','--type', type=str, default = 'helmholtz', 
+    parser_compute.add_argument('-t','--type', type=str, default = 'helmholtz', 
                              choices=['helmholtz', 'gibbs'], 
                              help='the type of free energy')
-    parser_comp.add_argument('-m','--inte-method', type=str, default = 'inte', 
+    parser_compute.add_argument('-m','--inte-method', type=str, default = 'inte', 
                              choices=['inte', 'mbar'], 
                              help='the method of thermodynamic integration')
-    parser_comp.add_argument('-s','--scheme', type=str, default = 'simpson', 
+    parser_compute.add_argument('-s','--scheme', type=str, default = 'simpson', 
                              help='the numeric integration scheme')
-    parser_comp.add_argument('-g', '--pv', type=float, default = None,
+    parser_compute.add_argument('-g', '--pv', type=float, default = None,
                              help='press*vol value override to calculate Gibbs free energy')
-    parser_comp.add_argument('-G', '--pv-err', type=float, default = None,
+    parser_compute.add_argument('-G', '--pv-err', type=float, default = None,
                              help='press*vol error')
+    parser_compute.set_defaults(func=handle_compute)
 
-    parser_comp = subparsers.add_parser('refine', help= 'Refine the grid of a job')
-    parser_comp.add_argument('-i', '--input', type=str, required=True,
+    parser_refine = module_subparsers.add_parser('refine', help= 'Refine the grid of a job')
+    parser_refine.add_argument('-i', '--input', type=str, required=True,
                              help='input job')
-    parser_comp.add_argument('-o', '--output', type=str, required=True,
+    parser_refine.add_argument('-o', '--output', type=str, required=True,
                              help='output job')
-    parser_comp.add_argument('-e', '--error', type=float, required=True,
+    parser_refine.add_argument('-e', '--error', type=float, required=True,
                              help='the error required')
+    parser_refine.set_defaults(func=handle_refine)
 
-    args = parser.parse_args()
-    return exec_args(args=args, parser=None)
+def handle_gen(args):
+    with open(args.PARAM, 'r') as j:
+        jdata = json.load(j)
+    make_tasks(args.output, jdata)
 
-def exec_args(args, parser):
-    if args.command is None :
-        parser.print_help()
-        exit
-    if args.command == 'gen' :
-        output = args.output
-        with open(args.PARAM, 'r') as j:
-            jdata = json.load(j)
-        make_tasks(output, jdata)
-    if args.command == 'refine' :
-        refine_tasks(args.input, args.output, args.error)
-    elif args.command == 'compute' :
-        with open(os.path.join(args.JOB, 'conf.lmp'), 'r') as conf_lmp:
-            # fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
-            sys_data = lmp.to_system_data(conf_lmp.read().split('\n'))
-        natoms = sum(sys_data['atom_numbs'])
-        with open(os.path.join(args.JOB, 'in.json'), 'r') as j:
-            jdata = json.load(j)
+def handle_refine(args):
+    refine_tasks(args.input, args.output, args.error)
 
-        if 'copies' in jdata :
-            natoms *= np.prod(jdata['copies'])
-        nmols = natoms // 3
-        fe, fe_err, thermo_info = post_tasks(args.JOB, nmols, method = args.inte_method)
-        _print_thermo_info(thermo_info)
-        print ('# numb atoms: %d' % natoms)
-        print ('# numb  mols: %d' % nmols)        
-        print_format = '%20.12f  %10.3e  %10.3e'
-        # if args.type == 'helmholtz' :
-        print('# Helmholtz free ener per mol (err) [eV]:')
-        print(print_format % (fe, fe_err[0], fe_err[1]))
-        if args.type == 'gibbs':
-            if args.pv is not None:
-                pv = args.pv
-                print(f"# use manual pv=={pv}")
-            else:
-                pv = thermo_info['pv']
-            if args.pv_err is not None:
-                pv_err = args.pv_err
-                print(f"# use manual pv_err=={pv_err}")
-            else:
-                pv_err = thermo_info['pv_err']
-            e1 = fe + pv
-            e1_err = np.sqrt(fe_err[0]**2 + pv_err**2)
-            print('# Gibbs free ener per mol (err) [eV]:')
-            print(print_format % (e1, e1_err, fe_err[1]))
-    
-if __name__ == '__main__' :
+def handle_compute(args):
+    job = args.JOB
+    with open(os.path.join(args.JOB, 'conf.lmp'), 'r') as conf_lmp:
+        # fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
+        sys_data = lmp.to_system_data(conf_lmp.read().split('\n'))
+    natoms = sum(sys_data['atom_numbs'])
+    with open(os.path.join(args.JOB, 'in.json'), 'r') as j:
+        jdata = json.load(j)
+
+    if 'copies' in jdata :
+        natoms *= np.prod(jdata['copies'])
+    nmols = natoms // 3
+    fe, fe_err, thermo_info = post_tasks(args.JOB, nmols, method = args.inte_method)
+    info = thermo_info.copy()
+    _print_thermo_info(thermo_info)
+    print ('# numb atoms: %d' % natoms)
+    print ('# numb  mols: %d' % nmols)        
+    print_format = '%20.12f  %10.3e  %10.3e'
+    # if args.type == 'helmholtz' :
+    print('# Helmholtz free ener per mol (err) [eV]:')
+    print(print_format % (fe, fe_err[0], fe_err[1]))
+    if args.type == 'gibbs':
+        if args.pv is not None:
+            pv = args.pv
+            print(f"# use manual pv=={pv}")
+        else:
+            pv = thermo_info['pv']
+        if args.pv_err is not None:
+            pv_err = args.pv_err
+            print(f"# use manual pv_err=={pv_err}")
+        else:
+            pv_err = thermo_info['pv_err']
+        e1 = fe + pv
+        e1_err = np.sqrt(fe_err[0]**2 + pv_err**2)
+        print('# Gibbs free ener per mol (err) [eV]:')
+        print(print_format % (e1, e1_err, fe_err[1]))
+    free_energy_type=args.type
+    info['free_energy_type'] = free_energy_type
+    info['pv'] = pv
+    info['pv_err'] = pv_err
+    # info['de'] = de
+    # info['de_err'] = de_err
+    info['e1'] = e1
+    info['e1_err'] = e1_err
+    with open(os.path.join(job, 'result.json'), 'w') as result:
+        result.write(json.dumps(info))
+    return info
+
+if __name__ == '__main__':
     _main()

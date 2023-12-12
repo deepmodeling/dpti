@@ -40,7 +40,7 @@ thermo_style    custom step ke pe etotal enthalpy temp press vol ebond eangle c_
 thermo_modify   format 9 %.16e
 thermo_modify   format 10 %.16e
 thermo_modify   format 11 %.16e
-# dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z
+dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z
 fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}
 fix             mzero all momentum 10 linear 1 1 1
 # --------------------- INITIALIZE -----------------------
