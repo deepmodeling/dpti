@@ -23,7 +23,7 @@ class TestHtiIceGenLammpsInput(unittest.TestCase):
         patch_random.randint = MagicMock(return_value=7858)
         args = MagicMock(output='tmp_hti_ice/new_job/', 
             switch='three-step', 
-            command='gen',
+            func = hti_ice.handle_gen,
             PARAM='benchmark_hti_ice/hti_ice.json'
         )
         hti_ice.exec_args(args=args, parser=None)
@@ -44,7 +44,7 @@ class TestHtiIceGenLammpsInput(unittest.TestCase):
         patch_random.randint = MagicMock(return_value=7858)
         args = MagicMock(output='tmp_hti_ice/old_json_job/', 
             switch='three-step', 
-            command='gen',
+            func = hti_ice.handle_gen,
             PARAM='benchmark_hti_ice/hti_ice.json.old'
         )
         hti_ice.exec_args(args=args, parser=None)
