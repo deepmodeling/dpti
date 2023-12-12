@@ -169,7 +169,7 @@ def _gen_lammps_input_ideal (step,
     ret += 'thermo          ${THERMO_FREQ}\n'
     ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_diff[1] c_allmsd[*]\n'
     ret += 'thermo_modify   format 9 %.16e\n'
-    ret += '# dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
+    ret += 'dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
     if ens == 'nvt' :
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
     elif ens == 'npt-iso' or ens == 'npt':
@@ -467,39 +467,29 @@ def compute_task(job, free_energy_type='helmholtz', scheme='simpson', manual_pv=
         result.write(json.dumps(info))
     return info
 
-def _main ():
-    parser = argparse.ArgumentParser(
-        description="Compute liquid free energy by Hamiltonian TI")
-    subparsers = parser.add_subparsers(title='Valid subcommands', dest='command')
+def add_module_subparsers(main_subparsers):
+    module_parser = main_subparsers.add_parser('hti_liq', help='Hamiltonian thermodynamic integration for atomic liquid')
+    module_subparsers = module_parser.add_subparsers(help='commands of Hamiltonian thermodynamic integration for atomic liquid', dest='command', required=True)
 
-    parser_gen = subparsers.add_parser('gen', help='Generate a job')
+    parser_gen = module_subparsers.add_parser('gen', help='Generate a job')
     parser_gen.add_argument('PARAM', type=str ,
                             help='json parameter file')
     parser_gen.add_argument('-o','--output', type=str, default = 'new_job',
                             help='the output folder for the job')
     parser_gen.add_argument("-z", "--meam", help="whether use meam instead of dp", action="store_true")
+    parser_gen.set_defaults(func=handle_gen)
 
-    parser_comp = subparsers.add_parser('compute', help= 'Compute the result of a job')
-    parser_comp.add_argument('JOB', type=str ,
+    parser_compute = module_subparsers.add_parser('compute', help= 'Compute the result of a job')
+    parser_compute.add_argument('JOB', type=str ,
                              help='folder of the job')
-    parser_comp.add_argument('-t','--type', type=str, default = 'helmholtz', 
+    parser_compute.add_argument('-t','--type', type=str, default = 'helmholtz', 
                              choices=['helmholtz', 'gibbs'], 
                              help='the type of free energy')
-    parser_comp.add_argument('-g', '--pv', type=float, default = None,
+    parser_compute.add_argument('-g', '--pv', type=float, default = None,
                              help='press*vol value override to calculate Gibbs free energy')
-    parser_comp.add_argument('-G', '--pv-err', type=float, default = None,
+    parser_compute.add_argument('-G', '--pv-err', type=float, default = None,
                              help='press*vol error')
-    args = parser.parse_args()
-
-    if args.command is None :
-        parser.print_help()
-        exit
-    if args.command == 'gen' :
-        output = args.output
-        jdata = json.load(open(args.PARAM, 'r'))
-        make_tasks(output, jdata, if_meam=args.meam)
-    elif args.command == 'compute' :
-        compute_task(job=args.JOB, free_energy_type=args.type, manual_pv=args.pv, manual_pv_err=args.pv_err)
+    parser_compute.set_defaults(func=handle_compute)
 
      #    fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
      #    sys_data = lmp.to_system_data(fp_conf.read().split('\n'))
@@ -528,6 +518,10 @@ def _main ():
      #        print('# Gibbs free ener per mol (err) [eV]:')
      #        print(print_format % (e1, e1_err, fe_err[1]))
 
-    
-if __name__ == '__main__' :
-    _main()
+def handle_gen(args):
+    output = args.output
+    jdata = json.load(open(args.PARAM, 'r'))
+    make_tasks(output, jdata, if_meam=args.meam)
+
+def handle_compute(args):
+    compute_task(job=args.JOB, free_energy_type=args.type, manual_pv=args.pv, manual_pv_err=args.pv_err)

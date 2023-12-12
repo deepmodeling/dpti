@@ -21,7 +21,7 @@ class TestTiWaterGenLammpsInput(unittest.TestCase):
         patch_random.randint = MagicMock(return_value=7858)
         args = MagicMock(
             output='tmp_ti_water/new_job/',  
-            command='gen',
+            func = ti_water.handle_gen,
             PARAM='benchmark_ti_water/ti_water.json'
         )
         ti_water.exec_args(args=args, parser=None)
@@ -41,7 +41,7 @@ class TestTiWaterGenLammpsInput(unittest.TestCase):
         patch_random.randint = MagicMock(return_value=7858)
         args = MagicMock(
             output='tmp_ti_water/old_json_job/',  
-            command='gen',
+            func = ti_water.handle_gen,
             PARAM='benchmark_ti_water/ti_water.json.old'
         )
         ti_water.exec_args(args=args, parser=None)
