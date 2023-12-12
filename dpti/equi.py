@@ -314,10 +314,7 @@ def extract(job_dir, output) :
         f.write(conf_lmp)
     # open(output, 'w').write(conf_lmp)
 
-def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi=True, npt_dir=None):
-    # jfile_path = os.path.abspath(jfile)
-    # with open(jfile, 'r') as f:
-    #     jdata = json.load(f)
+def make_task(iter_name, jdata, ens=None, temp=None, pres=None, if_dump_avg_posi=None, npt_dir=None):
 
     equi_args = [
         Argument("equi_conf", str),
@@ -580,7 +577,9 @@ def post_task(iter_name, natoms = None, is_water = None) :
 def add_module_subparsers(main_subparsers):
     module_parser = main_subparsers.add_parser('equi', help='equilibration simulations')
     module_subparsers = module_parser.add_subparsers(help='commands for equilibration simulations', dest='command', required=True)
+    add_subparsers(module_subparsers)
 
+def add_subparsers(module_subparsers):
     parser_gen = module_subparsers.add_parser('gen', help='generate a job')
     parser_gen.add_argument('PARAM', type=str ,
                             help='json parameter file')
@@ -631,3 +630,20 @@ def handle_stat_bond(args):
 
 def handle_compute(args):
     post_task(args.JOB)
+
+def _main ():
+    parser = argparse.ArgumentParser(
+        description="equilibration simulations")
+    main_subparsers = parser.add_subparsers(title='modules', description='the subcommands of dpti', help='module-level help', dest='module', required=True)
+    add_subparsers(main_subparsers)
+    args = parser.parse_args()
+    exec_args(args, parser)
+
+def exec_args(args, parser):
+    if hasattr(args, 'func'):
+        args.func(args)
+    else:
+        parser.print_help()
+
+if __name__ == '__main__':
+    _main()

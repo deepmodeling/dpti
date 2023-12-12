@@ -169,7 +169,7 @@ def _gen_lammps_input_ideal (step,
     ret += 'thermo          ${THERMO_FREQ}\n'
     ret += 'thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_diff[1] c_allmsd[*]\n'
     ret += 'thermo_modify   format 9 %.16e\n'
-    ret += '# dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
+    ret += 'dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n'
     if ens == 'nvt' :
         ret += 'fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n'
     elif ens == 'npt-iso' or ens == 'npt':
