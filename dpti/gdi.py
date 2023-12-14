@@ -132,7 +132,7 @@ def _make_tasks_onephase(
         meam_model=meam_model,
     )
     with open("thermo.out", "w") as fp:
-        fp.write("%.16e %.16e" % (temp, pres))
+        fp.write(f"{temp:.16e} {pres:.16e}")
     with open("in.lammps", "w") as fp:
         fp.write(lmp_str)
 
@@ -152,8 +152,8 @@ def _setup_dpdt(task_path, jdata):
         model = os.path.abspath(model)
 
     task_abs_dir = create_path(task_path)
-    conf_0_name = "conf.%s.lmp" % "0"
-    conf_1_name = "conf.%s.lmp" % "1"
+    conf_0_name = f"conf.{'0'}.lmp"
+    conf_1_name = f"conf.{'1'}.lmp"
     # conf_0_name = 'conf.%s.lmp' % name_0
     # conf_1_name = 'conf.%s.lmp' % name_1
     copied_conf_0 = os.path.join(os.path.abspath(task_path), conf_0_name)
@@ -210,7 +210,7 @@ def make_dpdt(
                 np.linalg.norm(pres - data[ii][1]) < 1e-2
             ):
                 if verbose:
-                    print("# dpdt: found matched record at %f %f " % (temp, pres))
+                    print(f"# dpdt: found matched record at {temp:f} {pres:f}")
                 new_task = False
                 dv = data[ii][2]
                 dh = data[ii][3]
@@ -352,7 +352,7 @@ def make_dpdt(
         dv = t1["v"] - t0["v"]
         dh = t1["h"] - t0["h"] - (shift[1] - shift[0])
         with open(os.path.join("database", "dpdt.out"), "a") as fp:
-            fp.write("%.16e %.16e %.16e %.16e\n" % (temp, pres, dv, dh))
+            fp.write(f"{temp:.16e} {pres:.16e} {dv:.16e} {dh:.16e}\n")
     os.chdir(cwd)
     return [dv, dh]
 
