@@ -19,9 +19,9 @@ class TestEquiMakeTask(unittest.TestCase):
         self.test_dir = "tmp_ti"
         self.benchmark_dir = "benchmark_ti"
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_deepmd_path_t(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         test_name = "path-t"
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)
         test_dir = os.path.join(self.test_dir, test_name)
@@ -44,9 +44,9 @@ class TestEquiMakeTask(unittest.TestCase):
             f2 = os.path.join(test_dir, file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1, f2))
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_meam_path_p(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         test_name = "path-p"
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)
         test_dir = os.path.join(self.test_dir, test_name)
