@@ -208,7 +208,7 @@ def handle_compute(args):
         print("# free ener of Einstein Mole: %20.8f" % (e0))
     else:
         print("# free ener of Einstein Crys: %20.8f" % (e0))
-    print("# Pauling corr %s:        %20.8f" % (note_pauling, pauling_corr))
+    print(f"# Pauling corr {note_pauling}:        {pauling_corr:20.8f}")
     print(
         ("# fe integration              " + print_format) % (de, de_err[0], de_err[1])
     )

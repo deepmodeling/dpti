@@ -71,18 +71,18 @@ def all_start_check():
     ), f"structure file {conf_lmp_abs_path} must exist"
     assert str(ti_path) in ["t", "p"], 'value for "path" must be "t" or "p" '
 
-    start_info = dict(
-        work_base_dir=work_base_dir,
-        target_temp=target_temp,
-        target_pres=target_pres,
-        conf_lmp=conf_lmp,
-        ti_path=ti_path,
-        ens=ens,
-        if_liquid=if_liquid,
-        if_ice=if_ice,
-        work_base_abs_dir=work_base_abs_dir,
-        dag_work_dir=dag_work_dir,
-    )
+    start_info = {
+        "work_base_dir": work_base_dir,
+        "target_temp": target_temp,
+        "target_pres": target_pres,
+        "conf_lmp": conf_lmp,
+        "ti_path": ti_path,
+        "ens": ens,
+        "if_liquid": if_liquid,
+        "if_ice": if_ice,
+        "work_base_abs_dir": work_base_abs_dir,
+        "dag_work_dir": dag_work_dir,
+    }
     print("start_info:", start_info)
     return start_info
 
@@ -233,7 +233,7 @@ def HTI_start(start_info, *, NVT_end_info={}):
             switch="three-step",
         )
     os.chdir(cwd)
-    HTI_init_info = dict(task_jdata=task_jdata, job_work_dir=job_work_dir)
+    HTI_init_info = {"task_jdata": task_jdata, "job_work_dir": job_work_dir}
     return HTI_init_info
 
 

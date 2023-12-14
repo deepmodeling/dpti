@@ -337,12 +337,12 @@ def _compute_thermo(lmplog, natoms, stat_skip, stat_bsize):
 
 def _print_thermo_info(info, more_head=""):
     ptr = "# thermodynamics (normalized by natoms) %s\n" % more_head
-    ptr += "# E (err)  [eV]:  %20.8f %20.8f\n" % (info["e"], info["e_err"])
-    ptr += "# H (err)  [eV]:  %20.8f %20.8f\n" % (info["h"], info["h_err"])
-    ptr += "# T (err)   [K]:  %20.8f %20.8f\n" % (info["t"], info["t_err"])
-    ptr += "# P (err) [bar]:  %20.8f %20.8f\n" % (info["p"], info["p_err"])
-    ptr += "# V (err) [A^3]:  %20.8f %20.8f\n" % (info["v"], info["v_err"])
-    ptr += "# PV(err)  [eV]:  %20.8f %20.8f" % (info["pv"], info["pv_err"])
+    ptr += "# E (err)  [eV]:  {:20.8f} {:20.8f}\n".format(info["e"], info["e_err"])
+    ptr += "# H (err)  [eV]:  {:20.8f} {:20.8f}\n".format(info["h"], info["h_err"])
+    ptr += "# T (err)   [K]:  {:20.8f} {:20.8f}\n".format(info["t"], info["t_err"])
+    ptr += "# P (err) [bar]:  {:20.8f} {:20.8f}\n".format(info["p"], info["p_err"])
+    ptr += "# V (err) [A^3]:  {:20.8f} {:20.8f}\n".format(info["v"], info["v_err"])
+    ptr += "# PV(err)  [eV]:  {:20.8f} {:20.8f}".format(info["pv"], info["pv_err"])
     print(ptr)
 
 
@@ -423,7 +423,7 @@ def post_tasks(
     iter_name, jdata, Eo, Eo_err=0, To=None, natoms=None, scheme="simpson", shift=0.0
 ):
     equi_conf = get_task_file_abspath(iter_name, jdata["equi_conf"])
-    if natoms == None:
+    if natoms is None:
         natoms = get_natoms(equi_conf)
         if "copies" in jdata:
             natoms *= np.prod(jdata["copies"])
@@ -527,7 +527,7 @@ def post_tasks(
 
     if To is not None:
         index = all_t.index(To)
-        if index == None:
+        if index is None:
             if "nvt" == ens:
                 raise RuntimeError("cannot find %f in T", To)
             elif "npt" in ens:
@@ -598,8 +598,7 @@ def post_tasks(
         )
         for ii in range(len(all_temps)):
             print(
-                "%9.2f  %20.12f  %9.2e  %9.2e  %9.2e"
-                % (
+                "{:9.2f}  {:20.12f}  {:9.2e}  {:9.2e}  {:9.2e}".format(
                     all_temps[ii],
                     all_fe[ii],
                     all_fe_err[ii],
@@ -607,7 +606,7 @@ def post_tasks(
                     np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]),
                 )
             )
-            result += "%9.2f  %20.12f  %9.2e  %9.2e  %9.2e\n" % (
+            result += "{:9.2f}  {:20.12f}  {:9.2e}  {:9.2e}  {:9.2e}\n".format(
                 all_temps[ii],
                 all_fe[ii],
                 all_fe_err[ii],
@@ -629,8 +628,7 @@ def post_tasks(
         )
         for ii in range(len(all_temps)):
             print(
-                "%9.2f  %15.8e  %20.12f  %9.2e  %9.2e  %9.2e"
-                % (
+                "{:9.2f}  {:15.8e}  {:20.12f}  {:9.2e}  {:9.2e}  {:9.2e}".format(
                     all_temps[ii],
                     all_press[ii],
                     all_fe[ii],
@@ -639,30 +637,32 @@ def post_tasks(
                     np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]),
                 )
             )
-            result += "%9.2f  %15.8e  %20.12f  %9.2e  %9.2e  %9.2e\n" % (
-                all_temps[ii],
-                all_press[ii],
-                all_fe[ii],
-                all_fe_err[ii],
-                all_fe_sys_err[ii],
-                np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]),
+            result += (
+                "{:9.2f}  {:15.8e}  {:20.12f}  {:9.2e}  {:9.2e}  {:9.2e}\n".format(
+                    all_temps[ii],
+                    all_press[ii],
+                    all_fe[ii],
+                    all_fe_err[ii],
+                    all_fe_sys_err[ii],
+                    np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]),
+                )
             )
             # print(all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]))
     # result_file.close()
 
-    data = dict(
-        all_temps=all_temps.tolist(),
-        all_press=all_press.tolist(),
-        all_fe=all_fe.tolist(),
-        all_fe_stat_err=all_fe_err.tolist(),
-        all_fe_inte_err=all_fe_sys_err.tolist(),
-        all_fe_tot_err=np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist(),
-    )
+    data = {
+        "all_temps": all_temps.tolist(),
+        "all_press": all_press.tolist(),
+        "all_fe": all_fe.tolist(),
+        "all_fe_stat_err": all_fe_err.tolist(),
+        "all_fe_inte_err": all_fe_sys_err.tolist(),
+        "all_fe_tot_err": np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist(),
+    }
 
     # data = [all_temps.tolist(), all_press.tolist(),
     #     all_fe.tolist(), all_fe_err.tolist(), all_fe_sys_err.tolist(),
     #     np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist()]
-    info = dict(start_point_info=info0, end_point_info=info1, data=data)
+    info = {"start_point_info": info0, "end_point_info": info1, "data": data}
     # print('result', result)
     with open(os.path.join(iter_name, "../", "result"), "w") as f:
         f.write(result)
@@ -673,7 +673,7 @@ def post_tasks(
 
 def post_tasks_mbar(iter_name, jdata, Eo, natoms=None):
     equi_conf = jdata["equi_conf"]
-    if natoms == None:
+    if natoms is None:
         natoms = get_natoms(equi_conf)
         if "copies" in jdata:
             natoms *= np.prod(jdata["copies"])
@@ -787,8 +787,7 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms=None):
         print("#%8s  %15s  %9s  %9s" % ("T(ctrl)", "F", "stat_err", "inte_err"))
         for ii in range(len(all_temps)):
             print(
-                "%9.2f  %20.12f  %9.2e  %9.2e"
-                % (all_temps[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii])
+                f"{all_temps[ii]:9.2f}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}"
             )
     elif "npt" in ens:
         print(
@@ -797,8 +796,7 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms=None):
         )
         for ii in range(len(all_temps)):
             print(
-                "%9.2f  %15.8e  %20.12f  %9.2e  %9.2e"
-                % (
+                "{:9.2f}  {:15.8e}  {:20.12f}  {:9.2e}  {:9.2e}".format(
                     all_temps[ii],
                     all_press[ii],
                     all_fe[ii],

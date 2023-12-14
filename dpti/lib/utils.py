@@ -106,7 +106,7 @@ def copy_file_list(file_list, from_path, to_path):
 def block_avg(inp, skip=0, block_size=10):
     inp = inp[skip:]
     data_chunks = [
-        [j for j in inp[i : i + block_size]] for i in range(0, len(inp), block_size)
+        list(inp[i : i + block_size]) for i in range(0, len(inp), block_size)
     ]
     nblocks = len(data_chunks)
     if len(data_chunks[-1]) != block_size:
@@ -129,9 +129,7 @@ def block_avg(inp, skip=0, block_size=10):
 
 
 def cvt_conf(fin, fout, ofmt="vasp"):
-    """
-    Format convert from fin to fout, specify the output format by ofmt
-    """
+    """Format convert from fin to fout, specify the output format by ofmt."""
     thisfile = os.path.abspath(__file__)
     thisdir = os.path.dirname(thisfile)
     cmd = os.path.join(thisdir, "ovito_file_convert.py")

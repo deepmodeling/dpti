@@ -61,17 +61,17 @@ def all_start_check(dag_run):
         os.path.isfile(conf_lmp_abs_path) is True
     ), f"structure file {conf_lmp_abs_path} must exist"
     assert str(ti_path) in ["t", "p"], 'value for "path" must be "t" or "p" '
-    start_info = dict(
-        work_base_dir=work_base_dir,
-        target_temp=target_temp,
-        target_pres=target_pres,
-        conf_lmp=conf_lmp,
-        ti_path=ti_path,
-        ens=ens,
-        if_liquid=if_liquid,
-        work_base_abs_dir=work_base_abs_dir,
-        dag_work_dir=dag_work_dir,
-    )
+    start_info = {
+        "work_base_dir": work_base_dir,
+        "target_temp": target_temp,
+        "target_pres": target_pres,
+        "conf_lmp": conf_lmp,
+        "ti_path": ti_path,
+        "ens": ens,
+        "if_liquid": if_liquid,
+        "work_base_abs_dir": work_base_abs_dir,
+        "dag_work_dir": dag_work_dir,
+    }
     # print('start_info:', start_info_raw)
     # start_info = Dict(dict=start_info)
     return Dict(dict=start_info)

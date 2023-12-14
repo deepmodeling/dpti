@@ -10,7 +10,7 @@ class TestEquiForceField(unittest.TestCase):
         self.maxDiff = None
 
     def test_deepmd(self):
-        input = dict(model="graph.pb", if_meam=False, meam_model=None)
+        input = {"model": "graph.pb", "if_meam": False, "meam_model": None}
 
         ret1 = textwrap.dedent(
             """\
@@ -23,7 +23,7 @@ class TestEquiForceField(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_meam(self):
-        input = dict(model=None, if_meam=True, meam_model=meam_model)
+        input = {"model": None, "if_meam": True, "meam_model": meam_model}
         ret1 = textwrap.dedent(
             """\
         # --------------------- FORCE FIELDS ---------------------
@@ -35,16 +35,16 @@ class TestEquiForceField(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_meam_raise_error(self):
-        input = dict(model=None, if_meam=True, meam_model={})
+        input = {"model": None, "if_meam": True, "meam_model": {}}
         with self.assertRaises(KeyError):
             dpti.equi.gen_equi_force_field(**input)
 
     def test_meam_raise_error_lack_key(self):
-        err_meam_model1 = dict(
-            meam_library="library_18Metals.meam",
-            meam_potential="Sn_18Metals.meam",
-        )
-        input = dict(model=None, if_meam=True, meam_model=err_meam_model1)
+        err_meam_model1 = {
+            "meam_library": "library_18Metals.meam",
+            "meam_potential": "Sn_18Metals.meam",
+        }
+        input = {"model": None, "if_meam": True, "meam_model": err_meam_model1}
         with self.assertRaises(KeyError):
             dpti.equi.gen_equi_force_field(**input)
 

@@ -9,7 +9,7 @@ class TestHtiFfSpring(unittest.TestCase):
         self.maxDiff = None
 
     def test_spring_not_var_spring(self):
-        input = dict(lamb=0.075, m_spring_k=[118.71], var_spring=False)
+        input = {"lamb": 0.075, "m_spring_k": [118.71], "var_spring": False}
         ret1 = textwrap.dedent(
             """\
         group           type_1 type 1
@@ -22,7 +22,7 @@ class TestHtiFfSpring(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_spring_var_spring(self):
-        input = dict(lamb=0.075, m_spring_k=[118.71], var_spring=True)
+        input = {"lamb": 0.075, "m_spring_k": [118.71], "var_spring": True}
         ret1 = textwrap.dedent(
             """\
         group           type_1 type 1
@@ -35,7 +35,7 @@ class TestHtiFfSpring(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_spring_multiple_element(self):
-        input = dict(lamb=0.075, m_spring_k=[118.71, 207.2], var_spring=False)
+        input = {"lamb": 0.075, "m_spring_k": [118.71, 207.2], "var_spring": False}
         ret1 = textwrap.dedent(
             """\
         group           type_1 type 1
@@ -52,7 +52,7 @@ class TestHtiFfSpring(unittest.TestCase):
 
 
 def test_spring_var_spring_multiple_element(self):
-    input = dict(lamb=0.20, m_spring_k=[118.71, 207.2], var_spring=False)
+    input = {"lamb": 0.20, "m_spring_k": [118.71, 207.2], "var_spring": False}
     ret1 = textwrap.dedent(
         """\
         group           type_1 type 1

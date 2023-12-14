@@ -17,28 +17,28 @@ class TestGenLammpsIdeal(unittest.TestCase):
     @patch("numpy.random")
     def test_soft_on(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(
-            step="soft_on",
-            conf_file="conf.lmp",
-            mass_map=[
+        input = {
+            "step": "soft_on",
+            "conf_file": "conf.lmp",
+            "mass_map": [
                 118.71,
             ],
-            lamb=0.075,
-            soft_param=soft_param,
-            model="graph.pb",
-            nsteps=500000,
-            timestep=0.002,
-            ens="npt",
-            temp=1200,
-            pres=1.0,
-            tau_t=0.1,
-            tau_p=0.5,
-            thermo_freq=100,
-            copies=None,
-            norm_style="first",
-            if_meam=False,
-            meam_model=None,
-        )
+            "lamb": 0.075,
+            "soft_param": soft_param,
+            "model": "graph.pb",
+            "nsteps": 500000,
+            "timestep": 0.002,
+            "ens": "npt",
+            "temp": 1200,
+            "pres": 1.0,
+            "tau_t": 0.1,
+            "tau_p": 0.5,
+            "thermo_freq": 100,
+            "copies": None,
+            "norm_style": "first",
+            "if_meam": False,
+            "meam_model": None,
+        }
 
         ret1 = textwrap.dedent(
             """\
@@ -94,28 +94,28 @@ class TestGenLammpsIdeal(unittest.TestCase):
     @patch("numpy.random")
     def test_deep_on(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(
-            step="deep_on",
-            conf_file="conf.lmp",
-            mass_map=[
+        input = {
+            "step": "deep_on",
+            "conf_file": "conf.lmp",
+            "mass_map": [
                 118.71,
             ],
-            lamb=0.075,
-            soft_param=soft_param,
-            model="graph.pb",
-            nsteps=500000,
-            timestep=0.002,
-            ens="npt",
-            temp=1200,
-            pres=1.0,
-            tau_t=0.1,
-            tau_p=0.5,
-            thermo_freq=100,
-            copies=None,
-            norm_style="first",
-            if_meam=False,
-            meam_model=None,
-        )
+            "lamb": 0.075,
+            "soft_param": soft_param,
+            "model": "graph.pb",
+            "nsteps": 500000,
+            "timestep": 0.002,
+            "ens": "npt",
+            "temp": 1200,
+            "pres": 1.0,
+            "tau_t": 0.1,
+            "tau_p": 0.5,
+            "thermo_freq": 100,
+            "copies": None,
+            "norm_style": "first",
+            "if_meam": False,
+            "meam_model": None,
+        }
 
         ret1 = textwrap.dedent(
             """\
@@ -175,28 +175,28 @@ class TestGenLammpsIdeal(unittest.TestCase):
     @patch("numpy.random")
     def test_soft_off(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(
-            step="soft_off",
-            conf_file="conf.lmp",
-            mass_map=[
+        input = {
+            "step": "soft_off",
+            "conf_file": "conf.lmp",
+            "mass_map": [
                 118.71,
             ],
-            lamb=0.075,
-            soft_param=soft_param,
-            model="graph.pb",
-            nsteps=500000,
-            timestep=0.002,
-            ens="npt",
-            temp=1200,
-            pres=1.0,
-            tau_t=0.1,
-            tau_p=0.5,
-            thermo_freq=100,
-            copies=None,
-            norm_style="first",
-            if_meam=False,
-            meam_model=None,
-        )
+            "lamb": 0.075,
+            "soft_param": soft_param,
+            "model": "graph.pb",
+            "nsteps": 500000,
+            "timestep": 0.002,
+            "ens": "npt",
+            "temp": 1200,
+            "pres": 1.0,
+            "tau_t": 0.1,
+            "tau_p": 0.5,
+            "thermo_freq": 100,
+            "copies": None,
+            "norm_style": "first",
+            "if_meam": False,
+            "meam_model": None,
+        }
         ret1 = textwrap.dedent(
             """\
         clear

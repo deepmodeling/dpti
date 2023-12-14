@@ -14,24 +14,24 @@ class TestTiGenLammpsInput(unittest.TestCase):
     @patch("numpy.random")
     def test_deepmd(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(
-            conf_file="conf.lmp",
-            mass_map=[
+        input = {
+            "conf_file": "conf.lmp",
+            "mass_map": [
                 118.71,
             ],
-            model="graph.pb",
-            nsteps=200000,
-            timestep=0.002,
-            ens="npt",
-            temp=200,
-            pres=50000,
-            tau_t=0.1,
-            tau_p=0.5,
-            thermo_freq=10,
-            copies=None,
-            if_meam=False,
-            meam_model=None,
-        )
+            "model": "graph.pb",
+            "nsteps": 200000,
+            "timestep": 0.002,
+            "ens": "npt",
+            "temp": 200,
+            "pres": 50000,
+            "tau_t": 0.1,
+            "tau_p": 0.5,
+            "thermo_freq": 10,
+            "copies": None,
+            "if_meam": False,
+            "meam_model": None,
+        }
         ret1 = textwrap.dedent(
             """\
         clear
@@ -78,24 +78,24 @@ class TestTiGenLammpsInput(unittest.TestCase):
     @patch("numpy.random")
     def test_meam(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(
-            conf_file="conf.lmp",
-            mass_map=[
+        input = {
+            "conf_file": "conf.lmp",
+            "mass_map": [
                 118.71,
             ],
-            model="graph.pb",
-            nsteps=200000,
-            timestep=0.002,
-            ens="npt",
-            temp=200,
-            pres=50000,
-            tau_t=0.1,
-            tau_p=0.5,
-            thermo_freq=10,
-            copies=None,
-            if_meam=True,
-            meam_model=meam_model,
-        )
+            "model": "graph.pb",
+            "nsteps": 200000,
+            "timestep": 0.002,
+            "ens": "npt",
+            "temp": 200,
+            "pres": 50000,
+            "tau_t": 0.1,
+            "tau_p": 0.5,
+            "thermo_freq": 10,
+            "copies": None,
+            "if_meam": True,
+            "meam_model": meam_model,
+        }
         ret1 = textwrap.dedent(
             """\
         clear

@@ -170,7 +170,7 @@ def from_system_data(system):
     ret += "0 %.8f xlo xhi\n" % system["cell"][0][0]
     ret += "0 %.8f ylo yhi\n" % system["cell"][1][1]
     ret += "0 %.8f zlo zhi\n" % system["cell"][2][2]
-    ret += "%.8f %.8f %.8f xy xz yz\n" % (
+    ret += "{:.8f} {:.8f} {:.8f} xy xz yz\n".format(
         system["cell"][1][0],
         system["cell"][2][0],
         system["cell"][2][1],

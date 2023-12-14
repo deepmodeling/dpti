@@ -110,13 +110,13 @@ def _poscar_scale_cartesian(str_in, scale):
         boxl = lines[ii].split()
         boxv = [float(ii) for ii in boxl]
         boxv = np.array(boxv) * scale
-        lines[ii] = "%.16e %.16e %.16e\n" % (boxv[0], boxv[1], boxv[2])
+        lines[ii] = f"{boxv[0]:.16e} {boxv[1]:.16e} {boxv[2]:.16e}\n"
     # scale coord
     for ii in range(8, 8 + numb_atoms):
         cl = lines[ii].split()
         cv = [float(ii) for ii in cl]
         cv = np.array(cv) * scale
-        lines[ii] = "%.16e %.16e %.16e\n" % (cv[0], cv[1], cv[2])
+        lines[ii] = f"{cv[0]:.16e} {cv[1]:.16e} {cv[2]:.16e}\n"
     return lines
 
 

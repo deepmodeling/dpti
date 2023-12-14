@@ -201,7 +201,7 @@ def make_task(
         print("T = %f overrides the temp in json data" % temp)
     jdata["temp"] = temp
     if "npt" in ens:
-        if pres == None:
+        if pres is None:
             pres = jdata["pres"]
         elif "pres" in jdata:
             print("P = %f overrides the pres in json data" % pres)
@@ -344,27 +344,27 @@ def _compute_thermo(lmplog, natoms, stat_skip, stat_bsize):
 
 def _print_thermo_info(info, more_head=""):
     ptr = "# thermodynamics  %20s %20s  %s\n" % ("value", "err", more_head)
-    ptr += "# E        [eV]:  %20.8f %20.8f\n" % (info["e"], info["e_err"])
-    ptr += "# H        [eV]:  %20.8f %20.8f\n" % (info["h"], info["h_err"])
-    ptr += "# T         [K]:  %20.8f %20.8f\n" % (info["t"], info["t_err"])
-    ptr += "# P       [bar]:  %20.8f %20.8f\n" % (info["p"], info["p_err"])
-    ptr += "# V       [A^3]:  %20.8f %20.8f\n" % (info["v"], info["v_err"])
-    ptr += "# PV       [eV]:  %20.8f %20.8f\n" % (info["pv"], info["pv_err"])
-    ptr += "# Lxx       [A]:  %20.8f %20.8f\n" % (info["lxx"], info["lxx_err"])
-    ptr += "# Lyy       [A]:  %20.8f %20.8f\n" % (info["lyy"], info["lyy_err"])
-    ptr += "# Lzz       [A]:  %20.8f %20.8f\n" % (info["lzz"], info["lzz_err"])
-    ptr += "# Lxy       [A]:  %20.8f %20.8f\n" % (info["lxy"], info["lxy_err"])
-    ptr += "# Lxz       [A]:  %20.8f %20.8f\n" % (info["lxz"], info["lxz_err"])
-    ptr += "# Lyz       [A]:  %20.8f %20.8f\n" % (info["lyz"], info["lyz_err"])
-    ptr += "# Pxx     [bar]:  %20.8f %20.8f\n" % (info["pxx"], info["pxx_err"])
-    ptr += "# Pyy     [bar]:  %20.8f %20.8f\n" % (info["pyy"], info["pyy_err"])
-    ptr += "# Pzz     [bar]:  %20.8f %20.8f\n" % (info["pzz"], info["pzz_err"])
-    ptr += "# Pxy     [bar]:  %20.8f %20.8f\n" % (info["pxy"], info["pxy_err"])
-    ptr += "# Pxz     [bar]:  %20.8f %20.8f\n" % (info["pxz"], info["pxz_err"])
-    ptr += "# Pyz     [bar]:  %20.8f %20.8f\n" % (info["pyz"], info["pyz_err"])
+    ptr += "# E        [eV]:  {:20.8f} {:20.8f}\n".format(info["e"], info["e_err"])
+    ptr += "# H        [eV]:  {:20.8f} {:20.8f}\n".format(info["h"], info["h_err"])
+    ptr += "# T         [K]:  {:20.8f} {:20.8f}\n".format(info["t"], info["t_err"])
+    ptr += "# P       [bar]:  {:20.8f} {:20.8f}\n".format(info["p"], info["p_err"])
+    ptr += "# V       [A^3]:  {:20.8f} {:20.8f}\n".format(info["v"], info["v_err"])
+    ptr += "# PV       [eV]:  {:20.8f} {:20.8f}\n".format(info["pv"], info["pv_err"])
+    ptr += "# Lxx       [A]:  {:20.8f} {:20.8f}\n".format(info["lxx"], info["lxx_err"])
+    ptr += "# Lyy       [A]:  {:20.8f} {:20.8f}\n".format(info["lyy"], info["lyy_err"])
+    ptr += "# Lzz       [A]:  {:20.8f} {:20.8f}\n".format(info["lzz"], info["lzz_err"])
+    ptr += "# Lxy       [A]:  {:20.8f} {:20.8f}\n".format(info["lxy"], info["lxy_err"])
+    ptr += "# Lxz       [A]:  {:20.8f} {:20.8f}\n".format(info["lxz"], info["lxz_err"])
+    ptr += "# Lyz       [A]:  {:20.8f} {:20.8f}\n".format(info["lyz"], info["lyz_err"])
+    ptr += "# Pxx     [bar]:  {:20.8f} {:20.8f}\n".format(info["pxx"], info["pxx_err"])
+    ptr += "# Pyy     [bar]:  {:20.8f} {:20.8f}\n".format(info["pyy"], info["pyy_err"])
+    ptr += "# Pzz     [bar]:  {:20.8f} {:20.8f}\n".format(info["pzz"], info["pzz_err"])
+    ptr += "# Pxy     [bar]:  {:20.8f} {:20.8f}\n".format(info["pxy"], info["pxy_err"])
+    ptr += "# Pxz     [bar]:  {:20.8f} {:20.8f}\n".format(info["pxz"], info["pxz_err"])
+    ptr += "# Pyz     [bar]:  {:20.8f} {:20.8f}\n".format(info["pyz"], info["pyz_err"])
     rho = 18 * 1e-3 / (info["v"] * pc.Avogadro * pc.angstrom**3)
     rho_err = (info["v"] / (info["v"] - info["v_err"]) - 1) * rho
-    ptr += "# water density [kg/m^3] : %10.5f (%10.5f)" % (rho, rho_err)
+    ptr += f"# water density [kg/m^3] : {rho:10.5f} ({rho_err:10.5f})"
     print(ptr)
     return ptr
 
@@ -372,7 +372,7 @@ def _print_thermo_info(info, more_head=""):
 def post_task(iter_name, natoms=None, is_water=False):
     j_file = os.path.join(iter_name, "in.json")
     jdata = json.load(open(j_file))
-    if natoms == None:
+    if natoms is None:
         equi_conf = get_task_file_abspath(iter_name, jdata["equi_conf"])
         natoms = get_natoms(equi_conf)
         if "copies" in jdata:

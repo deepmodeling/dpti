@@ -17,30 +17,30 @@ class TestHtiGenLammpsInput(unittest.TestCase):
     @patch("numpy.random")
     def test_deepmd_lj_on(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(
-            conf_file="conf.lmp",
-            mass_map=[118.71],
-            lamb=0.075,
-            model="graph.pb",
-            m_spring_k=[
+        input = {
+            "conf_file": "conf.lmp",
+            "mass_map": [118.71],
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "m_spring_k": [
                 2.3742,
             ],
-            nsteps=500000,
-            timestep=0.002,
-            ens="npt",
-            temp=400.0,
-            pres=1.0,
-            tau_t=0.1,
-            tau_p=0.5,
-            thermo_freq=100,
-            copies=None,
-            crystal="vega",
-            sparam=soft_param,
-            switch="three-step",
-            step="lj_on",
-            if_meam=False,
-            meam_model=None,
-        )
+            "nsteps": 500000,
+            "timestep": 0.002,
+            "ens": "npt",
+            "temp": 400.0,
+            "pres": 1.0,
+            "tau_t": 0.1,
+            "tau_p": 0.5,
+            "thermo_freq": 100,
+            "copies": None,
+            "crystal": "vega",
+            "sparam": soft_param,
+            "switch": "three-step",
+            "step": "lj_on",
+            "if_meam": False,
+            "meam_model": None,
+        }
         ret1 = textwrap.dedent(
             """\
         clear
@@ -101,30 +101,30 @@ class TestHtiGenLammpsInput(unittest.TestCase):
     @patch("numpy.random")
     def test_deepmd_deep_on(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(
-            conf_file="conf.lmp",
-            mass_map=[118.71],
-            lamb=0.075,
-            model="graph.pb",
-            m_spring_k=[
+        input = {
+            "conf_file": "conf.lmp",
+            "mass_map": [118.71],
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "m_spring_k": [
                 2.3742,
             ],
-            nsteps=500000,
-            timestep=0.002,
-            ens="npt",
-            temp=400.0,
-            pres=1.0,
-            tau_t=0.1,
-            tau_p=0.5,
-            thermo_freq=100,
-            copies=None,
-            crystal="vega",
-            sparam=soft_param,
-            switch="three-step",
-            step="deep_on",
-            if_meam=False,
-            meam_model=None,
-        )
+            "nsteps": 500000,
+            "timestep": 0.002,
+            "ens": "npt",
+            "temp": 400.0,
+            "pres": 1.0,
+            "tau_t": 0.1,
+            "tau_p": 0.5,
+            "thermo_freq": 100,
+            "copies": None,
+            "crystal": "vega",
+            "sparam": soft_param,
+            "switch": "three-step",
+            "step": "deep_on",
+            "if_meam": False,
+            "meam_model": None,
+        }
         ret1 = textwrap.dedent(
             """\
         clear
@@ -186,30 +186,30 @@ class TestHtiGenLammpsInput(unittest.TestCase):
     @patch("numpy.random")
     def test_deepmd_lj_off(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(
-            conf_file="conf.lmp",
-            mass_map=[118.71],
-            lamb=0.075,
-            model="graph.pb",
-            m_spring_k=[
+        input = {
+            "conf_file": "conf.lmp",
+            "mass_map": [118.71],
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "m_spring_k": [
                 2.3742,
             ],
-            nsteps=500000,
-            timestep=0.002,
-            ens="npt",
-            temp=400.0,
-            pres=1.0,
-            tau_t=0.1,
-            tau_p=0.5,
-            thermo_freq=100,
-            copies=None,
-            crystal="vega",
-            sparam=soft_param,
-            switch="three-step",
-            step="spring_off",
-            if_meam=False,
-            meam_model=None,
-        )
+            "nsteps": 500000,
+            "timestep": 0.002,
+            "ens": "npt",
+            "temp": 400.0,
+            "pres": 1.0,
+            "tau_t": 0.1,
+            "tau_p": 0.5,
+            "thermo_freq": 100,
+            "copies": None,
+            "crystal": "vega",
+            "sparam": soft_param,
+            "switch": "three-step",
+            "step": "spring_off",
+            "if_meam": False,
+            "meam_model": None,
+        }
         ret1 = textwrap.dedent(
             """\
         clear
@@ -271,30 +271,30 @@ class TestHtiGenLammpsInput(unittest.TestCase):
     @patch("numpy.random")
     def test_meam_deep_on(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(
-            conf_file="conf.lmp",
-            mass_map=[118.71],
-            lamb=0.075,
-            model=None,
-            m_spring_k=[
+        input = {
+            "conf_file": "conf.lmp",
+            "mass_map": [118.71],
+            "lamb": 0.075,
+            "model": None,
+            "m_spring_k": [
                 2.3742,
             ],
-            nsteps=500000,
-            timestep=0.002,
-            ens="npt",
-            temp=400.0,
-            pres=1.0,
-            tau_t=0.1,
-            tau_p=0.5,
-            thermo_freq=100,
-            copies=None,
-            crystal="vega",
-            sparam=soft_param,
-            switch="three-step",
-            step="deep_on",
-            if_meam=True,
-            meam_model=meam_model,
-        )
+            "nsteps": 500000,
+            "timestep": 0.002,
+            "ens": "npt",
+            "temp": 400.0,
+            "pres": 1.0,
+            "tau_t": 0.1,
+            "tau_p": 0.5,
+            "thermo_freq": 100,
+            "copies": None,
+            "crystal": "vega",
+            "sparam": soft_param,
+            "switch": "three-step",
+            "step": "deep_on",
+            "if_meam": True,
+            "meam_model": meam_model,
+        }
         ret1 = textwrap.dedent(
             """\
         clear
@@ -357,30 +357,30 @@ class TestHtiGenLammpsInput(unittest.TestCase):
     @patch("numpy.random")
     def test_meam_spring_off(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(
-            conf_file="conf.lmp",
-            mass_map=[118.71],
-            lamb=0.075,
-            model=None,
-            m_spring_k=[
+        input = {
+            "conf_file": "conf.lmp",
+            "mass_map": [118.71],
+            "lamb": 0.075,
+            "model": None,
+            "m_spring_k": [
                 2.3742,
             ],
-            nsteps=500000,
-            timestep=0.002,
-            ens="npt",
-            temp=400.0,
-            pres=1.0,
-            tau_t=0.1,
-            tau_p=0.5,
-            thermo_freq=100,
-            copies=None,
-            crystal="vega",
-            sparam=soft_param,
-            switch="three-step",
-            step="spring_off",
-            if_meam=True,
-            meam_model=meam_model,
-        )
+            "nsteps": 500000,
+            "timestep": 0.002,
+            "ens": "npt",
+            "temp": 400.0,
+            "pres": 1.0,
+            "tau_t": 0.1,
+            "tau_p": 0.5,
+            "thermo_freq": 100,
+            "copies": None,
+            "crystal": "vega",
+            "sparam": soft_param,
+            "switch": "three-step",
+            "step": "spring_off",
+            "if_meam": True,
+            "meam_model": meam_model,
+        }
         ret1 = textwrap.dedent(
             """\
         clear
@@ -441,30 +441,30 @@ class TestHtiGenLammpsInput(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_raise_err(self):
-        input = dict(
-            conf_file="conf.lmp",
-            mass_map=[118.71],
-            lamb=0.075,
-            model="graph.pb",
-            m_spring_k=[
+        input = {
+            "conf_file": "conf.lmp",
+            "mass_map": [118.71],
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "m_spring_k": [
                 2.3742,
             ],
-            nsteps=500000,
-            timestep=0.002,
-            ens="npt",
-            temp=400.0,
-            pres=1.0,
-            tau_t=0.1,
-            tau_p=0.5,
-            thermo_freq=100,
-            copies=None,
-            crystal="vega",
-            sparam=soft_param,
-            switch="three-step",
-            step="spring_off",
-            if_meam=False,
-            meam_model=None,
-        )
+            "nsteps": 500000,
+            "timestep": 0.002,
+            "ens": "npt",
+            "temp": 400.0,
+            "pres": 1.0,
+            "tau_t": 0.1,
+            "tau_p": 0.5,
+            "thermo_freq": 100,
+            "copies": None,
+            "crystal": "vega",
+            "sparam": soft_param,
+            "switch": "three-step",
+            "step": "spring_off",
+            "if_meam": False,
+            "meam_model": None,
+        }
 
         input2 = input.copy()
         input2["step"] = "foo"

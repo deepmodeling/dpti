@@ -10,15 +10,15 @@ class TestFfSpring(unittest.TestCase):
         self.maxDiff = None
 
     def test_lj_on(self):
-        input = dict(
-            lamb=0.075,
-            model="graph.pb",
-            m_spring_k=[118.71],
-            step="lj_on",
-            sparam=soft_param,
-            if_meam=False,
-            meam_model=None,
-        )
+        input = {
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "m_spring_k": [118.71],
+            "step": "lj_on",
+            "sparam": soft_param,
+            "if_meam": False,
+            "meam_model": None,
+        }
         ret1 = textwrap.dedent(
             """\
         # --------------------- FORCE FIELDS ---------------------
@@ -42,15 +42,15 @@ class TestFfSpring(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_deep_on(self):
-        input = dict(
-            lamb=0.075,
-            model="graph.pb",
-            m_spring_k=[118.71],
-            step="deep_on",
-            sparam=soft_param,
-            if_meam=False,
-            meam_model=None,
-        )
+        input = {
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "m_spring_k": [118.71],
+            "step": "deep_on",
+            "sparam": soft_param,
+            "if_meam": False,
+            "meam_model": None,
+        }
         ret1 = textwrap.dedent(
             """\
         # --------------------- FORCE FIELDS ---------------------
@@ -76,15 +76,15 @@ class TestFfSpring(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_spring_off(self):
-        input = dict(
-            lamb=0.075,
-            model="graph.pb",
-            m_spring_k=[118.71],
-            step="spring_off",
-            sparam=soft_param,
-            if_meam=False,
-            meam_model=None,
-        )
+        input = {
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "m_spring_k": [118.71],
+            "step": "spring_off",
+            "sparam": soft_param,
+            "if_meam": False,
+            "meam_model": None,
+        }
         ret1 = textwrap.dedent(
             """\
         # --------------------- FORCE FIELDS ---------------------
@@ -106,15 +106,15 @@ class TestFfSpring(unittest.TestCase):
 
     # def test_me
     def test_meam_deep_on(self):
-        input = dict(
-            lamb=0.075,
-            model="graph.pb",
-            m_spring_k=[118.71],
-            step="deep_on",
-            sparam=soft_param,
-            if_meam=True,
-            meam_model=meam_model,
-        )
+        input = {
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "m_spring_k": [118.71],
+            "step": "deep_on",
+            "sparam": soft_param,
+            "if_meam": True,
+            "meam_model": meam_model,
+        }
         ret1 = textwrap.dedent(
             """\
         # --------------------- FORCE FIELDS ---------------------
@@ -140,15 +140,15 @@ class TestFfSpring(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_meam_spring_off(self):
-        input = dict(
-            lamb=0.075,
-            model="graph.pb",
-            m_spring_k=[118.71],
-            step="spring_off",
-            sparam=soft_param,
-            if_meam=True,
-            meam_model=meam_model,
-        )
+        input = {
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "m_spring_k": [118.71],
+            "step": "spring_off",
+            "sparam": soft_param,
+            "if_meam": True,
+            "meam_model": meam_model,
+        }
 
         ret1 = textwrap.dedent(
             """\

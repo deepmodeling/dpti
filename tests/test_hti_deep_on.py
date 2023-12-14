@@ -13,7 +13,7 @@ class TestEquiForceField(unittest.TestCase):
         self.maxDiff = None
 
     def test_deepmd(self):
-        input = dict(lamb=0.075, model="graph.pb", sparam=soft_param)
+        input = {"lamb": 0.075, "model": "graph.pb", "sparam": soft_param}
         ret1 = textwrap.dedent(
             """\
         variable        EPSILON equal 0.030000
@@ -35,13 +35,13 @@ class TestEquiForceField(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_meam(self):
-        input = dict(
-            lamb=0.075,
-            model=None,
-            sparam=soft_param,
-            if_meam=True,
-            meam_model=meam_model,
-        )
+        input = {
+            "lamb": 0.075,
+            "model": None,
+            "sparam": soft_param,
+            "if_meam": True,
+            "meam_model": meam_model,
+        }
         ret1 = textwrap.dedent(
             """\
         variable        EPSILON equal 0.030000
@@ -62,9 +62,13 @@ class TestEquiForceField(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_meam_key_error(self):
-        input = dict(
-            lamb=0.075, model=None, sparam=soft_param, if_meam=True, meam_model={}
-        )
+        input = {
+            "lamb": 0.075,
+            "model": None,
+            "sparam": soft_param,
+            "if_meam": True,
+            "meam_model": {},
+        }
         with self.assertRaises(KeyError):
             dpti.hti._ff_deep_on(**input)
 

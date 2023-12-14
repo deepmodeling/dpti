@@ -144,10 +144,10 @@ class RemoteJob:
             else:
                 rpath = os.path.join(remotepath, f.filename)
                 if verbose:
-                    print("removing %s%s" % ("    " * level, rpath))
+                    print("removing {}{}".format("    " * level, rpath))
                 sftp.remove(rpath)
         if verbose:
-            print("removing %s%s" % ("    " * level, remotepath))
+            print("removing {}{}".format("    " * level, remotepath))
         sftp.rmdir(remotepath)
 
     def _put_files(self, files, dereference=True):
@@ -179,7 +179,7 @@ class RemoteJob:
         for ii in files:
             flist += " " + ii
         # remote tar
-        self.block_checkcall("tar czf %s %s" % (of, flist))
+        self.block_checkcall(f"tar czf {of} {flist}")
         # trans
         from_f = os.path.join(self.remote_root, of)
         to_f = os.path.join(self.local_root, of)
@@ -208,7 +208,7 @@ class CloudMachineJob(RemoteJob):
         # print(self.remote_root)
         script_name = self._make_script(job_dirs, cmd, args, resources)
         self.stdin, self.stdout, self.stderr = self.ssh.exec_command(
-            "cd %s; bash %s" % (self.remote_root, script_name)
+            f"cd {self.remote_root}; bash {script_name}"
         )
         # print(self.stderr.read().decode('utf-8'))
         # print(self.stdout.read().decode('utf-8'))
@@ -246,7 +246,7 @@ class CloudMachineJob(RemoteJob):
             # fp.write('set -euo pipefail\n')
             if envs is not None:
                 for key in envs.keys():
-                    fp.write("export %s=%s\n" % (key, envs[key]))
+                    fp.write(f"export {key}={envs[key]}\n")
                 fp.write("\n")
             if module_unload_list is not None:
                 for ii in module_unload_list:
@@ -262,7 +262,7 @@ class CloudMachineJob(RemoteJob):
                 if resources["with_mpi"] is True:
                     fp.write("mpirun -n %d %s %s\n" % (task_per_node, cmd, jj))
                 else:
-                    fp.write("%s %s\n" % (cmd, jj))
+                    fp.write(f"{cmd} {jj}\n")
                 fp.write("test $? -ne 0 && exit\n")
                 fp.write("cd %s\n" % self.remote_root)
                 fp.write("test $? -ne 0 && exit\n")
@@ -275,7 +275,7 @@ class SlurmJob(RemoteJob):
     def submit(self, job_dirs, cmd, args=None, resources=None):
         script_name = self._make_script(job_dirs, cmd, args, res=resources)
         stdin, stdout, stderr = self.block_checkcall(
-            "cd %s; sbatch %s" % (self.remote_root, script_name)
+            f"cd {self.remote_root}; sbatch {script_name}"
         )
         subret = stdout.readlines()
         job_id = subret[0].split()[-1]
@@ -379,12 +379,12 @@ class SlurmJob(RemoteJob):
             ret += "source %s\n" % ii
         ret += "\n"
         envs = res["envs"]
-        if envs != None:
+        if envs is not None:
             for key in envs.keys():
-                ret += "export %s=%s\n" % (key, envs[key])
+                ret += f"export {key}={envs[key]}\n"
             ret += "\n"
 
-        if args == None:
+        if args is None:
             args = []
             for ii in job_dirs:
                 args.append("")
@@ -392,9 +392,9 @@ class SlurmJob(RemoteJob):
             ret += "cd %s\n" % ii
             ret += "test $? -ne 0 && exit\n"
             if res["with_mpi"]:
-                ret += "srun %s %s\n" % (cmd, jj)
+                ret += f"srun {cmd} {jj}\n"
             else:
-                ret += "%s %s\n" % (cmd, jj)
+                ret += f"{cmd} {jj}\n"
             ret += "test $? -ne 0 && exit\n"
             ret += "cd %s\n" % self.remote_root
             ret += "test $? -ne 0 && exit\n"
@@ -414,7 +414,7 @@ class PBSJob(RemoteJob):
     def submit(self, job_dirs, cmd, args=None, resources=None):
         script_name = self._make_script(job_dirs, cmd, args, res=resources)
         stdin, stdout, stderr = self.block_checkcall(
-            "cd %s; qsub %s" % (self.remote_root, script_name)
+            f"cd {self.remote_root}; qsub {script_name}"
         )
         subret = stdout.readlines()
         job_id = subret[0].split()[0]
@@ -505,13 +505,13 @@ class PBSJob(RemoteJob):
             ret += "source %s\n" % ii
         ret += "\n"
         envs = res["envs"]
-        if envs != None:
+        if envs is not None:
             for key in envs.keys():
-                ret += "export %s=%s\n" % (key, envs[key])
+                ret += f"export {key}={envs[key]}\n"
             ret += "\n"
         ret += "cd $PBS_O_WORKDIR\n\n"
 
-        if args == None:
+        if args is None:
             args = []
             for ii in job_dirs:
                 args.append("")
@@ -525,7 +525,7 @@ class PBSJob(RemoteJob):
                     jj,
                 )
             else:
-                ret += "%s %s\n" % (cmd, jj)
+                ret += f"{cmd} {jj}\n"
             ret += "test $? -ne 0 && exit\n"
             ret += "cd %s\n" % self.remote_root
             ret += "test $? -ne 0 && exit\n"

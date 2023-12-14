@@ -41,12 +41,12 @@ def _ff_angle_on(lamb, model, bparam, sparam):
     activation = sparam["activation"]
     ret = ""
     ret += "variable        EPSILON equal %f\n" % epsilon
-    ret += "pair_style      lj/cut/soft %f %f %f  \n" % (nn, alpha_lj, rcut)
-    ret += "pair_coeff      1 1 ${EPSILON} %f %f\n" % (sigma_oo, activation)
-    ret += "pair_coeff      1 2 ${EPSILON} %f %f\n" % (sigma_oh, activation)
-    ret += "pair_coeff      2 2 ${EPSILON} %f %f\n" % (sigma_hh, activation)
+    ret += f"pair_style      lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}  \n"
+    ret += f"pair_coeff      1 1 ${{EPSILON}} {sigma_oo:f} {activation:f}\n"
+    ret += f"pair_coeff      1 2 ${{EPSILON}} {sigma_oh:f} {activation:f}\n"
+    ret += f"pair_coeff      2 2 ${{EPSILON}} {sigma_hh:f} {activation:f}\n"
     ret += "bond_style      harmonic\n"
-    ret += "bond_coeff      1 %f %f\n" % (bond_k, bond_l)
+    ret += f"bond_coeff      1 {bond_k:f} {bond_l:f}\n"
     ret += "variable        ANGLE_K equal ${LAMBDA}*%.16e\n" % angle_k
     ret += "angle_style     harmonic\n"
     ret += "angle_coeff     1 ${ANGLE_K} %f\n" % (angle_t)
@@ -71,20 +71,20 @@ def _ff_deep_on(lamb, model, bparam, sparam):
     ret = ""
     ret += "variable        EPSILON equal %f\n" % epsilon
     ret += "variable        ONE equal 1\n"
-    ret += "pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n" % (
+    ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}  \n".format(
         model,
         nn,
         alpha_lj,
         rcut,
     )
     ret += "pair_coeff      * * deepmd\n"
-    ret += "pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n" % (sigma_oo, activation)
-    ret += "pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n" % (sigma_oh, activation)
-    ret += "pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n" % (sigma_hh, activation)
+    ret += f"pair_coeff      1 1 lj/cut/soft ${{EPSILON}} {sigma_oo:f} {activation:f}\n"
+    ret += f"pair_coeff      1 2 lj/cut/soft ${{EPSILON}} {sigma_oh:f} {activation:f}\n"
+    ret += f"pair_coeff      2 2 lj/cut/soft ${{EPSILON}} {sigma_hh:f} {activation:f}\n"
     ret += "bond_style      harmonic\n"
-    ret += "bond_coeff      1 %f %f\n" % (bond_k, bond_l)
+    ret += f"bond_coeff      1 {bond_k:f} {bond_l:f}\n"
     ret += "angle_style     harmonic\n"
-    ret += "angle_coeff     1 %f %f\n" % (angle_k, angle_t)
+    ret += f"angle_coeff     1 {angle_k:f} {angle_t:f}\n"
     ret += "fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA\n"
     ret += "compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE\n"
     return ret
@@ -107,16 +107,16 @@ def _ff_bond_angle_off(lamb, model, bparam, sparam):
     ret += "variable        INV_LAMBDA equal 1-${LAMBDA}\n"
     ret += "variable        EPSILON equal %f\n" % epsilon
     ret += "variable        INV_EPSILON equal -${EPSILON}\n"
-    ret += "pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f  \n" % (
+    ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}  \n".format(
         model,
         nn,
         alpha_lj,
         rcut,
     )
     ret += "pair_coeff      * * deepmd\n"
-    ret += "pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n" % (sigma_oo, activation)
-    ret += "pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n" % (sigma_oh, activation)
-    ret += "pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n" % (sigma_hh, activation)
+    ret += f"pair_coeff      1 1 lj/cut/soft ${{EPSILON}} {sigma_oo:f} {activation:f}\n"
+    ret += f"pair_coeff      1 2 lj/cut/soft ${{EPSILON}} {sigma_oh:f} {activation:f}\n"
+    ret += f"pair_coeff      2 2 lj/cut/soft ${{EPSILON}} {sigma_hh:f} {activation:f}\n"
     ret += "variable        BOND_K equal %.16e\n" % (bond_k * (1 - lamb))
     ret += "bond_style      harmonic\n"
     ret += "bond_coeff      1 ${BOND_K} %f\n" % (bond_l)
@@ -605,12 +605,12 @@ def _post_tasks_mbar(iter_name, step, natoms):
 
 def _print_thermo_info(info):
     ptr = "# thermodynamics (normalized by nmols)\n"
-    ptr += "# E (err)  [eV]:  %20.8f %20.8f\n" % (info["e"], info["e_err"])
-    ptr += "# H (err)  [eV]:  %20.8f %20.8f\n" % (info["h"], info["h_err"])
-    ptr += "# T (err)   [K]:  %20.8f %20.8f\n" % (info["t"], info["t_err"])
-    ptr += "# P (err) [bar]:  %20.8f %20.8f\n" % (info["p"], info["p_err"])
-    ptr += "# V (err) [A^3]:  %20.8f %20.8f\n" % (info["v"], info["v_err"])
-    ptr += "# PV(err)  [eV]:  %20.8f %20.8f" % (info["pv"], info["pv_err"])
+    ptr += "# E (err)  [eV]:  {:20.8f} {:20.8f}\n".format(info["e"], info["e_err"])
+    ptr += "# H (err)  [eV]:  {:20.8f} {:20.8f}\n".format(info["h"], info["h_err"])
+    ptr += "# T (err)   [K]:  {:20.8f} {:20.8f}\n".format(info["t"], info["t_err"])
+    ptr += "# P (err) [bar]:  {:20.8f} {:20.8f}\n".format(info["p"], info["p_err"])
+    ptr += "# V (err) [A^3]:  {:20.8f} {:20.8f}\n".format(info["v"], info["v_err"])
+    ptr += "# PV(err)  [eV]:  {:20.8f} {:20.8f}".format(info["pv"], info["pv_err"])
     print(ptr)
 
 
@@ -678,7 +678,7 @@ def post_tasks(iter_name, natoms, method="inte", scheme="s"):
         e0, err0, tinfo0 = _post_tasks(subtask_name, "angle_on", natoms, scheme=scheme)
     elif method == "mbar":
         e0, err0, tinfo0 = _post_tasks_mbar(subtask_name, "angle_on", natoms)
-    print("# fe of angle_on : %20.12f  %10.3e %10.3e" % (e0, err0[0], err0[1]))
+    print(f"# fe of angle_on : {e0:20.12f}  {err0[0]:10.3e} {err0[1]:10.3e}")
     # _print_thermo_info(tinfo)
     # print(e, err)
     subtask_name = os.path.join(iter_name, "01.deep_on")
@@ -686,7 +686,7 @@ def post_tasks(iter_name, natoms, method="inte", scheme="s"):
         e1, err1, tinfo1 = _post_tasks(subtask_name, "deep_on", natoms, scheme=scheme)
     elif method == "mbar":
         e1, err1, tinfo1 = _post_tasks_mbar(subtask_name, "deep_on", natoms)
-    print("# fe of deep_on  : %20.12f  %10.3e %10.3e" % (e1, err1[0], err1[1]))
+    print(f"# fe of deep_on  : {e1:20.12f}  {err1[0]:10.3e} {err1[1]:10.3e}")
     # _print_thermo_info(tinfo)
     # print(e, err)
     subtask_name = os.path.join(iter_name, "02.bond_angle_off")
@@ -696,7 +696,7 @@ def post_tasks(iter_name, natoms, method="inte", scheme="s"):
         )
     elif method == "mbar":
         e2, err2, tinfo2 = _post_tasks_mbar(subtask_name, "bond_angle_off", natoms)
-    print("# fe of bond_off : %20.12f  %10.3e %10.3e" % (e2, err2[0], err2[1]))
+    print(f"# fe of bond_off : {e2:20.12f}  {err2[0]:10.3e} {err2[1]:10.3e}")
     # _print_thermo_info(tinfo)
     # print(e, err)
     fe = fe + e0 + e1 + e2

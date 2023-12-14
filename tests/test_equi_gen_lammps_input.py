@@ -13,23 +13,23 @@ class TestEquiGenLammpsInput(unittest.TestCase):
     @patch("numpy.random")
     def test_deepmd_npt(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(
-            nsteps=1000000,
-            thermo_freq=10,
-            dump_freq=100000,
-            mass_map=[118.71],
-            temp=400,
-            tau_t=0.2,
-            tau_p=2.0,
-            equi_conf="conf.lmp",
-            model="graph.pb",
-            timestep=0.002,
-            if_dump_avg_posi=False,
-            ens="npt-iso",
-            pres=200000,
-            if_meam=False,
-            meam_model=None,
-        )
+        input = {
+            "nsteps": 1000000,
+            "thermo_freq": 10,
+            "dump_freq": 100000,
+            "mass_map": [118.71],
+            "temp": 400,
+            "tau_t": 0.2,
+            "tau_p": 2.0,
+            "equi_conf": "conf.lmp",
+            "model": "graph.pb",
+            "timestep": 0.002,
+            "if_dump_avg_posi": False,
+            "ens": "npt-iso",
+            "pres": 200000,
+            "if_meam": False,
+            "meam_model": None,
+        }
 
         ret1 = textwrap.dedent(
             """\
@@ -79,23 +79,23 @@ class TestEquiGenLammpsInput(unittest.TestCase):
     @patch("numpy.random")
     def test_deepmd_nvt(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(
-            nsteps=1000000,
-            thermo_freq=10,
-            dump_freq=100000,
-            mass_map=[118.71],
-            temp=400,
-            tau_t=0.2,
-            tau_p=2.0,
-            equi_conf="conf.lmp",
-            model="graph.pb",
-            timestep=0.002,
-            if_dump_avg_posi=False,
-            ens="nvt",
-            pres=200000,
-            if_meam=False,
-            meam_model=None,
-        )
+        input = {
+            "nsteps": 1000000,
+            "thermo_freq": 10,
+            "dump_freq": 100000,
+            "mass_map": [118.71],
+            "temp": 400,
+            "tau_t": 0.2,
+            "tau_p": 2.0,
+            "equi_conf": "conf.lmp",
+            "model": "graph.pb",
+            "timestep": 0.002,
+            "if_dump_avg_posi": False,
+            "ens": "nvt",
+            "pres": 200000,
+            "if_meam": False,
+            "meam_model": None,
+        }
         ret2 = dpti.equi.gen_equi_lammps_input(**input)
 
         ret1 = textwrap.dedent(
@@ -144,23 +144,23 @@ class TestEquiGenLammpsInput(unittest.TestCase):
     @patch("numpy.random")
     def test_meam_npt(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(
-            nsteps=1000000,
-            thermo_freq=10,
-            dump_freq=100000,
-            mass_map=[118.71],
-            temp=400,
-            tau_t=0.2,
-            tau_p=2.0,
-            equi_conf="conf.lmp",
-            model=None,
-            timestep=0.002,
-            if_dump_avg_posi=False,
-            ens="npt-xy",
-            pres=200000,
-            if_meam=True,
-            meam_model=meam_model,
-        )
+        input = {
+            "nsteps": 1000000,
+            "thermo_freq": 10,
+            "dump_freq": 100000,
+            "mass_map": [118.71],
+            "temp": 400,
+            "tau_t": 0.2,
+            "tau_p": 2.0,
+            "equi_conf": "conf.lmp",
+            "model": None,
+            "timestep": 0.002,
+            "if_dump_avg_posi": False,
+            "ens": "npt-xy",
+            "pres": 200000,
+            "if_meam": True,
+            "meam_model": meam_model,
+        }
         ret2 = dpti.equi.gen_equi_lammps_input(**input)
         ret1 = textwrap.dedent(
             """\

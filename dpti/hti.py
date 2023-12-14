@@ -42,7 +42,7 @@ def _ff_lj_on(lamb, model, sparam):
     activation = sparam["activation"]
     ret = ""
     ret += "variable        EPSILON equal %f\n" % epsilon
-    ret += "pair_style      lj/cut/soft %f %f %f\n" % (nn, alpha_lj, rcut)
+    ret += f"pair_style      lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
 
     element_num = sparam.get("element_num", 1)
     sigma_key_index = filter(
@@ -50,7 +50,7 @@ def _ff_lj_on(lamb, model, sparam):
         ((i, j) for i in range(element_num) for j in range(element_num)),
     )
     for i, j in sigma_key_index:
-        ret += "pair_coeff      %s %s ${EPSILON} %f %f\n" % (
+        ret += "pair_coeff      {} {} ${{EPSILON}} {:f} {:f}\n".format(
             i + 1,
             j + 1,
             sparam["sigma_" + str(i) + "_" + str(j)],
@@ -83,14 +83,16 @@ def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None):
     #     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
     #     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn \n'
     if if_meam:
-        ret += "pair_style      hybrid/overlay meam lj/cut/soft %f %f %f\n" % (
-            nn,
-            alpha_lj,
-            rcut,
+        ret += (
+            "pair_style      hybrid/overlay meam lj/cut/soft {:f} {:f} {:f}\n".format(
+                nn,
+                alpha_lj,
+                rcut,
+            )
         )
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
     else:
-        ret += "pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f\n" % (
+        ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}\n".format(
             model,
             nn,
             alpha_lj,
@@ -104,7 +106,7 @@ def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None):
         ((i, j) for i in range(element_num) for j in range(element_num)),
     )
     for i, j in sigma_key_index:
-        ret += "pair_coeff      %s %s lj/cut/soft ${EPSILON} %f %f\n" % (
+        ret += "pair_coeff      {} {} lj/cut/soft ${{EPSILON}} {:f} {:f}\n".format(
             i + 1,
             j + 1,
             sparam["sigma_" + str(i) + "_" + str(j)],
@@ -179,15 +181,17 @@ def _ff_lj_off(lamb, model, sparam, if_meam=False, meam_model=None):
     #     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n'  % (nn, alpha_lj, rcut)
     #     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
     if if_meam:
-        ret += "pair_style      hybrid/overlay meam lj/cut/soft %f %f %f\n" % (
-            nn,
-            alpha_lj,
-            rcut,
+        ret += (
+            "pair_style      hybrid/overlay meam lj/cut/soft {:f} {:f} {:f}\n".format(
+                nn,
+                alpha_lj,
+                rcut,
+            )
         )
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
-        ret += "pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f\n" % (
+        ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}\n".format(
             model,
             nn,
             alpha_lj,
@@ -201,7 +205,7 @@ def _ff_lj_off(lamb, model, sparam, if_meam=False, meam_model=None):
         ((i, j) for i in range(element_num) for j in range(element_num)),
     )
     for i, j in sigma_key_index:
-        ret += "pair_coeff      %s %s lj/cut/soft ${EPSILON} %f %f\n" % (
+        ret += "pair_coeff      {} {} lj/cut/soft ${{EPSILON}} {:f} {:f}\n".format(
             i + 1,
             j + 1,
             sparam["sigma_" + str(i) + "_" + str(j)],
@@ -253,13 +257,13 @@ def _ff_spring(lamb, m_spring_k, var_spring):
     ret = ""
     ntypes = len(m_spring_k)
     for ii in range(ntypes):
-        ret += "group           type_%s type %s\n" % (ii + 1, ii + 1)
+        ret += f"group           type_{ii + 1} type {ii + 1}\n"
     for ii in range(ntypes):
         if var_spring:
             m_spring_const = m_spring_k[ii] * (1 - lamb)
         else:
             m_spring_const = m_spring_k[ii]
-        ret += "fix             l_spring_%s type_%s spring/self %.10e\n" % (
+        ret += "fix             l_spring_{} type_{} spring/self {:.10e}\n".format(
             ii + 1,
             ii + 1,
             m_spring_const,
@@ -918,7 +922,7 @@ def post_tasks(iter_name, jdata, natoms=None, method="inte", scheme="s"):
             )
         else:
             raise RuntimeError("unknow method for integration")
-        print("# fe of deep_on:    %20.12f  %10.3e %10.3e" % (e0, err0[0], err0[1]))
+        print(f"# fe of deep_on:    {e0:20.12f}  {err0[0]:10.3e} {err0[1]:10.3e}")
         subtask_name = os.path.join(iter_name, "01.spring_off")
         if method == "inte":
             e1, err1, tinfo1 = _post_tasks(
@@ -935,7 +939,7 @@ def post_tasks(iter_name, jdata, natoms=None, method="inte", scheme="s"):
             )
         else:
             raise RuntimeError("unknow method for integration")
-        print("# fe of spring_off: %20.12f  %10.3e %10.3e" % (e1, err1[0], err1[1]))
+        print(f"# fe of spring_off: {e1:20.12f}  {err1[0]:10.3e} {err1[1]:10.3e}")
         de = e0 + e1
         stt_err = np.sqrt(np.square(err0[0]) + np.square(err1[0]))
         sys_err = (err0[1]) + (err1[1])
@@ -959,7 +963,7 @@ def post_tasks(iter_name, jdata, natoms=None, method="inte", scheme="s"):
             )
         else:
             raise RuntimeError("unknow method for integration")
-        print("# fe of lj_on:      %20.12f  %10.3e %10.3e" % (e0, err0[0], err0[1]))
+        print(f"# fe of lj_on:      {e0:20.12f}  {err0[0]:10.3e} {err0[1]:10.3e}")
         subtask_name = os.path.join(iter_name, "01.deep_on")
         if method == "inte":
             e1, err1, tinfo1 = _post_tasks(
@@ -976,7 +980,7 @@ def post_tasks(iter_name, jdata, natoms=None, method="inte", scheme="s"):
             )
         else:
             raise RuntimeError("unknow method for integration")
-        print("# fe of deep_on:   %20.12f  %10.3e %10.3e" % (e1, err1[0], err1[1]))
+        print(f"# fe of deep_on:   {e1:20.12f}  {err1[0]:10.3e} {err1[1]:10.3e}")
         subtask_name = os.path.join(iter_name, "02.spring_off")
         if method == "inte":
             e2, err2, tinfo2 = _post_tasks(
@@ -993,7 +997,7 @@ def post_tasks(iter_name, jdata, natoms=None, method="inte", scheme="s"):
             )
         else:
             raise RuntimeError("unknow method for integration")
-        print("# fe of spring_off: %20.12f  %10.3e %10.3e" % (e2, err2[0], err2[1]))
+        print(f"# fe of spring_off: {e2:20.12f}  {err2[0]:10.3e} {err2[1]:10.3e}")
         de = e0 + e1 + e2
         stt_err = np.sqrt(np.square(err0[0]) + np.square(err1[0]) + np.square(err2[0]))
         sys_err = (err0[1]) + (err1[1]) + (err2[1])
@@ -1249,12 +1253,12 @@ def _post_tasks_mbar(iter_name, jdata, natoms=None, switch="one-step", step="bot
 
 def print_thermo_info(info):
     ptr = "# thermodynamics (normalized by natoms)\n"
-    ptr += "# E (err)  [eV]:  %20.8f %20.8f\n" % (info["e"], info["e_err"])
-    ptr += "# H (err)  [eV]:  %20.8f %20.8f\n" % (info["h"], info["h_err"])
-    ptr += "# T (err)   [K]:  %20.8f %20.8f\n" % (info["t"], info["t_err"])
-    ptr += "# P (err) [bar]:  %20.8f %20.8f\n" % (info["p"], info["p_err"])
-    ptr += "# V (err) [A^3]:  %20.8f %20.8f\n" % (info["v"], info["v_err"])
-    ptr += "# PV(err)  [eV]:  %20.8f %20.8f" % (info["pv"], info["pv_err"])
+    ptr += "# E (err)  [eV]:  {:20.8f} {:20.8f}\n".format(info["e"], info["e_err"])
+    ptr += "# H (err)  [eV]:  {:20.8f} {:20.8f}\n".format(info["h"], info["h_err"])
+    ptr += "# T (err)   [K]:  {:20.8f} {:20.8f}\n".format(info["t"], info["t_err"])
+    ptr += "# P (err) [bar]:  {:20.8f} {:20.8f}\n".format(info["p"], info["p_err"])
+    ptr += "# V (err) [A^3]:  {:20.8f} {:20.8f}\n".format(info["v"], info["v_err"])
+    ptr += "# PV(err)  [eV]:  {:20.8f} {:20.8f}".format(info["pv"], info["pv_err"])
     print(ptr)
 
 

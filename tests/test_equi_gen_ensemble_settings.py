@@ -12,7 +12,7 @@ class TestEquiEnsembleSetting(unittest.TestCase):
     @patch("numpy.random")
     def test_gen_equi_ensemble_settings_nvt(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(ens="nvt")
+        input = {"ens": "nvt"}
         ret1 = textwrap.dedent(
             """\
         fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}

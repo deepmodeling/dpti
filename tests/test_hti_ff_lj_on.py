@@ -12,7 +12,7 @@ class TestEquiForceField(unittest.TestCase):
         self.maxDiff = None
 
     def test_normal(self):
-        input = dict(lamb=0.075, model=None, sparam=soft_param)
+        input = {"lamb": 0.075, "model": None, "sparam": soft_param}
         ret1 = textwrap.dedent(
             """\
         variable        EPSILON equal 0.030000
@@ -31,7 +31,7 @@ class TestEquiForceField(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_three_element(self):
-        input = dict(lamb=0.075, model=None, sparam=soft_param_three_element)
+        input = {"lamb": 0.075, "model": None, "sparam": soft_param_three_element}
         ret1 = textwrap.dedent(
             """\
         variable        EPSILON equal 0.030000

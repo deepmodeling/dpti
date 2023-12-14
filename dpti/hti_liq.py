@@ -37,7 +37,7 @@ def _ff_soft_on(lamb, sparam):
     activation = sparam["activation"]
     ret = ""
     ret += "variable        EPSILON equal %f\n" % epsilon
-    ret += "pair_style      lj/cut/soft %f %f %f\n" % (nn, alpha_lj, rcut)
+    ret += f"pair_style      lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
 
     element_num = sparam.get("element_num", 1)
     sigma_key_index = filter(
@@ -45,7 +45,7 @@ def _ff_soft_on(lamb, sparam):
         ((i, j) for i in range(element_num) for j in range(element_num)),
     )
     for i, j in sigma_key_index:
-        ret += "pair_coeff      %s %s ${EPSILON} %f %f\n" % (
+        ret += "pair_coeff      {} {} ${{EPSILON}} {:f} {:f}\n".format(
             i + 1,
             j + 1,
             sparam["sigma_" + str(i) + "_" + str(j)],
@@ -69,15 +69,17 @@ def _ff_deep_on(lamb, sparam, model, if_meam=False, meam_model=None):
     ret += "variable        EPSILON equal %f\n" % epsilon
     ret += "variable        ONE equal 1\n"
     if if_meam:
-        ret += "pair_style      hybrid/overlay meam lj/cut/soft %f %f %f\n" % (
-            nn,
-            alpha_lj,
-            rcut,
+        ret += (
+            "pair_style      hybrid/overlay meam lj/cut/soft {:f} {:f} {:f}\n".format(
+                nn,
+                alpha_lj,
+                rcut,
+            )
         )
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
-        ret += "pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f\n" % (
+        ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}\n".format(
             model,
             nn,
             alpha_lj,
@@ -91,7 +93,7 @@ def _ff_deep_on(lamb, sparam, model, if_meam=False, meam_model=None):
         ((i, j) for i in range(element_num) for j in range(element_num)),
     )
     for i, j in sigma_key_index:
-        ret += "pair_coeff      %s %s lj/cut/soft ${EPSILON} %f %f\n" % (
+        ret += "pair_coeff      {} {} lj/cut/soft ${{EPSILON}} {:f} {:f}\n".format(
             i + 1,
             j + 1,
             sparam["sigma_" + str(i) + "_" + str(j)],
@@ -122,15 +124,17 @@ def _ff_soft_off(lamb, sparam, model, if_meam=False, meam_model=None):
     ret += "variable        EPSILON equal %f\n" % epsilon
     ret += "variable        INV_EPSILON equal -${EPSILON}\n"
     if if_meam:
-        ret += "pair_style      hybrid/overlay meam lj/cut/soft %f %f %f\n" % (
-            nn,
-            alpha_lj,
-            rcut,
+        ret += (
+            "pair_style      hybrid/overlay meam lj/cut/soft {:f} {:f} {:f}\n".format(
+                nn,
+                alpha_lj,
+                rcut,
+            )
         )
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1} {meam_model[2]} \n'
     else:
-        ret += "pair_style      hybrid/overlay deepmd %s lj/cut/soft %f %f %f\n" % (
+        ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}\n".format(
             model,
             nn,
             alpha_lj,
@@ -144,7 +148,7 @@ def _ff_soft_off(lamb, sparam, model, if_meam=False, meam_model=None):
         ((i, j) for i in range(element_num) for j in range(element_num)),
     )
     for i, j in sigma_key_index:
-        ret += "pair_coeff      %s %s lj/cut/soft ${EPSILON} %f %f\n" % (
+        ret += "pair_coeff      {} {} lj/cut/soft ${{EPSILON}} {:f} {:f}\n".format(
             i + 1,
             j + 1,
             sparam["sigma_" + str(i) + "_" + str(j)],
@@ -475,12 +479,12 @@ def post_tasks(iter_name, natoms):
 
 def _print_thermo_info(info):
     ptr = "# thermodynamics (normalized by nmols)\n"
-    ptr += "# E (err)  [eV]:  %20.8f %20.8f\n" % (info["e"], info["e_err"])
-    ptr += "# H (err)  [eV]:  %20.8f %20.8f\n" % (info["h"], info["h_err"])
-    ptr += "# T (err)   [K]:  %20.8f %20.8f\n" % (info["t"], info["t_err"])
-    ptr += "# P (err) [bar]:  %20.8f %20.8f\n" % (info["p"], info["p_err"])
-    ptr += "# V (err) [A^3]:  %20.8f %20.8f\n" % (info["v"], info["v_err"])
-    ptr += "# PV(err)  [eV]:  %20.8f %20.8f" % (info["pv"], info["pv_err"])
+    ptr += "# E (err)  [eV]:  {:20.8f} {:20.8f}\n".format(info["e"], info["e_err"])
+    ptr += "# H (err)  [eV]:  {:20.8f} {:20.8f}\n".format(info["h"], info["h_err"])
+    ptr += "# T (err)   [K]:  {:20.8f} {:20.8f}\n".format(info["t"], info["t_err"])
+    ptr += "# P (err) [bar]:  {:20.8f} {:20.8f}\n".format(info["p"], info["p_err"])
+    ptr += "# V (err) [A^3]:  {:20.8f} {:20.8f}\n".format(info["v"], info["v_err"])
+    ptr += "# PV(err)  [eV]:  {:20.8f} {:20.8f}".format(info["pv"], info["pv_err"])
     print(ptr)
 
 

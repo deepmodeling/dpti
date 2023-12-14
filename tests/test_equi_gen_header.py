@@ -11,17 +11,17 @@ class TestEquiHeader(unittest.TestCase):
         self.maxDiff = None
 
     def test_equi_header_npt(self):
-        input = dict(
-            nsteps=1000000,
-            thermo_freq=10,
-            dump_freq=100000,
-            temp=400,
-            tau_t=0.2,
-            tau_p=2.0,
-            mass_map=[118.71],
-            equi_conf="conf.lmp",
-            pres=200000,
-        )
+        input = {
+            "nsteps": 1000000,
+            "thermo_freq": 10,
+            "dump_freq": 100000,
+            "temp": 400,
+            "tau_t": 0.2,
+            "tau_p": 2.0,
+            "mass_map": [118.71],
+            "equi_conf": "conf.lmp",
+            "pres": 200000,
+        }
 
         ret1 = textwrap.dedent(
             """\
@@ -50,17 +50,17 @@ class TestEquiHeader(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_equi_header_nvt(self):
-        input = dict(
-            nsteps=1000000,
-            thermo_freq=10,
-            dump_freq=100000,
-            temp=400,
-            tau_t=0.2,
-            tau_p=2.0,
-            mass_map=[118.71],
-            equi_conf="conf.lmp",
-            pres=None,
-        )
+        input = {
+            "nsteps": 1000000,
+            "thermo_freq": 10,
+            "dump_freq": 100000,
+            "temp": 400,
+            "tau_t": 0.2,
+            "tau_p": 2.0,
+            "mass_map": [118.71],
+            "equi_conf": "conf.lmp",
+            "pres": None,
+        }
         ret1 = textwrap.dedent(
             """\
         clear
@@ -87,17 +87,17 @@ class TestEquiHeader(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_equi_header_npt_multi_element(self):
-        input = dict(
-            nsteps=1000000,
-            thermo_freq=10,
-            dump_freq=100000,
-            temp=400,
-            tau_t=0.2,
-            tau_p=2.0,
-            mass_map=[118.71, 196.97],
-            equi_conf="conf.lmp",
-            pres=None,
-        )
+        input = {
+            "nsteps": 1000000,
+            "thermo_freq": 10,
+            "dump_freq": 100000,
+            "temp": 400,
+            "tau_t": 0.2,
+            "tau_p": 2.0,
+            "mass_map": [118.71, 196.97],
+            "equi_conf": "conf.lmp",
+            "pres": None,
+        }
         ret1 = textwrap.dedent(
             """\
         clear

@@ -11,13 +11,13 @@ class TestDeepOn(unittest.TestCase):
         self.maxDiff = None
 
     def test_one_element(self):
-        input = dict(
-            lamb=0.075,
-            sparam=soft_param,
-            model="graph.pb",
-            if_meam=False,
-            meam_model=None,
-        )
+        input = {
+            "lamb": 0.075,
+            "sparam": soft_param,
+            "model": "graph.pb",
+            "if_meam": False,
+            "meam_model": None,
+        }
         ret1 = textwrap.dedent(
             """\
         variable        EPSILON equal 0.030000
@@ -33,13 +33,13 @@ class TestDeepOn(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_three_element(self):
-        input = dict(
-            lamb=0.075,
-            sparam=soft_param_three_element,
-            model="graph.pb",
-            if_meam=False,
-            meam_model=None,
-        )
+        input = {
+            "lamb": 0.075,
+            "sparam": soft_param_three_element,
+            "model": "graph.pb",
+            "if_meam": False,
+            "meam_model": None,
+        }
 
         ret1 = textwrap.dedent(
             """\
@@ -62,13 +62,13 @@ class TestDeepOn(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_deepmd(self):
-        input = dict(
-            lamb=0.075,
-            sparam=soft_param,
-            model="graph.pb",
-            if_meam=False,
-            meam_model=None,
-        )
+        input = {
+            "lamb": 0.075,
+            "sparam": soft_param,
+            "model": "graph.pb",
+            "if_meam": False,
+            "meam_model": None,
+        }
         ret1 = textwrap.dedent(
             """\
         variable        EPSILON equal 0.030000
@@ -91,13 +91,13 @@ class TestDeepOn(unittest.TestCase):
         # print(ret2)
 
     def test_meam(self):
-        input = dict(
-            lamb=0.075,
-            sparam=soft_param,
-            model=None,
-            if_meam=True,
-            meam_model=meam_model,
-        )
+        input = {
+            "lamb": 0.075,
+            "sparam": soft_param,
+            "model": None,
+            "if_meam": True,
+            "meam_model": meam_model,
+        }
         ret1 = textwrap.dedent(
             """\
         variable        EPSILON equal 0.030000

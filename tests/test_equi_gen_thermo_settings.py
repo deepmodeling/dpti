@@ -9,7 +9,7 @@ class TestEquiThermoSetting(unittest.TestCase):
         self.maxDiff = None
 
     def test_gen_equi_thermo_settings(self):
-        input = dict(timestep=0.002)
+        input = {"timestep": 0.002}
         ret1 = textwrap.dedent(
             """\
         # --------------------- MD SETTINGS ----------------------

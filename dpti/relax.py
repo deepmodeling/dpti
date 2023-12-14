@@ -48,7 +48,7 @@ def make_task(iter_name, jdata, pres):
     model = jdata["model"]
     model = os.path.abspath(model)
     model_mass_map = jdata["model_mass_map"]
-    if pres == None:
+    if pres is None:
         pres = jdata["pres"]
     elif "pres" in jdata:
         print("P = %f overrides the pres in json data" % pres)
