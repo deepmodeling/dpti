@@ -235,7 +235,7 @@ class CloudMachineJob(RemoteJob):
         task_per_node = resources["task_per_node"]
 
         script_name = "run.sh"
-        if args == None:
+        if args is None:
             args = []
             for ii in job_dirs:
                 args.append("")
@@ -244,7 +244,7 @@ class CloudMachineJob(RemoteJob):
         with sftp.open(script, "w") as fp:
             fp.write("#!/bin/bash\n\n")
             # fp.write('set -euo pipefail\n')
-            if envs != None:
+            if envs is not None:
                 for key in envs.keys():
                     fp.write("export %s=%s\n" % (key, envs[key]))
                 fp.write("\n")
