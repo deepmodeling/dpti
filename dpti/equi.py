@@ -531,28 +531,28 @@ def _compute_thermo(lmplog, natoms, stat_skip, stat_bsize):
 
 
 def _print_thermo_info(info, more_head=""):
-    ptr = "# thermodynamics  %20s %20s  %s\n" % ("value", "err", more_head)
-    ptr += "# E        [eV]:  %20.8f %20.8f\n" % (info["e"], info["e_err"])
-    ptr += "# H        [eV]:  %20.8f %20.8f\n" % (info["h"], info["h_err"])
-    ptr += "# T         [K]:  %20.8f %20.8f\n" % (info["t"], info["t_err"])
-    ptr += "# P       [bar]:  %20.8f %20.8f\n" % (info["p"], info["p_err"])
-    ptr += "# V       [A^3]:  %20.8f %20.8f\n" % (info["v"], info["v_err"])
-    ptr += "# PV       [eV]:  %20.8f %20.8f\n" % (info["pv"], info["pv_err"])
-    ptr += "# Lxx       [A]:  %20.8f %20.8f\n" % (info["lxx"], info["lxx_err"])
-    ptr += "# Lyy       [A]:  %20.8f %20.8f\n" % (info["lyy"], info["lyy_err"])
-    ptr += "# Lzz       [A]:  %20.8f %20.8f\n" % (info["lzz"], info["lzz_err"])
-    ptr += "# Lxy       [A]:  %20.8f %20.8f\n" % (info["lxy"], info["lxy_err"])
-    ptr += "# Lxz       [A]:  %20.8f %20.8f\n" % (info["lxz"], info["lxz_err"])
-    ptr += "# Lyz       [A]:  %20.8f %20.8f\n" % (info["lyz"], info["lyz_err"])
-    ptr += "# Pxx     [bar]:  %20.8f %20.8f\n" % (info["pxx"], info["pxx_err"])
-    ptr += "# Pyy     [bar]:  %20.8f %20.8f\n" % (info["pyy"], info["pyy_err"])
-    ptr += "# Pzz     [bar]:  %20.8f %20.8f\n" % (info["pzz"], info["pzz_err"])
-    ptr += "# Pxy     [bar]:  %20.8f %20.8f\n" % (info["pxy"], info["pxy_err"])
-    ptr += "# Pxz     [bar]:  %20.8f %20.8f\n" % (info["pxz"], info["pxz_err"])
-    ptr += "# Pyz     [bar]:  %20.8f %20.8f\n" % (info["pyz"], info["pyz_err"])
+    ptr = f"# thermodynamics  {20*' '} {20*' '}  {more_head}\n"
+    ptr += f"# E        [eV]:  {info['e']:20.8f} {info['e_err']:20.8f}\n"
+    ptr += f"# H        [eV]:  {info['h']:20.8f} {info['h_err']:20.8f}\n"
+    ptr += f"# T         [K]:  {info['t']:20.8f} {info['t_err']:20.8f}\n"
+    ptr += f"# P       [bar]:  {info['p']:20.8f} {info['p_err']:20.8f}\n"
+    ptr += f"# V       [A^3]:  {info['v']:20.8f} {info['v_err']:20.8f}\n"
+    ptr += f"# PV       [eV]:  {info['pv']:20.8f} {info['pv_err']:20.8f}\n"
+    ptr += f"# Lxx       [A]:  {info['lxx']:20.8f} {info['lxx_err']:20.8f}\n"
+    ptr += f"# Lyy       [A]:  {info['lyy']:20.8f} {info['lyy_err']:20.8f}\n"
+    ptr += f"# Lzz       [A]:  {info['lzz']:20.8f} {info['lzz_err']:20.8f}\n"
+    ptr += f"# Lxy       [A]:  {info['lxy']:20.8f} {info['lxy_err']:20.8f}\n"
+    ptr += f"# Lxz       [A]:  {info['lxz']:20.8f} {info['lxz_err']:20.8f}\n"
+    ptr += f"# Lyz       [A]:  {info['lyz']:20.8f} {info['lyz_err']:20.8f}\n"
+    ptr += f"# Pxx     [bar]:  {info['pxx']:20.8f} {info['pxx_err']:20.8f}\n"
+    ptr += f"# Pyy     [bar]:  {info['pyy']:20.8f} {info['pyy_err']:20.8f}\n"
+    ptr += f"# Pzz     [bar]:  {info['pzz']:20.8f} {info['pzz_err']:20.8f}\n"
+    ptr += f"# Pxy     [bar]:  {info['pxy']:20.8f} {info['pxy_err']:20.8f}\n"
+    ptr += f"# Pxz     [bar]:  {info['pxz']:20.8f} {info['pxz_err']:20.8f}\n"
+    ptr += f"# Pyz     [bar]:  {info['pyz']:20.8f} {info['pyz_err']:20.8f}\n"
     rho = 18 * 1e-3 / (info["v"] * pc.Avogadro * pc.angstrom**3)
     rho_err = (info["v"] / (info["v"] - info["v_err"]) - 1) * rho
-    ptr += "# density [kg/m^3] : %10.5f (%10.5f)\n" % (rho, rho_err)
+    ptr += f"# density [kg/m^3] : {rho:10.5f} ({rho_err:10.5f})\n"
     print(ptr)
     return ptr
 
