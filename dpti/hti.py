@@ -390,7 +390,7 @@ def _gen_lammps_input(
     ret += "thermo          ${THERMO_FREQ}\n"
     ret += "compute         allmsd all msd\n"
     if 1 - lamb != 0:
-        if type(m_spring_k) is not list:
+        if not isinstance(m_spring_k, list):
             if switch == "three-step":
                 ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring c_e_diff[1] c_allmsd[*]\n"
             else:
