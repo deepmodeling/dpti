@@ -19,8 +19,7 @@ class TestHtiIceGenLammpsInput(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_hti_ice_tasks(self, patch_random):
-        patch_random = MagicMock()
-        patch_random.return_value.integers = 7858
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         args = MagicMock(
             output="tmp_hti_ice/new_job/",
             switch="three-step",
@@ -42,8 +41,7 @@ class TestHtiIceGenLammpsInput(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_hti_ice_old_json_tasks(self, patch_random):
-        patch_random = MagicMock()
-        patch_random.return_value.integers = 7858
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         args = MagicMock(
             output="tmp_hti_ice/old_json_job/",
             switch="three-step",

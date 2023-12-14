@@ -16,8 +16,7 @@ class TestHtiGenLammpsInput(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_deepmd_lj_on(self, patch_random):
-        patch_random = MagicMock()
-        patch_random.return_value.integers = 7858
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         input = {
             "conf_file": "conf.lmp",
             "mass_map": [118.71],
@@ -101,8 +100,7 @@ class TestHtiGenLammpsInput(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_deepmd_deep_on(self, patch_random):
-        patch_random = MagicMock()
-        patch_random.return_value.integers = 7858
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         input = {
             "conf_file": "conf.lmp",
             "mass_map": [118.71],
@@ -187,8 +185,7 @@ class TestHtiGenLammpsInput(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_deepmd_lj_off(self, patch_random):
-        patch_random = MagicMock()
-        patch_random.return_value.integers = 7858
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         input = {
             "conf_file": "conf.lmp",
             "mass_map": [118.71],
@@ -273,8 +270,7 @@ class TestHtiGenLammpsInput(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_meam_deep_on(self, patch_random):
-        patch_random = MagicMock()
-        patch_random.return_value.integers = 7858
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         input = {
             "conf_file": "conf.lmp",
             "mass_map": [118.71],
@@ -360,8 +356,7 @@ class TestHtiGenLammpsInput(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_meam_spring_off(self, patch_random):
-        patch_random = MagicMock()
-        patch_random.return_value.integers = 7858
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         input = {
             "conf_file": "conf.lmp",
             "mass_map": [118.71],

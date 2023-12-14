@@ -12,8 +12,7 @@ class TestEquiGenLammpsInput(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_deepmd_npt(self, patch_random):
-        patch_random = MagicMock()
-        patch_random.return_value.integers = 7858
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         input = {
             "nsteps": 1000000,
             "thermo_freq": 10,
@@ -79,8 +78,7 @@ class TestEquiGenLammpsInput(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_deepmd_nvt(self, patch_random):
-        patch_random = MagicMock()
-        patch_random.return_value.integers = 7858
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         input = {
             "nsteps": 1000000,
             "thermo_freq": 10,
@@ -145,8 +143,7 @@ class TestEquiGenLammpsInput(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_meam_npt(self, patch_random):
-        patch_random = MagicMock()
-        patch_random.return_value.integers = 7858
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         input = {
             "nsteps": 1000000,
             "thermo_freq": 10,
