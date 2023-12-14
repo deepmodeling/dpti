@@ -87,7 +87,7 @@ def free_energy(job):
     # mass_map = jdata['mass_map']
     mass_map = get_first_matched_key_from_dict(jdata, ["mass_map", "model_mass_map"])
     spring_k = jdata["spring_k"]
-    if type(spring_k) is not list:
+    if not isinstance(spring_k, list):
         m_spring_k = []
         for ii in mass_map:
             m_spring_k.append(spring_k * ii)
@@ -152,8 +152,8 @@ def frenkel(job):
     mass_map = get_first_matched_key_from_dict(jdata, ["mass_map", "model_mass_map"])
     s_spring_k = jdata["spring_k"]
     spring_k = jdata["spring_k"]
-    assert type(spring_k) is not list
-    if type(spring_k) is not list:
+    assert not isinstance(spring_k, list)
+    if not isinstance(spring_k, list):
         m_spring_k = []
         for ii in mass_map:
             m_spring_k.append(spring_k * ii)
