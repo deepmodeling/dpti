@@ -21,7 +21,7 @@ class TestEquiMakeTask(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_npt(self, patch_random):
-        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7578))
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         test_name = "npt"
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)
         test_dir = os.path.join(self.test_dir, test_name)
@@ -38,7 +38,7 @@ class TestEquiMakeTask(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_npt_meam(self, patch_random):
-        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7578))
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         test_name = "npt_meam"
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)
         test_dir = os.path.join(self.test_dir, test_name)
@@ -60,7 +60,7 @@ class TestEquiMakeTask(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_nvt(self, patch_random):
-        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7578))
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         test_name = "nvt"
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)
         test_dir = os.path.join(self.test_dir, test_name)
@@ -77,7 +77,7 @@ class TestEquiMakeTask(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_nvt_use_npt_avg(self, patch_random):
-        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7578))
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         test_name = "nvt_use_npt_avg"
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)
         test_dir = os.path.join(self.test_dir, test_name)
@@ -97,7 +97,7 @@ class TestEquiMakeTask(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_water_npt(self, patch_random):
-        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7578))
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         test_name = "npt_water"
 
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)
