@@ -3,7 +3,9 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from context import dpti
+
 import dpti.equi
+
 
 class TestEquiEnsembleSetting(unittest.TestCase):
     def setUp(self):

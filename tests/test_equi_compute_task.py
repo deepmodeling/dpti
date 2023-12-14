@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from context import dpti
+
 import dpti.equi
 from dpti.equi import post_task
 from dpti.lib.utils import get_file_md5, relative_link_file

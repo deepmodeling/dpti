@@ -2,7 +2,9 @@ import textwrap
 import unittest
 
 from context import dpti
+
 import dpti.equi
+
 
 class TestEquiThermoSetting(unittest.TestCase):
     def setUp(self):
