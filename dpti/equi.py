@@ -88,12 +88,7 @@ def gen_equi_force_field(model, if_meam=False, meam_model=None):
         meam_potential = meam_model["potential"]
         meam_element = meam_model["element"]
         ret += "pair_style      meam\n"
-        ret += "pair_coeff      * * %s %s %s %s\n" % (
-            meam_library,
-            meam_element,
-            meam_potential,
-            meam_element,
-        )
+        ret += f"pair_coeff      * * {meam_library} {meam_element} {meam_potential} {meam_element}\n"
     return ret
 
 
