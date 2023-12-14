@@ -24,7 +24,7 @@ def _default_item(resources, key, value):
 
 
 def _set_default_resource(res):
-    if res == None:
+    if res is None:
         res = {}
     _default_item(res, "numb_node", 1)
     _default_item(res, "task_per_node", 1)
