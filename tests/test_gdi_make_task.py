@@ -19,9 +19,10 @@ class TestGdiMakeTask(unittest.TestCase):
         self.test_dir = "tmp_gdi"
         self.benchmark_dir = "benchmark_gdi"
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_deepmd(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         test_name = "deepmd/0"
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)
         test_dir = os.path.join(self.test_dir, test_name)
