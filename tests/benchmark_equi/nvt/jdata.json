@@ -11,7 +11,6 @@
     "tau_t": 0.2,
     "tau_p": 2,
     "thermo_freq": 10,
-    "thermo_freq": 10,
     "dump_freq": 100000,
     "stat_skip": 30000,
     "stat_bsize": 1000,

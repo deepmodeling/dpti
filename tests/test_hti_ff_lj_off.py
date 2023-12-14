@@ -1,19 +1,27 @@
-import os, textwrap
-import numpy as np
+import textwrap
 import unittest
+
 from context import dpti
-from potential_common import soft_param, soft_param_three_element, meam_model
-# from potential_common import 
+from potential_common import meam_model, soft_param
+
+# from potential_common import
 # print(dpti.equi)
 
+
 class TestEquiForceField(unittest.TestCase):
-    def setUp(self) :
+    def setUp(self):
         self.maxDiff = None
 
     def test_deepmd(self):
-        input = dict(lamb=0.075, model="graph.pb", sparam=soft_param,
-            if_meam=False, meam_model=meam_model)
-        ret1 = textwrap.dedent("""\
+        input = {
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "sparam": soft_param,
+            "if_meam": False,
+            "meam_model": meam_model,
+        }
+        ret1 = textwrap.dedent(
+            """\
         variable        EPSILON equal 0.030000
         variable        INV_EPSILON equal -${EPSILON}
         pair_style      hybrid/overlay deepmd graph.pb lj/cut/soft 1.000000 0.500000 6.000000
@@ -21,7 +29,8 @@ class TestEquiForceField(unittest.TestCase):
         pair_coeff      1 1 lj/cut/soft ${EPSILON} 2.493672 0.500000
         fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_INV_LAMBDA scale yes
         compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_INV_EPSILON
-        """)
+        """
+        )
         # ret1 = textwrap.dedent(ret1_raw)
         ret2 = dpti.hti._ff_lj_off(**input)
         # print('--------')
@@ -32,12 +41,18 @@ class TestEquiForceField(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_meam(self):
-        input = dict(lamb=0.075, model="graph.pb", sparam=soft_param,
-            if_meam=True, meam_model=meam_model)
+        input = {
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "sparam": soft_param,
+            "if_meam": True,
+            "meam_model": meam_model,
+        }
 
-    #     input = dict(lamb=0.075, model=None, sparam=soft_param,
-    #         if_meam=True, meam_model=meam_model)
-        ret1 = textwrap.dedent("""\
+        #     input = dict(lamb=0.075, model=None, sparam=soft_param,
+        #         if_meam=True, meam_model=meam_model)
+        ret1 = textwrap.dedent(
+            """\
         variable        EPSILON equal 0.030000
         variable        INV_EPSILON equal -${EPSILON}
         pair_style      hybrid/overlay meam lj/cut/soft 1.000000 0.500000 6.000000
@@ -45,7 +60,8 @@ class TestEquiForceField(unittest.TestCase):
         pair_coeff      1 1 lj/cut/soft ${EPSILON} 2.493672 0.500000
         fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_INV_LAMBDA scale yes
         compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_INV_EPSILON
-        """)
+        """
+        )
         ret2 = dpti.hti._ff_lj_off(**input)
         # print('--------')
         # print(ret1)
@@ -55,6 +71,5 @@ class TestEquiForceField(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

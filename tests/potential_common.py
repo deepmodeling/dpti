@@ -14,7 +14,7 @@ soft_param_three_element = {
     "sigma_1_1": 2.11,
     "sigma_1_2": 2.12,
     "sigma_2_2": 2.22,
-    'element_num': 3,
+    "element_num": 3,
     "epsilon": 0.03,
     "activation": 0.5,
     "n": 1,
@@ -25,5 +25,5 @@ soft_param_three_element = {
 meam_model = {
     "element": "Sn",
     "library": "library_18Metals.meam",
-    "potential": "Sn_18Metals.meam"
+    "potential": "Sn_18Metals.meam",
 }

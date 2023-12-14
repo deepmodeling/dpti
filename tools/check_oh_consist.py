@@ -1,14 +1,9 @@
 #!/usr/bin/env python3
 
-import numpy as np
-from lib.utils import integrate
-from lib.utils import integrate_sys_err
-from lib.lammps import get_thermo
-from lib.dump import split_traj
-from lib.dump import get_posi
-from lib.dump import get_atype
-import lib.water as water
 import lib.dump as dump
+import lib.water as water
+import numpy as np
+from lib.dump import split_traj
 
 # def func (xx) :
 #     return 0.02*xx*xx+0.01*xx+0.03
@@ -31,8 +26,8 @@ import lib.dump as dump
 
 # get_thermo('log.lammps')
 
-lines = open('dump.hti').read().split('\n')
-ret = split_traj(lines) 
+lines = open("dump.hti").read().split("\n")
+ret = split_traj(lines)
 # print(get_posi(ret[0]))
 # print(get_posi(ret[0])[127:130])
 # print(get_atype(ret[0]))
@@ -44,10 +39,9 @@ atype = dump.get_atype(ret[0])
 posi = dump.get_posi(ret[0])
 oh_list = water.min_oh_list(box, atype, posi)
 
-for idx, ii in enumerate(ret) :
+for idx, ii in enumerate(ret):
     bd, tl = dump.get_dumpbox(ii)
     orig, box = dump.dumpbox2box(bd, tl)
     posi = dump.get_posi(ii)
     dists = water.dist_via_oh_list(box, posi, oh_list)
     print(idx, np.min(dists), np.max(dists), np.average(dists))
-          

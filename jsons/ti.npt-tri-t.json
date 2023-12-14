@@ -1,7 +1,7 @@
 {
     "equi_conf":	"conf.lmp",
     "model":		"graph.000.pb",
-    "model_mass_map":	[27],    
+    "model_mass_map":	[27],
     "nsteps":		100000,
     "dt":		0.002,
     "ens":		"npt-aniso",

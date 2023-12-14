@@ -1,35 +1,38 @@
-import os, textwrap
-import numpy as np
+import textwrap
 import unittest
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
+
 from context import dpti
 from potential_common import meam_model
+
 
 class TestEquiGenLammpsInput(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
 
-    @patch('numpy.random')
+    @patch("numpy.random.default_rng")
     def test_deepmd_npt(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
-        input = dict(nsteps=1000000, 
-            thermo_freq=10, 
-            dump_freq=100000, 
-            mass_map=[118.71],
-            temp=400, 
-            tau_t=0.2,
-            tau_p=2.0, 
-            equi_conf='conf.lmp',
-            model='graph.pb',
-            timestep=0.002, 
-            if_dump_avg_posi=False,
-            ens='npt-iso',
-            pres=200000,
-            if_meam=False,
-            meam_model=None,
-        )
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
+        input = {
+            "nsteps": 1000000,
+            "thermo_freq": 10,
+            "dump_freq": 100000,
+            "mass_map": [118.71],
+            "temp": 400,
+            "tau_t": 0.2,
+            "tau_p": 2.0,
+            "equi_conf": "conf.lmp",
+            "model": "graph.pb",
+            "timestep": 0.002,
+            "if_dump_avg_posi": False,
+            "ens": "npt-iso",
+            "pres": 200000,
+            "if_meam": False,
+            "meam_model": None,
+        }
 
-        ret1 = textwrap.dedent("""\
+        ret1 = textwrap.dedent(
+            """\
         clear
         # --------------------- VARIABLES-------------------------
         variable        NSTEPS          equal 1000000
@@ -67,33 +70,36 @@ class TestEquiGenLammpsInput(unittest.TestCase):
         # --------------------- RUN ------------------------------
         run             ${NSTEPS}
         write_data      out.lmp
-        """)
+        """
+        )
 
         ret2 = dpti.equi.gen_equi_lammps_input(**input)
         self.assertEqual(ret1, ret2)
 
-    @patch('numpy.random')
+    @patch("numpy.random.default_rng")
     def test_deepmd_nvt(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
-        input = dict(nsteps=1000000, 
-            thermo_freq=10, 
-            dump_freq=100000, 
-            mass_map=[118.71],
-            temp=400, 
-            tau_t=0.2,
-            tau_p=2.0, 
-            equi_conf='conf.lmp',
-            model='graph.pb',
-            timestep=0.002, 
-            if_dump_avg_posi=False,
-            ens='nvt',
-            pres=200000,
-            if_meam=False,
-            meam_model=None,
-        )
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
+        input = {
+            "nsteps": 1000000,
+            "thermo_freq": 10,
+            "dump_freq": 100000,
+            "mass_map": [118.71],
+            "temp": 400,
+            "tau_t": 0.2,
+            "tau_p": 2.0,
+            "equi_conf": "conf.lmp",
+            "model": "graph.pb",
+            "timestep": 0.002,
+            "if_dump_avg_posi": False,
+            "ens": "nvt",
+            "pres": 200000,
+            "if_meam": False,
+            "meam_model": None,
+        }
         ret2 = dpti.equi.gen_equi_lammps_input(**input)
 
-        ret1 = textwrap.dedent("""\
+        ret1 = textwrap.dedent(
+            """\
         clear
         # --------------------- VARIABLES-------------------------
         variable        NSTEPS          equal 1000000
@@ -131,30 +137,33 @@ class TestEquiGenLammpsInput(unittest.TestCase):
         # --------------------- RUN ------------------------------
         run             ${NSTEPS}
         write_data      out.lmp
-        """)
+        """
+        )
         self.assertEqual(ret1, ret2)
 
-    @patch('numpy.random')
+    @patch("numpy.random.default_rng")
     def test_meam_npt(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
-        input = dict(nsteps=1000000, 
-            thermo_freq=10, 
-            dump_freq=100000, 
-            mass_map=[118.71],
-            temp=400, 
-            tau_t=0.2,
-            tau_p=2.0, 
-            equi_conf='conf.lmp',
-            model=None,
-            timestep=0.002, 
-            if_dump_avg_posi=False,
-            ens='npt-xy',
-            pres=200000,
-            if_meam=True,
-            meam_model=meam_model,
-        )
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
+        input = {
+            "nsteps": 1000000,
+            "thermo_freq": 10,
+            "dump_freq": 100000,
+            "mass_map": [118.71],
+            "temp": 400,
+            "tau_t": 0.2,
+            "tau_p": 2.0,
+            "equi_conf": "conf.lmp",
+            "model": None,
+            "timestep": 0.002,
+            "if_dump_avg_posi": False,
+            "ens": "npt-xy",
+            "pres": 200000,
+            "if_meam": True,
+            "meam_model": meam_model,
+        }
         ret2 = dpti.equi.gen_equi_lammps_input(**input)
-        ret1 = textwrap.dedent("""\
+        ret1 = textwrap.dedent(
+            """\
         clear
         # --------------------- VARIABLES-------------------------
         variable        NSTEPS          equal 1000000
@@ -192,10 +201,10 @@ class TestEquiGenLammpsInput(unittest.TestCase):
         # --------------------- RUN ------------------------------
         run             ${NSTEPS}
         write_data      out.lmp
-        """)
+        """
+        )
         self.assertEqual(ret1, ret2)
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     unittest.main()
