@@ -11,7 +11,8 @@ class TestEquiEnsembleSetting(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_gen_equi_ensemble_settings_nvt(self, patch_random):
-        patch_random.integers = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.integers.return_value = 7858
         input = {"ens": "nvt"}
         ret1 = textwrap.dedent(
             """\
