@@ -17,8 +17,7 @@ from airflow.operators.python import get_current_context
 # from airflow.api.client.local_client import Client
 from airflow.utils.state import State
 
-# from dpdispatcher.
-from dpdispatcher.submission import Submission, Task
+from dpdispatcher import Machine, Resources, Submission, Task
 
 from dpti.gdi import gdi_main_loop
 
