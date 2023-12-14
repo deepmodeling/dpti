@@ -22,7 +22,6 @@ from dpti.lib.water import compute_bonds, posi_diff
 # from .lib import dump
 # from .lib import lmp
 
-np.random.seed(0)
 
 
 def _gen_lammps_input(
@@ -105,7 +104,7 @@ def _gen_lammps_input(
         raise RuntimeError("unknow ensemble %s\n" % ens)
     ret += "fix             mzero all momentum 10 linear 1 1 1\n"
     ret += "# --------------------- INITIALIZE -----------------------\n"
-    ret += "velocity        all create ${TEMP} %d\n" % (np.random.randint(1, 2**16))
+    ret += "velocity        all create ${TEMP} %d\n" % (np.random.default_rng().integers(1, 2**16))
     ret += "velocity        all zero linear\n"
     ret += "# --------------------- RUN ------------------------------\n"
     ret += "run             ${NSTEPS}\n"
