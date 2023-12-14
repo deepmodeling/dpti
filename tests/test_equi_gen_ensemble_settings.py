@@ -13,8 +13,7 @@ class TestEquiEnsembleSetting(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_gen_equi_ensemble_settings_nvt(self, patch_random):
-        patch_random = MagicMock()
-        patch_random.return_value.integers = 7858
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         input = {"ens": "nvt"}
         ret1 = textwrap.dedent(
             """\
@@ -33,8 +32,7 @@ class TestEquiEnsembleSetting(unittest.TestCase):
 
     @patch("numpy.random.default_rng")
     def test_gen_equi_ensemble_settings_npt(self, patch_random):
-        patch_random = MagicMock()
-        patch_random.return_value.integers = 7858
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         ret_ensemble_npt = "fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}\n"
         ret_ensemble_npt_aniso = "fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P}\n"
         ret_ensemble_npt_xy = "fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} aniso ${PRES} ${PRES} ${TAU_P} couple xy\n"
