@@ -1,6 +1,3 @@
-import os
-import sys
-
 NAME = "dpti"
 SHORT_CMD = "dpti"
 
