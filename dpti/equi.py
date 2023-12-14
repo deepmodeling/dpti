@@ -531,7 +531,7 @@ def _compute_thermo(lmplog, natoms, stat_skip, stat_bsize):
 
 
 def _print_thermo_info(info, more_head=""):
-    ptr = f"# thermodynamics  {'value':20s} {'err':20s}  {more_head}\n"
+    ptr = f"# thermodynamics  {'value':>20s} {'err':>20s}  {more_head}\n"
     ptr += f"# E        [eV]:  {info['e']:20.8f} {info['e_err']:20.8f}\n"
     ptr += f"# H        [eV]:  {info['h']:20.8f} {info['h_err']:20.8f}\n"
     ptr += f"# T         [K]:  {info['t']:20.8f} {info['t_err']:20.8f}\n"
