@@ -153,18 +153,13 @@ def _parse_one_str(in_s):
 
 def parse_seq(in_s, *, protect_eps=None):
     all_l = []
-    if type(in_s) == list and type(in_s[0]) == str:
+    if isinstance(in_s, list) and isinstance(in_s[0], str):
         for ii in in_s:
             for jj in _parse_one_str(ii):
                 all_l.append(jj)
-    elif type(in_s) == list and (
-        type(in_s[0]) == float
-        or type(in_s[0]) == np.float32
-        or type(in_s[0]) == np.float64
-        or type(in_s[0]) == int
-    ):
+    elif isinstance(in_s, list) and isinstance(in_s[0], (float, np.float32, np.float64, int)):
         all_l = [float(ii) for ii in in_s]
-    elif type(in_s) == str:
+    elif isinstance(in_s, str):
         all_l = _parse_one_str(in_s)
     else:
         raise RuntimeError(
