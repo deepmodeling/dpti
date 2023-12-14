@@ -10,9 +10,10 @@ class TestEquiGenLammpsInput(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_deepmd_npt(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         input = {
             "nsteps": 1000000,
             "thermo_freq": 10,
@@ -76,9 +77,10 @@ class TestEquiGenLammpsInput(unittest.TestCase):
         ret2 = dpti.equi.gen_equi_lammps_input(**input)
         self.assertEqual(ret1, ret2)
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_deepmd_nvt(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         input = {
             "nsteps": 1000000,
             "thermo_freq": 10,
@@ -141,9 +143,10 @@ class TestEquiGenLammpsInput(unittest.TestCase):
         )
         self.assertEqual(ret1, ret2)
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_meam_npt(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         input = {
             "nsteps": 1000000,
             "thermo_freq": 10,

@@ -11,9 +11,10 @@ class TestTiGenLammpsInput(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_deepmd(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         input = {
             "conf_file": "conf.lmp",
             "mass_map": [
@@ -75,9 +76,10 @@ class TestTiGenLammpsInput(unittest.TestCase):
         ret2 = ti._gen_lammps_input(**input)
         self.assertEqual(ret1, ret2)
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_meam(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         input = {
             "conf_file": "conf.lmp",
             "mass_map": [

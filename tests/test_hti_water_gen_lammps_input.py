@@ -16,9 +16,10 @@ class TestHtiWaterGenLammpsInput(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_hti_water_gen_tasks(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         args = MagicMock(
             output="tmp_hti_water/new_job/",
             func=hti_water.handle_gen,
@@ -37,9 +38,10 @@ class TestHtiWaterGenLammpsInput(unittest.TestCase):
             f2 = os.path.join("tmp_hti_water/new_job/", file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1, f2))
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_hti_water_gen_old_json_gen_tasks(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         args = MagicMock(
             output="tmp_hti_water/old_json_job/",
             func=hti_water.handle_gen,

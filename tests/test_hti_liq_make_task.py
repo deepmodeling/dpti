@@ -19,9 +19,10 @@ class TestHtiMakeTask(unittest.TestCase):
         self.test_dir = "tmp_hti_liq"
         self.benchmark_dir = "benchmark_hti_liq"
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_deepmd_three_step(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         test_name = "three_step"
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)
         test_dir = os.path.join(self.test_dir, test_name)
@@ -46,9 +47,10 @@ class TestHtiMakeTask(unittest.TestCase):
             f2 = os.path.join(test_dir, file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1, f2))
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_meam_three_step(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         test_name = "three_step_meam"
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)
         test_dir = os.path.join(self.test_dir, test_name)

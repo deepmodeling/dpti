@@ -17,9 +17,10 @@ class TestHtiIceGenLammpsInput(unittest.TestCase):
         # with open('benchmark_hti_ice/hti_ice.json', 'r') as f:
         #     self.jdata = json.load(f)
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_hti_ice_tasks(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         args = MagicMock(
             output="tmp_hti_ice/new_job/",
             switch="three-step",
@@ -39,9 +40,10 @@ class TestHtiIceGenLammpsInput(unittest.TestCase):
             f2 = os.path.join("tmp_hti_ice/new_job/", file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1, f2))
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_hti_ice_old_json_tasks(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         args = MagicMock(
             output="tmp_hti_ice/old_json_job/",
             switch="three-step",

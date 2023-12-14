@@ -19,9 +19,10 @@ class TestEquiMakeTask(unittest.TestCase):
         self.test_dir = "tmp_equi"
         self.benchmark_dir = "benchmark_equi"
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_npt(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         test_name = "npt"
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)
         test_dir = os.path.join(self.test_dir, test_name)
@@ -36,9 +37,10 @@ class TestEquiMakeTask(unittest.TestCase):
             f2 = os.path.join(test_dir, file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1, f2))
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_npt_meam(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         test_name = "npt_meam"
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)
         test_dir = os.path.join(self.test_dir, test_name)
@@ -58,9 +60,10 @@ class TestEquiMakeTask(unittest.TestCase):
             f2 = os.path.join(test_dir, file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1, f2))
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_nvt(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         test_name = "nvt"
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)
         test_dir = os.path.join(self.test_dir, test_name)
@@ -75,9 +78,10 @@ class TestEquiMakeTask(unittest.TestCase):
             f2 = os.path.join(test_dir, file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1, f2))
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_nvt_use_npt_avg(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         test_name = "nvt_use_npt_avg"
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)
         test_dir = os.path.join(self.test_dir, test_name)
@@ -95,9 +99,10 @@ class TestEquiMakeTask(unittest.TestCase):
             f2 = os.path.join(test_dir, file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1, f2))
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_water_npt(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         test_name = "npt_water"
 
         benchmark_dir = os.path.join(self.benchmark_dir, test_name)

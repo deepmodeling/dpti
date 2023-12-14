@@ -14,9 +14,10 @@ class TestGenLammpsIdeal(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_soft_on(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         input = {
             "step": "soft_on",
             "conf_file": "conf.lmp",
@@ -91,9 +92,10 @@ class TestGenLammpsIdeal(unittest.TestCase):
         # print('--------')
         self.assertEqual(ret1, ret2)
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_deep_on(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         input = {
             "step": "deep_on",
             "conf_file": "conf.lmp",
@@ -172,9 +174,10 @@ class TestGenLammpsIdeal(unittest.TestCase):
         # print('--------')
         self.assertEqual(ret1, ret2)
 
-    @patch("numpy.random")
+    @patch("numpy.random.default_rng")
     def test_soft_off(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
+        patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
         input = {
             "step": "soft_off",
             "conf_file": "conf.lmp",
@@ -255,7 +258,8 @@ class TestGenLammpsIdeal(unittest.TestCase):
 
     # @patch('numpy.random')
     # def test_deepmd_deep_on(self, patch_random):
-    #     patch_random.randint = MagicMock(return_value=7858)
+    #     patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
     #     input = dict ( conf_file='conf.lmp',
     #                     mass_map=[118.71],
     #                     lamb=0.075,
@@ -334,7 +338,8 @@ class TestGenLammpsIdeal(unittest.TestCase):
 
     # @patch('numpy.random')
     # def test_meam_deep_on(self, patch_random):
-    #     patch_random.randint = MagicMock(return_value=7858)
+    #     patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
     #     input = dict ( conf_file='conf.lmp',
     #                     mass_map=[118.71],
     #                     lamb=0.075,
@@ -414,7 +419,8 @@ class TestGenLammpsIdeal(unittest.TestCase):
 
     # @patch('numpy.random')
     # def test_meam_spring_off(self, patch_random):
-    #     patch_random.randint = MagicMock(return_value=7858)
+    #     patch_random = MagicMock()
+        patch_random.return_value.integers = 7858
     #     input = dict ( conf_file='conf.lmp',
     #                     mass_map=[118.71],
     #                     lamb=0.075,
