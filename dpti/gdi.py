@@ -645,21 +645,21 @@ def handle_gdi(args):
     else:
         gdidata_dict = None
 
-    gdidata_cli = dict(
-        begin=args.begin,
-        end=args.end,
-        direction=args.direction,
-        initial_value=args.initial_value,
-        step_value=args.step_value,
-        abs_tol=args.abs_tol,
-        rel_tol=args.rel_tol,
-        if_water=args.if_water,
-        output=args.output,
-        first_step=args.first_step,
-        shift=args.shift,
-        verbose=args.verbose,
-        if_meam=args.if_meam,
-    )
+    gdidata_cli = {
+        "begin": args.begin,
+        "end": args.end,
+        "direction": args.direction,
+        "initial_value": args.initial_value,
+        "step_value": args.step_value,
+        "abs_tol": args.abs_tol,
+        "rel_tol": args.rel_tol,
+        "if_water": args.if_water,
+        "output": args.output,
+        "first_step": args.first_step,
+        "shift": args.shift,
+        "verbose": args.verbose,
+        "if_meam": args.if_meam,
+    }
 
     return_value = gdi_main_loop(
         jdata=jdata,
