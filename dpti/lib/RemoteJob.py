@@ -259,7 +259,7 @@ class CloudMachineJob(RemoteJob):
             for ii, jj in zip(job_dirs, args):
                 fp.write("cd %s\n" % ii)
                 fp.write("test $? -ne 0 && exit\n")
-                if resources["with_mpi"] == True:
+                if resources["with_mpi"] is True:
                     fp.write("mpirun -n %d %s %s\n" % (task_per_node, cmd, jj))
                 else:
                     fp.write("%s %s\n" % (cmd, jj))
