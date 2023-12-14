@@ -423,7 +423,9 @@ def _gen_lammps_input(
     else:
         raise RuntimeError("unknow ensemble %s\n" % ens)
     ret += "# --------------------- INITIALIZE -----------------------\n"
-    ret += "velocity        all create ${TEMP} %d\n" % (np.random.default_rng().integers(1, 2**16))
+    ret += "velocity        all create ${TEMP} %d\n" % (
+        np.random.default_rng().integers(1, 2**16)
+    )
     if crystal == "frenkel":
         ret += "fix             fc all recenter INIT INIT INIT\n"
         ret += "fix             fm all momentum 1 linear 1 1 1\n"
