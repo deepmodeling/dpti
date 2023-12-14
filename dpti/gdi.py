@@ -343,7 +343,7 @@ def make_dpdt(
         # collect resutls
         log_0 = os.path.join(work_base, "0", "log.lammps")
         log_1 = os.path.join(work_base, "1", "log.lammps")
-        if natoms == None:
+        if natoms is None:
             natoms = [get_natoms("conf.0.lmp"), get_natoms("conf.1.lmp")]
         stat_skip = jdata["stat_skip"]
         stat_bsize = jdata["stat_bsize"]

@@ -562,7 +562,7 @@ def post_task(iter_name, natoms=None, is_water=None):
     j_file = os.path.join(iter_name, "equi_settings.json")
     with open(j_file) as f:
         jdata = json.load(f)
-    if natoms == None:
+    if natoms is None:
         equi_conf = get_task_file_abspath(iter_name, jdata["equi_conf"])
         natoms = get_natoms(equi_conf)
         if "copies" in jdata:

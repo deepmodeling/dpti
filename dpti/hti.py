@@ -1015,7 +1015,7 @@ def _post_tasks(
     ntasks = len(all_tasks)
     equi_conf = get_task_file_abspath(iter_name, jdata["equi_conf"])
     assert os.path.isfile(equi_conf)
-    if natoms == None:
+    if natoms is None:
         natoms = get_natoms(equi_conf)
         if "copies" in jdata:
             natoms *= np.prod(jdata["copies"])
@@ -1160,7 +1160,7 @@ def _post_tasks_mbar(iter_name, jdata, natoms=None, switch="one-step", step="bot
     equi_conf = os.path.abspath(equi_conf)
     os.chdir(cwd)
     temp = jdata["temp"]
-    if natoms == None:
+    if natoms is None:
         natoms = get_natoms(equi_conf)
         if "copies" in jdata:
             natoms *= np.prod(jdata["copies"])
