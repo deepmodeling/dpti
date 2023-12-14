@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 
 from context import dpti
 
-import dpgi.gdi
 from dpti.lib.utils import get_file_md5
 
 
