@@ -410,7 +410,7 @@ def _gen_lammps_input(
     elif ens == "nvt-langevin":
         ret += "fix             1 all nve\n"
         ret += "fix             2 all langevin ${TEMP} ${TEMP} ${TAU_T} %d" % (
-            np.random.randint(1, 2**16)
+            np.random.default_rng().integers(1, 2**16)
         )
         if crystal == "frenkel":
             ret += " zero yes\n"
@@ -423,7 +423,7 @@ def _gen_lammps_input(
     else:
         raise RuntimeError("unknow ensemble %s\n" % ens)
     ret += "# --------------------- INITIALIZE -----------------------\n"
-    ret += "velocity        all create ${TEMP} %d\n" % (np.random.randint(1, 2**16))
+    ret += "velocity        all create ${TEMP} %d\n" % (np.random.default_rng().integers(1, 2**16))
     if crystal == "frenkel":
         ret += "fix             fc all recenter INIT INIT INIT\n"
         ret += "fix             fm all momentum 1 linear 1 1 1\n"
