@@ -142,7 +142,7 @@ GRANT ALL PRIVILEGES ON DATABASE airflow_db1 TO airflow_user1;
 ### configure airflow configure file to connect database
 configure  ~/airflow/airflow.cfg<br />
 
-```python
+```
 # change the following item with the sql above
 # sql_alchemy_conn = sqlite:////home/fengbo/airflow/airflow.db
 # sql_alchemy_conn = postgres://airflow:airflow@localhost:5432/airflow
@@ -151,7 +151,7 @@ sql_alchemy_conn = postgresql+psycopg2://<user>:<password>@<host>:<port>/<db_nam
 <a name="Yh8QG"></a>
 ### configure a
 reset db and webserver scheduler
-```python
+```
 # reset db
 airflow db init
 # -D flag represent daemonize
