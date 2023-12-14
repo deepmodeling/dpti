@@ -5,7 +5,7 @@ See: http://forum.ovito.org/index.php?topic=131.0 for details.
 """
 import argparse
 
-from ovito.io import *
+from ovito.io import import_file, export_file
 
 supp_ofmt = ["lammps_dump", "lammps_data", "vasp"]
 supp_exts = ["dump", "lmp", "poscar/POSCAR"]
