@@ -1,37 +1,39 @@
-import os, json, shutil, textwrap
-import numpy as np
+import textwrap
 import unittest
-from context import dpti
-from unittest.mock import MagicMock, patch, PropertyMock
-from dpti.lib.utils import get_file_md5
-from dpti import ti
+from unittest.mock import MagicMock, patch
+
 from potential_common import meam_model
+
+from dpti import ti
 
 
 class TestTiGenLammpsInput(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
 
-    @patch('numpy.random')
+    @patch("numpy.random")
     def test_deepmd(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
         input = dict(
-            conf_file='conf.lmp', 
-            mass_map=[118.71,],
+            conf_file="conf.lmp",
+            mass_map=[
+                118.71,
+            ],
             model="graph.pb",
             nsteps=200000,
             timestep=0.002,
-            ens='npt',
+            ens="npt",
             temp=200,
-            pres=50000, 
+            pres=50000,
             tau_t=0.1,
             tau_p=0.5,
             thermo_freq=10,
             copies=None,
             if_meam=False,
-            meam_model=None
+            meam_model=None,
         )
-        ret1 = textwrap.dedent("""\
+        ret1 = textwrap.dedent(
+            """\
         clear
         # --------------------- VARIABLES-------------------------
         variable        NSTEPS          equal 200000
@@ -68,30 +70,34 @@ class TestTiGenLammpsInput(unittest.TestCase):
         # --------------------- RUN ------------------------------
         run             ${NSTEPS}
         write_data      out.lmp
-        """)
+        """
+        )
         ret2 = ti._gen_lammps_input(**input)
         self.assertEqual(ret1, ret2)
 
-    @patch('numpy.random')
+    @patch("numpy.random")
     def test_meam(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
         input = dict(
-            conf_file='conf.lmp', 
-            mass_map=[118.71,],
+            conf_file="conf.lmp",
+            mass_map=[
+                118.71,
+            ],
             model="graph.pb",
             nsteps=200000,
             timestep=0.002,
-            ens='npt',
+            ens="npt",
             temp=200,
-            pres=50000, 
+            pres=50000,
             tau_t=0.1,
             tau_p=0.5,
             thermo_freq=10,
             copies=None,
             if_meam=True,
-            meam_model=meam_model
+            meam_model=meam_model,
         )
-        ret1 = textwrap.dedent("""\
+        ret1 = textwrap.dedent(
+            """\
         clear
         # --------------------- VARIABLES-------------------------
         variable        NSTEPS          equal 200000
@@ -128,10 +134,11 @@ class TestTiGenLammpsInput(unittest.TestCase):
         # --------------------- RUN ------------------------------
         run             ${NSTEPS}
         write_data      out.lmp
-        """)
+        """
+        )
         ret2 = ti._gen_lammps_input(**input)
         self.assertEqual(ret1, ret2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

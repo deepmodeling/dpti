@@ -1,43 +1,47 @@
-import os, textwrap
-import numpy as np
+import textwrap
 import unittest
-from context import dpti
+from unittest.mock import MagicMock, patch
+
 # from potential_common import soft_param, soft_param_three_element, meam_model
 # from dpti.lib.lammps import get_natoms, get_thermo, get_last_dump
 # from dpti.lib.dump import from_system_data
-from potential_common import soft_param, meam_model
+from potential_common import soft_param
+
 from dpti.hti_liq import _gen_lammps_input_ideal
-from numpy.testing import assert_almost_equal
-from unittest.mock import MagicMock, patch, PropertyMock
+
 
 class TestGenLammpsIdeal(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
 
-    @patch('numpy.random')
+    @patch("numpy.random")
     def test_soft_on(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(step='soft_on',
-                    conf_file='conf.lmp', 
-                    mass_map=[118.71,],
-                    lamb=0.075,
-                    soft_param=soft_param,
-                    model='graph.pb',
-                    nsteps=500000,
-                    timestep=0.002,
-                    ens='npt',
-                    temp=1200,
-                    pres=1.0, 
-                    tau_t=0.1,
-                    tau_p=0.5,
-                    thermo_freq=100, 
-                    copies=None,
-                    norm_style='first',
-                    if_meam=False,
-                    meam_model=None
-                )
-        
-        ret1 = textwrap.dedent("""\
+        input = dict(
+            step="soft_on",
+            conf_file="conf.lmp",
+            mass_map=[
+                118.71,
+            ],
+            lamb=0.075,
+            soft_param=soft_param,
+            model="graph.pb",
+            nsteps=500000,
+            timestep=0.002,
+            ens="npt",
+            temp=1200,
+            pres=1.0,
+            tau_t=0.1,
+            tau_p=0.5,
+            thermo_freq=100,
+            copies=None,
+            norm_style="first",
+            if_meam=False,
+            meam_model=None,
+        )
+
+        ret1 = textwrap.dedent(
+            """\
         clear
         # --------------------- VARIABLES-------------------------
         variable        NSTEPS          equal 500000
@@ -79,37 +83,42 @@ class TestGenLammpsIdeal(unittest.TestCase):
         # --------------------- RUN ------------------------------
         run             ${NSTEPS}
         write_data      out.lmp
-        """)
+        """
+        )
         ret2 = _gen_lammps_input_ideal(**input)
         # print('--------')
         # print(ret2)
         # print('--------')
         self.assertEqual(ret1, ret2)
 
-    @patch('numpy.random')
+    @patch("numpy.random")
     def test_deep_on(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(step='deep_on',
-                    conf_file='conf.lmp', 
-                    mass_map=[118.71,],
-                    lamb=0.075,
-                    soft_param=soft_param,
-                    model='graph.pb',
-                    nsteps=500000,
-                    timestep=0.002,
-                    ens='npt',
-                    temp=1200,
-                    pres=1.0, 
-                    tau_t=0.1,
-                    tau_p=0.5,
-                    thermo_freq=100, 
-                    copies=None,
-                    norm_style='first',
-                    if_meam=False,
-                    meam_model=None
-                )
-        
-        ret1 = textwrap.dedent("""\
+        input = dict(
+            step="deep_on",
+            conf_file="conf.lmp",
+            mass_map=[
+                118.71,
+            ],
+            lamb=0.075,
+            soft_param=soft_param,
+            model="graph.pb",
+            nsteps=500000,
+            timestep=0.002,
+            ens="npt",
+            temp=1200,
+            pres=1.0,
+            tau_t=0.1,
+            tau_p=0.5,
+            thermo_freq=100,
+            copies=None,
+            norm_style="first",
+            if_meam=False,
+            meam_model=None,
+        )
+
+        ret1 = textwrap.dedent(
+            """\
         clear
         # --------------------- VARIABLES-------------------------
         variable        NSTEPS          equal 500000
@@ -153,7 +162,8 @@ class TestGenLammpsIdeal(unittest.TestCase):
         # --------------------- RUN ------------------------------
         run             ${NSTEPS}
         write_data      out.lmp
-        """)
+        """
+        )
         ret2 = _gen_lammps_input_ideal(**input)
         # print('--------')
         # print(ret1)
@@ -162,30 +172,33 @@ class TestGenLammpsIdeal(unittest.TestCase):
         # print('--------')
         self.assertEqual(ret1, ret2)
 
-
-    @patch('numpy.random')
+    @patch("numpy.random")
     def test_soft_off(self, patch_random):
         patch_random.randint = MagicMock(return_value=7858)
-        input = dict(step='soft_off',
-                    conf_file='conf.lmp', 
-                    mass_map=[118.71,],
-                    lamb=0.075,
-                    soft_param=soft_param,
-                    model='graph.pb',
-                    nsteps=500000,
-                    timestep=0.002,
-                    ens='npt',
-                    temp=1200,
-                    pres=1.0, 
-                    tau_t=0.1,
-                    tau_p=0.5,
-                    thermo_freq=100, 
-                    copies=None,
-                    norm_style='first',
-                    if_meam=False,
-                    meam_model=None
-                )
-        ret1 = textwrap.dedent("""\
+        input = dict(
+            step="soft_off",
+            conf_file="conf.lmp",
+            mass_map=[
+                118.71,
+            ],
+            lamb=0.075,
+            soft_param=soft_param,
+            model="graph.pb",
+            nsteps=500000,
+            timestep=0.002,
+            ens="npt",
+            temp=1200,
+            pres=1.0,
+            tau_t=0.1,
+            tau_p=0.5,
+            thermo_freq=100,
+            copies=None,
+            norm_style="first",
+            if_meam=False,
+            meam_model=None,
+        )
+        ret1 = textwrap.dedent(
+            """\
         clear
         # --------------------- VARIABLES-------------------------
         variable        NSTEPS          equal 500000
@@ -230,7 +243,8 @@ class TestGenLammpsIdeal(unittest.TestCase):
         # --------------------- RUN ------------------------------
         run             ${NSTEPS}
         write_data      out.lmp
-        """)
+        """
+        )
         ret2 = _gen_lammps_input_ideal(**input)
         # print('--------')
         # print(ret1)
@@ -239,13 +253,10 @@ class TestGenLammpsIdeal(unittest.TestCase):
         # print('--------')
         self.assertEqual(ret1, ret2)
 
-
-
-
     # @patch('numpy.random')
     # def test_deepmd_deep_on(self, patch_random):
     #     patch_random.randint = MagicMock(return_value=7858)
-    #     input = dict ( conf_file='conf.lmp', 
+    #     input = dict ( conf_file='conf.lmp',
     #                     mass_map=[118.71],
     #                     lamb=0.075,
     #                     model="graph.pb",
@@ -254,12 +265,12 @@ class TestGenLammpsIdeal(unittest.TestCase):
     #                     dt=0.002,
     #                     ens='npt',
     #                     temp=400.0,
-    #                     pres = 1.0, 
+    #                     pres = 1.0,
     #                     tau_t = 0.1,
     #                     tau_p = 0.5,
-    #                     prt_freq = 100, 
+    #                     prt_freq = 100,
     #                     copies = None,
-    #                     crystal = 'vega', 
+    #                     crystal = 'vega',
     #                     sparam = soft_param,
     #                     switch = 'three-step',
     #                     step = 'deep_on',
@@ -321,11 +332,10 @@ class TestGenLammpsIdeal(unittest.TestCase):
     #     ret2 = _gen_lammps_input(**input)
     #     self.assertEqual(ret1, ret2)
 
-
     # @patch('numpy.random')
     # def test_meam_deep_on(self, patch_random):
     #     patch_random.randint = MagicMock(return_value=7858)
-    #     input = dict ( conf_file='conf.lmp', 
+    #     input = dict ( conf_file='conf.lmp',
     #                     mass_map=[118.71],
     #                     lamb=0.075,
     #                     model=None,
@@ -334,12 +344,12 @@ class TestGenLammpsIdeal(unittest.TestCase):
     #                     dt=0.002,
     #                     ens='npt',
     #                     temp=400.0,
-    #                     pres = 1.0, 
+    #                     pres = 1.0,
     #                     tau_t = 0.1,
     #                     tau_p = 0.5,
-    #                     prt_freq = 100, 
+    #                     prt_freq = 100,
     #                     copies = None,
-    #                     crystal = 'vega', 
+    #                     crystal = 'vega',
     #                     sparam = soft_param,
     #                     switch = 'three-step',
     #                     step = 'deep_on',
@@ -405,7 +415,7 @@ class TestGenLammpsIdeal(unittest.TestCase):
     # @patch('numpy.random')
     # def test_meam_spring_off(self, patch_random):
     #     patch_random.randint = MagicMock(return_value=7858)
-    #     input = dict ( conf_file='conf.lmp', 
+    #     input = dict ( conf_file='conf.lmp',
     #                     mass_map=[118.71],
     #                     lamb=0.075,
     #                     model=None,
@@ -414,12 +424,12 @@ class TestGenLammpsIdeal(unittest.TestCase):
     #                     dt=0.002,
     #                     ens='npt',
     #                     temp=400.0,
-    #                     pres = 1.0, 
+    #                     pres = 1.0,
     #                     tau_t = 0.1,
     #                     tau_p = 0.5,
-    #                     prt_freq = 100, 
+    #                     prt_freq = 100,
     #                     copies = None,
-    #                     crystal = 'vega', 
+    #                     crystal = 'vega',
     #                     sparam = soft_param,
     #                     switch = 'three-step',
     #                     step = 'spring_off',
@@ -483,7 +493,7 @@ class TestGenLammpsIdeal(unittest.TestCase):
     #     self.assertEqual(ret1, ret2)
 
     # def test_raise_err(self):
-    #     input = dict ( conf_file='conf.lmp', 
+    #     input = dict ( conf_file='conf.lmp',
     #                     mass_map=[118.71],
     #                     lamb=0.075,
     #                     model="graph.pb",
@@ -492,24 +502,23 @@ class TestGenLammpsIdeal(unittest.TestCase):
     #                     dt=0.002,
     #                     ens='npt',
     #                     temp=400.0,
-    #                     pres = 1.0, 
+    #                     pres = 1.0,
     #                     tau_t = 0.1,
     #                     tau_p = 0.5,
-    #                     prt_freq = 100, 
+    #                     prt_freq = 100,
     #                     copies = None,
-    #                     crystal = 'vega', 
+    #                     crystal = 'vega',
     #                     sparam = soft_param,
     #                     switch = 'three-step',
     #                     step = 'spring_off',
     #                     if_meam = False,
     #                     meam_model = None)
-        
+
     #     input2 = input.copy()
     #     input2['step'] = 'foo'
     #     with self.assertRaises(RuntimeError):
     #         _gen_lammps_input(**input2)
 
-        
     #     input3 = input.copy()
     #     input3['switch'] = 'bar'
     #     with self.assertRaises(RuntimeError):
@@ -519,4 +528,3 @@ class TestGenLammpsIdeal(unittest.TestCase):
     #     input4['ens'] = 'baz'
     #     with self.assertRaises(RuntimeError):
     #         _gen_lammps_input(**input4)
-

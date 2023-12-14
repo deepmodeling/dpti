@@ -1,16 +1,16 @@
-import os, textwrap
-import numpy as np
 import unittest
-from context import dpti
+
 # from numpy.testing import assert_almost_equal
-from dpti.einstein import frenkel, free_energy, ideal_gas_fe
+from dpti.einstein import free_energy, frenkel, ideal_gas_fe
+
 lambda_seq = [
     "0.00:0.05:0.010",
     "0.05:0.15:0.020",
     "0.15:0.35:0.040",
     "0.35:1.00:0.065",
-    "1"
+    "1",
 ]
+
 
 class TestEinstein(unittest.TestCase):
     def setUp(self):
@@ -18,17 +18,17 @@ class TestEinstein(unittest.TestCase):
 
     def test_frenkel(self):
         fe1 = -0.14061204010964043
-        fe2 = frenkel('hti_test_files/frenkel')
+        fe2 = frenkel("hti_test_files/frenkel")
         self.assertAlmostEqual(fe1, fe2)
 
     def test_vega(self):
         fe1 = -0.13882760104909486
-        fe2 = free_energy('hti_test_files/vega')
+        fe2 = free_energy("hti_test_files/vega")
         self.assertAlmostEqual(fe1, fe2)
 
     def test_ideal(self):
         fe1 = -1.8983591660560315
-        fe2 = ideal_gas_fe('hti_test_files/ideal')
+        fe2 = ideal_gas_fe("hti_test_files/ideal")
         # print('ideal_gas fe', fe2)
         self.assertAlmostEqual(fe1, fe2)
 
@@ -45,7 +45,8 @@ class TestEinstein(unittest.TestCase):
     # def test_no_posi_args(self):
     #     with self.assertRaises(TypeError):
     #         parse_seq(lambda_seq, 1e-6)
-            # assert_almost_equal(array1, array2, decimal=10)
+    # assert_almost_equal(array1, array2, decimal=10)
+
 
 # class TestBlockAvg(unittest.TestCase):
 #     def setUp(self):
@@ -92,9 +93,5 @@ class TestEinstein(unittest.TestCase):
 #         self.assertAlmostEqual(sys_err2, sys_err2, places=8)
 
 
-
-
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

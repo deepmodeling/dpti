@@ -21,7 +21,7 @@ We could use dpti to calculate out the Press-Volume phase diagram of metals.<br 
 **dpti** (deep potential thermodynamic integration) is a python package for calculating free energy, doing thermodynamic integration and figuring out pressure-temperature phase diagram for materials with molecular dynamics (MD) simulation methods.
 
 
-<br />The user will get Gibbs (Helmholtz) free energy of a system at different temperature and pressure conditions. With these free energy results, the user could determine the phase transition points and coexistence curve on the pressure-volume phase diagram. 
+<br />The user will get Gibbs (Helmholtz) free energy of a system at different temperature and pressure conditions. With these free energy results, the user could determine the phase transition points and coexistence curve on the pressure-volume phase diagram.
 <a name="xuFE2"></a>
 # 🦴software introduction
 At first, dpti is a collection of python scripts to generate LAMMPS input scripts and to anaylze results from LAMMPS logs.<br />
@@ -66,19 +66,19 @@ airflow users create \
     --lastname Parker \
     --role Admin \
     --email spiderman@superhero.org
-    
+
  # you will be requested to enter the password here.
- 
- 
+
+
  # start airflow's webserver to manage your workflow use "-D" option to daemon it
  airflow webserver --port 8080 --hostname 127.0.0.1
- 
+
  # start airflwo scheduler
  airflow scheduler
- 
+
  # if ariflow web server start at the personal computer,
  # you could go to http://localhost:8080/ to view it
- # if airflow runs on remote server 
+ # if airflow runs on remote server
  # you could use ssh to conntect to server
  # ssh -CqTnN -L localhost:8080:localhost:8080 someusername@39.xx.84.xx
 ```
@@ -89,23 +89,23 @@ airflow users create \
 
 
 ```bash
- # copy dpti'workflow file  
+ # copy dpti'workflow file
  cp /path-to-dpti/workflow/DpFreeEnergy.py ~/airflow/dags/
- 
+
  # create a workdir and copy example files
  cp /path-to-dpti/examples/*json /path-to-a-work-dir/
- 
+
  # start our airflow job
  cd /path-to-a-work-dir/
  cat ./airflow.sh
- 
+
  airflow dags trigger  TI_taskflow  --conf $(printf "%s" $(cat FreeEnergy.json))
- 
+
 ```
 
 
 <a name="262831afc14feddc64db20cb6be8fd0d"></a>
-##  
+##
 <a name="ad87a3d8509a6920e3e849cb1b423f31"></a>
 ## 🕹install postgresql database
 Airflow use relation database as  backend. And PostgreSQL is widely used in airflow community.<br />
@@ -130,14 +130,14 @@ psql
 
 
 <a name="iFkxm"></a>
-###  create database and database user 
+###  create database and database user
 ```sql
 CREATE DATABASE airflow_db1;
 CREATE USER airflow_user1 WITH PASSWORD 'airflow_user1';
 GRANT ALL PRIVILEGES ON DATABASE airflow_db1 TO airflow_user1;
 ```
 <a name="Glyxy"></a>
-### 
+###
 <a name="gQvK2"></a>
 ### configure airflow configure file to connect database
 configure  ~/airflow/airflow.cfg<br />
@@ -206,7 +206,7 @@ The user can ssh contect to the aliyun cloud server by command like ` ssh -L lo
 
 <br />To calculate out Gibbs (or Helmholtz) free energy of the materials, there are four steps.<br />
 
-1. NPT MD simulation  
+1. NPT MD simulation
 1. NVT MD simulation
 1. Hamiltonian thermodynamic integration
 4. thermodynamic integration
@@ -221,7 +221,7 @@ Run a long MD simulation and we will get the lattice constant and the best simul
 Run a long MD simulation with the end structure of NPT simulations. We will know whether the box is reasonable enough from the results of this MD simulation.
 <a name="14932184266288e8651c16aebdbfbb8e_h2_2"></a>
 ## Hamiltonian thermodynamic integration (HTI)
-We will know the Gibbs (or Helmholtz) free energy at the specific temperature or pressure condition. 
+We will know the Gibbs (or Helmholtz) free energy at the specific temperature or pressure condition.
 <a name="56937698a8d18e2013bea45f6dfe5890_h2_3"></a>
 ## thermodynamic integration (TI)
 Integrating along the isothermal or isobaric path, We will know the free energy at different pressure and temperature.<br />
@@ -385,7 +385,7 @@ the settings used in thermodynamic integration (TI) for constant pressure and ch
 | stat_bsize | integer | 200 | statistic batch size |
 
 <a name="f3b978108de979f9529b07f01b19dc5d"></a>
-# 
+#
 <a name="cf0461961f6d77fdee29d68f2bc9982a"></a>
 ## ti.p.json
 the settings used in thermodynamic integration (TI) for constant temperature and changeable  pressure
@@ -432,4 +432,3 @@ The gdi.json is used for gibbs-duham integration.  When you know the one point a
 # **👀**Troubleshooting
 TODO<br />
 <br />
-

@@ -75,4 +75,3 @@ ignore-init-module-imports = true
 
 [tool.ruff.pydocstyle]
 convention = "numpy"
-
