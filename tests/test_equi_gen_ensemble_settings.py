@@ -9,9 +9,9 @@ class TestEquiEnsembleSetting(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
 
-    @patch("numpy.random.Generator.integers")
+    @patch("numpy.random.default_rng")
     def test_gen_equi_ensemble_settings_nvt(self, patch_random):
-        patch_random = MagicMock(return_value=7858)
+        patch_random.integers = MagicMock(return_value=7858)
         input = {"ens": "nvt"}
         ret1 = textwrap.dedent(
             """\
