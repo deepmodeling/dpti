@@ -23,7 +23,7 @@ repos:
     rev: v0.1.8
     hooks:
     - id: ruff
-      args: ["--fix", "--unsafe-fixes"]
+      args: ["--fix"]
       types_or: [python, pyi, jupyter]
     - id: ruff-format
       types_or: [python, pyi, jupyter]
