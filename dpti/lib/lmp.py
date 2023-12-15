@@ -99,16 +99,18 @@ def get_natoms_vec(lines):
     assert sum(natoms_vec) == get_natoms(lines)
     return natoms_vec
 
-def get_id(lines) :
+
+def get_id(lines):
     alines = get_atoms(lines)
     idx_list = []
-    for ii in alines :
+    for ii in alines:
         idx, at, x, y, z = _atom_info_atom(ii)
         idx_list.append(idx)
-    return np.array(idx_list, dtype = int)
+    return np.array(idx_list, dtype=int)
 
-def get_atype(lines) :
-    alines = get_atoms(lines) 
+
+def get_atype(lines):
+    alines = get_atoms(lines)
     atype = []
     for ii in alines:
         # idx, mt, at, q, x, y, z = _atom_info_mol(ii)

@@ -81,8 +81,8 @@ def add_bonds(lines_, max_roh=1.3):
     natoms = lmp.get_natoms_vec(lines)
     assert len(natoms) == 2
     # type 1 == O, type 2 == H
-    assert(natoms[0] == natoms[1] // 2) 
-    
+    assert natoms[0] == natoms[1] // 2
+
     aidx = lmp.get_id(lines)
     atype = lmp.get_atype(lines)
     posis = lmp.get_posi(lines)
@@ -135,7 +135,10 @@ def add_bonds(lines_, max_roh=1.3):
     idx = 1
     for ii in range(len(bonds)):
         if atype[ii] == 1:
-            ret_ang.append("%d 1 %d %d %d" % (idx, aidx[bonds[ii][0]], aidx[ii], aidx[bonds[ii][1]]))
+            ret_ang.append(
+                "%d 1 %d %d %d"
+                % (idx, aidx[bonds[ii][0]], aidx[ii], aidx[bonds[ii][1]])
+            )
             idx += 1
 
     lines.append("Bonds")
