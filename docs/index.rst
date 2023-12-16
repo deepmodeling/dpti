@@ -1,7 +1,7 @@
 DPTI's documentation
 ======================================
 
-DPTI is a Python package to TODO
+DPTI is a Python package to automate thermodynamic integration (TI) calculations for free energy.
 
 .. toctree::
    :maxdepth: 2
