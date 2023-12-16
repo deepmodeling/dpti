@@ -36,7 +36,7 @@ homepage = "https://github.com/deepmodeling/dpti"
 dpti = "dpti.main:main"
 
 [project.optional-dependencies]
-docs = [ 
+docs = [
     'sphinx',
     'myst-parser',
     'sphinx_rtd_theme>=1.0.0rc1',

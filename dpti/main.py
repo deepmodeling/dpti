@@ -4,9 +4,18 @@ from . import equi, gdi, hti, hti_ice, hti_liq, hti_water, ti, ti_water
 
 # from . import gdi
 
+
 def create_parser():
-    parser = argparse.ArgumentParser(description="DPTI: An Automatic Workflow Software for Thermodynamic Integration Calculations")
-    main_subparsers = parser.add_subparsers(title='modules', description='the subcommands of dpti', help='module-level help', dest='module', required=True)
+    parser = argparse.ArgumentParser(
+        description="DPTI: An Automatic Workflow Software for Thermodynamic Integration Calculations"
+    )
+    main_subparsers = parser.add_subparsers(
+        title="modules",
+        description="the subcommands of dpti",
+        help="module-level help",
+        dest="module",
+        required=True,
+    )
 
     equi.add_module_subparsers(main_subparsers)
     hti.add_module_subparsers(main_subparsers)
@@ -17,6 +26,7 @@ def create_parser():
     ti_water.add_module_subparsers(main_subparsers)
     gdi.add_module_subparsers(main_subparsers)
     return parser
+
 
 def main():
     parser = create_parser()
