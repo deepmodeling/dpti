@@ -176,6 +176,7 @@ def _gen_lammps_input_ideal(
     tau_t=0.1,
     tau_p=0.5,
     thermo_freq=100,
+    dump_freq=100,
     copies=None,
     norm_style="first",
     if_meam=False,
@@ -186,7 +187,7 @@ def _gen_lammps_input_ideal(
     ret += "# --------------------- VARIABLES-------------------------\n"
     ret += "variable        NSTEPS          equal %d\n" % nsteps
     ret += "variable        THERMO_FREQ     equal %d\n" % thermo_freq
-    # ret += 'variable        DUMP_FREQ       equal %d\n' % thermo_freq
+    ret += 'variable        DUMP_FREQ       equal %d\n' % dump_freq
     ret += "variable        TEMP            equal %f\n" % temp
     ret += "variable        PRES            equal %f\n" % pres
     ret += "variable        TAU_T           equal %f\n" % tau_t
@@ -269,6 +270,7 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None):
     timestep = get_first_matched_key_from_dict(jdata, ["timestep", "dt"])
     # thermo_freq = jdata['thermo_freq']
     thermo_freq = get_first_matched_key_from_dict(jdata, ["thermo_freq", "stat_freq"])
+    dump_freq = get_first_matched_key_from_dict(jdata, ["dump_freq"])
     copies = None
     if "copies" in jdata:
         copies = jdata["copies"]
@@ -336,6 +338,7 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None):
             "nvt",
             temp,
             thermo_freq=thermo_freq,
+            dump_freq=dump_freq,
             copies=copies,
             if_meam=if_meam,
             meam_model=meam_model,
