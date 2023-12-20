@@ -5,6 +5,7 @@ import os
 import pathlib
 import shutil
 import subprocess as sp
+import warnings
 
 import numpy as np
 
@@ -123,7 +124,11 @@ def block_avg(inp, skip=0, block_size=10):
     if len(data_block) != 1:
         block_err = np.std(data_block) / np.sqrt(nblocks - 1)
     else:
-        block_err = None
+        block_err = naive_err
+        warnings.warn(
+            "We only have one block when doing the block averaging. You may be choosing a too large stat_bsize value. Make sure this is what you want.",
+            RuntimeWarning,
+        )
 
     return block_avg, block_err
 
