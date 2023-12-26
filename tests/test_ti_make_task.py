@@ -54,8 +54,6 @@ class TestEquiMakeTask(unittest.TestCase):
         json_file = os.path.join(benchmark_dir, "jdata.json")
         with open(json_file) as f:
             jdata = json.load(f)
-        # print(dpti.ti)
-        # print(dir(dpti.ti))
         dpti.ti.make_tasks(iter_name=test_dir, jdata=jdata)
         check_file_list = [
             # 'conf.lmp',
