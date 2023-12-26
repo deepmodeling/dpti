@@ -64,7 +64,7 @@ def _gen_lammps_input(
     ret += "# --------------------- VARIABLES-------------------------\n"
     ret += "variable        NSTEPS          equal %d\n" % nsteps
     ret += "variable        THERMO_FREQ     equal %d\n" % thermo_freq
-    ret += 'variable        DUMP_FREQ       equal %d\n' % dump_freq
+    ret += "variable        DUMP_FREQ       equal %d\n" % dump_freq
     ret += "variable        TEMP            equal %f\n" % temp
     ret += "variable        PRES            equal %f\n" % pres
     ret += "variable        TAU_T           equal %f\n" % tau_t
