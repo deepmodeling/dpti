@@ -710,7 +710,9 @@ def _make_tasks(
             m_spring_k.append(spring_k * ii)
     # thermo_freq = jdata['thermo_freq']
     thermo_freq = get_first_matched_key_from_dict(jdata, ["thermo_freq", "stat_freq"])
-    dump_freq = get_first_matched_key_from_dict(jdata, ["dump_freq", "thermo_freq", "stat_freq"])
+    dump_freq = get_first_matched_key_from_dict(
+        jdata, ["dump_freq", "thermo_freq", "stat_freq"]
+    )
     copies = None
     if "copies" in jdata:
         copies = jdata["copies"]
