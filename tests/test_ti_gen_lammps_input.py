@@ -38,6 +38,7 @@ class TestTiGenLammpsInput(unittest.TestCase):
         # --------------------- VARIABLES-------------------------
         variable        NSTEPS          equal 200000
         variable        THERMO_FREQ     equal 10
+        variable        DUMP_FREQ       equal 10
         variable        TEMP            equal 200.000000
         variable        PRES            equal 50000.000000
         variable        TAU_T           equal 0.100000
@@ -102,6 +103,7 @@ class TestTiGenLammpsInput(unittest.TestCase):
         # --------------------- VARIABLES-------------------------
         variable        NSTEPS          equal 200000
         variable        THERMO_FREQ     equal 10
+        variable        DUMP_FREQ       equal 10
         variable        TEMP            equal 200.000000
         variable        PRES            equal 50000.000000
         variable        TAU_T           equal 0.100000

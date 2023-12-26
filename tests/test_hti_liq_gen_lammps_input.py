@@ -46,6 +46,7 @@ class TestGenLammpsIdeal(unittest.TestCase):
         # --------------------- VARIABLES-------------------------
         variable        NSTEPS          equal 500000
         variable        THERMO_FREQ     equal 100
+        variable        DUMP_FREQ       equal 100
         variable        TEMP            equal 1200.000000
         variable        PRES            equal 1.000000
         variable        TAU_T           equal 0.100000
@@ -123,6 +124,7 @@ class TestGenLammpsIdeal(unittest.TestCase):
         # --------------------- VARIABLES-------------------------
         variable        NSTEPS          equal 500000
         variable        THERMO_FREQ     equal 100
+        variable        DUMP_FREQ       equal 100
         variable        TEMP            equal 1200.000000
         variable        PRES            equal 1.000000
         variable        TAU_T           equal 0.100000
@@ -203,6 +205,7 @@ class TestGenLammpsIdeal(unittest.TestCase):
         # --------------------- VARIABLES-------------------------
         variable        NSTEPS          equal 500000
         variable        THERMO_FREQ     equal 100
+        variable        DUMP_FREQ       equal 100
         variable        TEMP            equal 1200.000000
         variable        PRES            equal 1.000000
         variable        TAU_T           equal 0.100000
