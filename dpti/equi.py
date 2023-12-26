@@ -161,6 +161,8 @@ def gen_equi_lammps_input(
     if_meam=False,
     meam_model=None,
 ):
+    if dump_freq is None:
+        dump_freq = thermo_freq
     equi_header = gen_equi_header(
         nsteps,
         thermo_freq=thermo_freq,

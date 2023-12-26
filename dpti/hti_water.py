@@ -144,6 +144,7 @@ def _gen_lammps_input(
     tau_t=0.1,
     tau_p=0.5,
     prt_freq=100,
+    dump_freq=100,
     copies=None,
 ):
     ret = ""
@@ -151,7 +152,7 @@ def _gen_lammps_input(
     ret += "# --------------------- VARIABLES-------------------------\n"
     ret += "variable        NSTEPS          equal %d\n" % nsteps
     ret += "variable        THERMO_FREQ     equal %d\n" % prt_freq
-    ret += "variable        DUMP_FREQ       equal %d\n" % prt_freq
+    ret += "variable        DUMP_FREQ       equal %d\n" % dump_freq
     ret += "variable        TEMP            equal %f\n" % temp
     ret += "variable        PRES            equal %f\n" % pres
     ret += "variable        TAU_T           equal %f\n" % tau_t
@@ -238,6 +239,9 @@ def _make_tasks(iter_name, jdata, step):
     # stat_freq = jdata['stat_freq']
     # thermo_freq = jdata['thermo_freq']
     thermo_freq = get_first_matched_key_from_dict(jdata, ["thermo_freq", "stat_freq"])
+    dump_freq = get_first_matched_key_from_dict(
+        jdata, ["dump_freq", "thermo_freq", "stat_freq"]
+    )
     ens = jdata["ens"]
     temp = jdata["temp"]
     pres = jdata["pres"]
@@ -280,6 +284,7 @@ def _make_tasks(iter_name, jdata, step):
             tau_t=tau_t,
             tau_p=tau_p,
             prt_freq=thermo_freq,
+            dump_freq=dump_freq,
             copies=copies,
         )
         with open("in.lammps", "w") as fp:
