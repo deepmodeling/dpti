@@ -140,7 +140,9 @@ def handle_compute(args):
     hti_dir = args.hti
     jdata_hti = json.load(open(os.path.join(hti_dir, "result.json")))
     if args.Eo is not None and args.hti is not None:
-        raise Warning("Both Eo and hti are provided. Eo will be overrided by the e1 value in hti's result.json file. Make sure this is what you want.")
+        raise Warning(
+            "Both Eo and hti are provided. Eo will be overrided by the e1 value in hti's result.json file. Make sure this is what you want."
+        )
     if args.Eo is None:
         args.Eo = jdata_hti["e1"]
     if args.Eo_err is None:
