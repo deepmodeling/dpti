@@ -239,7 +239,7 @@ def _make_tasks(iter_name, jdata, step):
     # stat_freq = jdata['stat_freq']
     # thermo_freq = jdata['thermo_freq']
     thermo_freq = get_first_matched_key_from_dict(jdata, ["thermo_freq", "stat_freq"])
-    dump_freq = get_first_matched_key_from_dict(jdata, ["dump_freq"])
+    dump_freq = get_first_matched_key_from_dict(jdata, ["dump_freq", "thermo_freq", "stat_freq"])
     ens = jdata["ens"]
     temp = jdata["temp"]
     pres = jdata["pres"]
