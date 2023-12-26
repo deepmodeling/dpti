@@ -93,7 +93,9 @@ def _make_tasks_onephase(
     timestep = get_first_matched_key_from_dict(jdata, ["timestep", "dt"])
     # thermo_freq = jdata['thermo_freq']
     thermo_freq = get_first_matched_key_from_dict(jdata, ["thermo_freq", "stat_freq"])
-    dump_freq = get_first_matched_key_from_dict(jdata, ["dump_freq", "thermo_freq", "stat_freq"])
+    dump_freq = get_first_matched_key_from_dict(
+        jdata, ["dump_freq", "thermo_freq", "stat_freq"]
+    )
     tau_t = jdata["tau_t"]
     tau_p = jdata["tau_p"]
 
