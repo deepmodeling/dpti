@@ -957,6 +957,13 @@ def add_module_subparsers(main_subparsers):
         default="simpson",
         help="the numerical integration scheme",
     )
+    parser_compute.add_argument(
+        "-H",
+        "--hti",
+        type=str,
+        default=None,
+        help="the HTI job folder; will extract the free energy of the starting point as from the result.json file in this folder",
+    )
     parser_compute.set_defaults(func=handle_compute)
 
     parser_refine = module_subparsers.add_parser(
@@ -981,6 +988,14 @@ def handle_gen(args):
 
 
 def handle_compute(args):
+    hti_dir = args.hti
+    jdata_hti = json.load(open(os.path.join(hti_dir, "result.json")))
+    if args.Eo is not None and args.hti is not None:
+        raise Warning("Both Eo and hti are provided. Eo will be overrided by the e1 value in hti's result.json file. Make sure this is what you want.")
+    if args.Eo is None:
+        args.Eo = jdata_hti["e1"]
+    if args.Eo_err is None:
+        args.Eo_err = jdata_hti["e1_err"]
     compute_task(
         args.JOB,
         inte_method=args.inte_method,
