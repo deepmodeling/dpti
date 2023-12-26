@@ -72,14 +72,14 @@ def add_subparsers(module_subparsers):
         help="the method of thermodynamic integration",
     )
     parser_compute.add_argument(
-        "-e", "--Eo", type=float, default=0, help="free energy of starting point"
+        "-e", "--Eo", type=float, default=None, help="free energy of starting point"
     )
     parser_compute.add_argument(
         "-E",
         "--Eo-err",
         type=float,
-        default=0,
-        help="The statistical error of the starting free energy",
+        default=None,
+        help="the statistical error of the starting free energy",
     )
     parser_compute.add_argument(
         "-t", "--To", type=float, help="the starting thermodynamic position"
@@ -97,6 +97,13 @@ def add_subparsers(module_subparsers):
         type=float,
         default=0.0,
         help="a constant shift in the energy/mole computation, will be removed from FE",
+    )
+    parser_compute.add_argument(
+        "-H",
+        "--hti",
+        type=str,
+        default=None,
+        help="the HTI job folder; will extract the free energy of the starting point as from the result.json file in this folder",
     )
     parser_compute.set_defaults(func=handle_compute)
 
@@ -130,6 +137,16 @@ def handle_compute(args):
     if "copies" in jdata:
         natoms *= np.prod(jdata["copies"])
     nmols = natoms // 3
+    hti_dir = args.hti
+    jdata_hti = json.load(open(os.path.join(hti_dir, "result.json")))
+    if args.Eo is not None and args.hti is not None:
+        raise Warning(
+            "Both Eo and hti are provided. Eo will be overrided by the e1 value in hti's result.json file. Make sure this is what you want."
+        )
+    if args.Eo is None:
+        args.Eo = jdata_hti["e1"]
+    if args.Eo_err is None:
+        args.Eo_err = jdata_hti["e1_err"]
     if args.inte_method == "inte":
         ti.post_tasks(
             job,
