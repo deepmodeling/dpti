@@ -280,6 +280,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                 tau_t=tau_t,
                 tau_p=tau_p,
                 thermo_freq=thermo_freq,
+                dump_freq=dump_freq,
                 copies=copies,
                 if_meam=if_meam,
                 meam_model=meam_model,
