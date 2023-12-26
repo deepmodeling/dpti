@@ -270,7 +270,9 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None):
     timestep = get_first_matched_key_from_dict(jdata, ["timestep", "dt"])
     # thermo_freq = jdata['thermo_freq']
     thermo_freq = get_first_matched_key_from_dict(jdata, ["thermo_freq", "stat_freq"])
-    dump_freq = get_first_matched_key_from_dict(jdata, ["dump_freq", "thermo_freq", "stat_freq"])
+    dump_freq = get_first_matched_key_from_dict(
+        jdata, ["dump_freq", "thermo_freq", "stat_freq"]
+    )
     copies = None
     if "copies" in jdata:
         copies = jdata["copies"]
