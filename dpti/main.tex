@@ -1,0 +1,427 @@
+%\documentclass[aps,pre,preprint,a4paper,onecolumn]{revtex4}
+\documentclass[aps,pre,a4paper,showkeys,fleqn]{revtex4}
+% \documentclass[aps, pre, reprint,unsortedaddress,a4paper,onecolumn, showkeys]{revtex4}
+
+\usepackage[]{amsmath}
+\usepackage{amssymb}
+\usepackage[caption = false]{subfig}
+\usepackage[dvips]{graphicx}
+\usepackage{color}
+\usepackage{tabularx}
+\usepackage{mathtools}
+\usepackage{algpseudocode}
+\usepackage{enumitem}
+\usepackage{multirow}
+\usepackage{epstopdf}
+\usepackage{hyperref}
+\usepackage{footnote}
+\usepackage[hang,flushmargin]{footmisc}
+\usepackage{bm}
+\usepackage{xr}
+
+\newcommand*\chem[1]{\ensuremath{\mathrm{#1}}}
+
+\newcommand{\recheck}[1]{{\color{red} #1}}
+% \newcommand{\redc}[1]{{\color{red} #1}}
+\newcommand{\redc}[1]{{\color{red} #1}}
+\newcommand{\bluec}[1]{{\color{blue} #1}}
+\newcommand{\greenc}[1]{{\color{green} #1}}
+
+\newcommand{\com}[0]{{\textrm{CM}}}
+
+\begin{document}
+
+\title{
+Write down
+}
+
+\maketitle
+
+\section{Ideal Einstein crystal with COM constrained}
+
+In this note, we let
+\begin{align*}
+  \Lambda_p = \Big(\frac{h^2}{2\pi m k_BT}\Big)^{\frac12}, \quad \Lambda_k = \Big(\frac{2\pi k_BT}{k}\Big)^{\frac12}
+\end{align*}
+The partition function for the free Einstein crystal is
+\begin{align*}
+  Q & =
+      \frac{1}{h^{3N}}
+      \frac{1}{N!} N!
+      \int e^{-\beta\sum_i\frac{p_i^2}{2m_i}} dp
+      \int e^{-\beta\sum_i \frac 12k(r_i - r_{i0})^2} dr \\
+    &=
+      P \int e^{-\beta\sum_i \frac 12k(r_i - r_{i0})^2} dr \\
+    &=
+      P \Big( \frac{2\pi k_BT}{k} \Big)^{\frac{3N}2}
+\end{align*}
+where $r_{i0}$ is the equilibrium position of atom $i$, and $P$ is the momentum part of the partition function.
+The free energy is
+\begin{align*}
+  A = -k_BT\ln Q = -k_BT\ln P - Nk_BT\ln\Lambda_k^3
+\end{align*}
+We let $\epsilon = \frac1N \sum_i r_i - r_{i0}$,
+\begin{align*}
+  Q & =
+      P \int e^{-\beta\sum_i \frac 12k(r_i - r_{i0})^2} dr \\
+    & =
+      P \int e^{-\beta\sum_i \frac 12k(r_i - r_{i0})^2} \delta\big( \epsilon - \frac1N \sum_i (r_i - r_{i0}) \big) dr d\epsilon
+\end{align*}
+Now consider $\hat r_i = r_i - \epsilon$, we have
+\begin{align}\label{eqn:1}
+  Q & =
+      P \int e^{-\beta\sum_i \frac 12k(\hat r_i - r_{i0} + \epsilon)^2} \delta\big( \frac1N \sum_i (\hat r_i - r_{i0}) \big) d\hat r d\epsilon
+\end{align}
+We have the observation that $ \frac 1N \sum (\hat r_i  - r_{i0}) = \frac 1N \sum ( r_i  - r_{i0}) - \epsilon = 0$, then
+\begin{align*}
+  \sum_i (\hat r_i - r_{i0} + \epsilon)^2
+  &=
+    \sum_i (\hat r_i - r_{i0})^2 + 2\epsilon\sum_i (\hat r_i - r_{i0}) + N\epsilon^2 \\
+  &=
+    \sum_i (\hat r_i - r_{i0})^2 + N\epsilon^2
+\end{align*}
+Inserting this relation to \eqref{eqn:1}, we have
+\begin{align}\nonumber
+  Q
+  & =
+    P \int e^{-\beta\sum_i \frac 12k(\hat r_i - r_{i0})^2} e^{-\beta \frac12 kN \epsilon^2} \delta\big( \frac1N \sum_i (\hat r_i - r_{i0}) \big) d\hat r d\epsilon \\
+  &=
+    P \Big( \frac{2\pi k_BT}k  \Big)^{\frac32} N^{-\frac32}
+    \int e^{-\beta\sum_i \frac 12k(\hat r_i - r_{i0})^2} \delta\big( \frac1N \sum_i (\hat r_i - r_{i0}) \big) d\hat r
+\end{align}
+% and consider the transformation $\hat r_i = r_i - \epsilon$.
+Now consider the constrain of the COM, we have the modified partition function
+\begin{align*}
+  Q_\com
+  &=
+    {P_\com}
+    \int e^{-\beta\sum_i \frac 12k(r_i - r_{i0})^2} \delta\big(\frac1N\sum_i (r_i -  r_{i0})\big) dr
+\end{align*}
+where $P_\com$ is the integration of the COM-constrained momentum part.
+% We let $\epsilon = \frac1N \sum_i r_i - r_{i0}$, and consider the transformation $\hat r_i = r_i - \epsilon$.
+% It is easily shown that $\sum_i \hat r_i - r_{i0} = 0$.
+% We have,
+% \begin{align*}
+%   Q_\com
+%   &=
+%     {P_\com}
+%     \int e^{-\beta\sum_i \frac 12k(r_i - r_{i0})^2}
+%     \delta\big(\frac1N\sum_i r_i - \frac1N\sum_i r_{i0}\big)
+%     dr \\
+%   &=
+%     {P_\com}
+%     \int e^{-\beta\sum_i \frac 12k(\hat r_i - r_{i0} + \epsilon)^2}
+%     \delta\big(\frac1N\sum_i \hat r_i - \frac1N\sum_i r_{i0} + \epsilon\big)
+%     J \: d\hat r
+% \end{align*}
+% where $J$ is the Jacobian of the transformation.
+% We notice that
+% \begin{align*}
+%   \sum_i (\hat r_i - r_{i0} - \epsilon)^2
+%   &=
+%   \sum_i (\hat r_i - r_{i0})^2 + 2\epsilon \sum_i (\hat r_i - r_{i0}) + N \epsilon^2 \\
+%   &=
+% \end{align*}
+Then we have
+\begin{align}
+  \frac{Q}{Q_\com} = \frac{P}{P_\com}\Big( \frac{2\pi k_BT}k  \Big)^{\frac32} N^{-\frac32}
+\end{align}
+so
+\begin{align}
+  A - A_\com = -k_BT \ln(P/P_\com) - k_BT \ln \Lambda_k^3 + k_BT \ln N^{3/2}
+\end{align}
+and
+\begin{align}\label{eqn:5}
+  A_\com = -k_BT \ln P_\com - (N-1) k_BT \ln \Lambda_k^3 - k_BT \ln N^{3/2}
+\end{align}
+
+
+\subsection{Extension to the case of water}
+Consider the Einstein crystal with spring constant $k$ weighted by the mass of the atom.
+The partition function is
+\begin{align*}
+  Q & =
+      \frac{1}{h^{3N}}
+      \frac{1}{N_O!N_H!} N_O!N_H!
+      \int e^{-\beta\sum_i\frac{p_i^2}{2m_i}} dp
+      \int e^{-\beta\sum_i \frac 12km_i(r_i - r_{i0})^2} dr \\
+    &=
+      P \int e^{-\beta\sum_i \frac 12km_i(r_i - r_{i0})^2} dr \\
+    &=
+      P
+      \Big( \frac{2\pi k_BT}{km_O} \Big)^{\frac{3N_O}2}
+      \Big( \frac{2\pi k_BT}{km_H} \Big)^{\frac{3N_H}2}
+\end{align*}
+so
+\begin{align*}
+  A = -k_BT \ln Q = -k_BT \ln P
+  - N_Ok_BT\ln\Lambda_{k,O}^3
+  - N_Hk_BT\ln\Lambda_{k,H}^3
+\end{align*}
+We let $\epsilon = \frac1M \sum_i m_i(r_i - r_{i0})$, where $M = \sum m_i$. $\epsilon$ is the COM of the system,
+\begin{align*}
+  Q & =
+      P \int e^{-\beta\sum_i \frac 12km_i(r_i - r_{i0})^2} dr \\
+    & =
+      P \int e^{-\beta\sum_i \frac 12km_i(r_i - r_{i0})^2}
+      \delta\big( \epsilon - \frac1M \sum_i m_i (r_i - r_{i0}) \big) dr d\epsilon
+\end{align*}
+Now consider the change of variables $\hat r_i = r_i - \epsilon$, we have
+\begin{align}\label{eqn:8}
+  Q & =
+      P \int e^{-\beta\sum_i \frac 12km_i(\hat r_i - r_{i0} + \epsilon)^2}
+      \delta\big( \frac1M \sum_im_i(\hat r_i - r_{i0}) \big) d\hat r d\epsilon
+\end{align}
+We have the observation that $ \frac 1M \sum m_i(\hat r_i  - r_{i0}) = \frac 1M \sum m_i( r_i  - r_{i0}) - \epsilon = 0$, then
+\begin{align*}
+  \sum_i m_i(\hat r_i - r_{i0} + \epsilon)^2
+  &=
+    \sum_i m_i(\hat r_i - r_{i0})^2 + 2\epsilon\sum_im_i (\hat r_i - r_{i0}) + M\epsilon^2 \\
+  &=
+    \sum_i m_i(\hat r_i - r_{i0})^2 + M\epsilon^2
+\end{align*}
+Inserting this relation to \eqref{eqn:8}, we have
+\begin{align}\nonumber
+  Q
+  & =
+    P \int e^{-\beta\sum_i \frac 12km_i(\hat r_i - r_{i0})^2} e^{-\beta \frac12 kM \epsilon^2}
+    \delta\big( \frac1M \sum_i m_i(\hat r_i - r_{i0}) \big) d\hat r d\epsilon \\
+  &=
+    P \Big( \frac{2\pi k_BT}k  \Big)^{\frac32} M^{-\frac32}
+    \int e^{-\beta\sum_i \frac 12km_i(\hat r_i - r_{i0})^2}
+    \delta\big( \frac1M \sum_im_i(\hat r_i - r_{i0}) \big) d\hat r
+\end{align}
+Now consider the constrain of the COM, we have the modified partition function
+\begin{align*}
+  Q_\com
+  &=
+    {P_\com}
+    \int e^{-\beta\sum_i \frac 12km_i(r_i - r_{i0})^2} \delta\big(\frac1M\sum_i m_i(r_i -  r_{i0})\big) dr
+\end{align*}
+Then we have
+\begin{align}
+  \frac{Q}{Q_\com} = \frac{P}{P_\com}\Big( \frac{2\pi k_BT}k  \Big)^{\frac32} M^{-\frac32}
+\end{align}
+so
+\begin{align}
+  A - A_\com = -k_BT \ln(P/P_\com) - k_BT \ln \Lambda_k^3 + k_BT \ln M^{3/2}
+\end{align}
+and
+\begin{align}\label{eqn:10}
+  A_\com =
+  -k_BT \ln P_\com
+  - N_O k_BT \ln \Lambda_{k,O}^3
+  - N_H k_BT \ln \Lambda_{k,H}^3
+  + k_BT\ln \Lambda_k^3 - k_BT \ln M^{3/2}
+\end{align}
+
+
+
+\section{Translational invariant system with CM constrained}
+The partition function for translational invariant system
+\begin{align*}
+  Q = P \int e^{-\beta U(\bm r)}d \bm r
+\end{align*}
+where $U(\bm r) = U(\bm r - \bm r_0)$ for any $\bm r_0$.
+\begin{align*}
+  Q
+  &=
+    P \int e^{-\beta U(\bm r)} \delta(\bm r_0 - \frac1M\sum_i m_i \bm r_i) d\bm r_0 d\bm r \\
+  &=
+    P \int e^{-\beta U(\bm r)} \delta(\frac1M\sum_i m_i (\bm r_i - \bm r_0)) d\bm r d\bm r_0 \\
+  &=
+    P\int d\bm r_0 \int e^{-\beta U(\bm r)} \delta(\frac1M\sum_i m_i \bm r_i) d\bm r\\
+  &=
+    P\frac{V}{N} \int e^{-\beta U(\bm r)} \delta(\frac1M\sum_i m_i \bm r_i) d\bm r
+\end{align*}
+The last equation holds because the volume ``accessible to the CM'' is $V/N$, see [Vega, et.al.~JPCM].
+\begin{align*}
+  Q_\com
+  &=
+    P_\com\int e^{-\beta U(\bm r)} \delta(\frac1M\sum_i m_i \bm r_i) d\bm r
+\end{align*}
+Therefore
+\begin{align*}
+  \frac{Q}{Q_\com} = \frac{P}{P_\com}\frac{V}{N}
+\end{align*}
+and
+\begin{align}
+  A - A_\com = -k_BT\ln(P / P_\com) + k_BT\ln \rho
+\end{align}
+
+Using Eq.~\eqref{eqn:5}, we  have ``effective'' reference free energy for ideal Einstein crystal:
+\begin{align} \nonumber
+  \tilde A_0
+  &=
+    A^0_\com + (A - A_\com) \\
+  &=
+    Nk_BT\ln \Lambda_p^3 - (N-1)k_BT\ln\Lambda_k^3 - k_BT\ln N^{3/2} + k_BT\ln \rho
+\end{align}
+
+Using Eq.~\eqref{eqn:10}, we  have ``effective'' reference free energy for water ideal Einstein crystal:
+\begin{align} \nonumber
+  \tilde A_0
+  &=
+    A^0_\com + (A - A_\com) \\
+  &=
+    Nk_BT\ln \Lambda_p^3
+    -N_Ok_BT\ln\Lambda_{k,O}^3
+    -N_Hk_BT\ln\Lambda_{k,H}^3
+    + k_BT\ln\Lambda_k^3
+    - k_BT\ln M^{3/2} + k_BT\ln \rho
+\end{align}
+
+
+
+
+
+
+\section{Ideal Einstein molecules}
+Consider the lattice that is defined by the first atom in the system, saying the oxygen of the first water molecule.
+The number of atoms is denoted by $N$, the number of oxygen atoms is denoted by $N_O$ and the number of hydrogen atoms is denoted by $N_H$.
+The partition function is written as
+\begin{align*}
+  Q & = \frac{1}{h^{3N}}
+      \frac{(N_O-1)!N_h!}{N_O!N_h!}
+      \int e^{-\beta\sum_i\frac{p_i^2}{2m_i}} dp
+      \int dr_0\int e^{-\beta\sum_i \frac 12k(r_i - r_{i0})^2} dr \\
+    &=
+      \frac{1}{h^{3N}}\frac{1}{N_O}
+      (2\pi m k_BT)^{\frac{3N}{2}}
+      {V}
+      \Big(\frac{2\pi k_BT}{k}\Big)^{\frac{3N-3}2} \\
+    &=
+      \frac{V}{N_O}
+      \Big( \frac{2\pi m k_BT}{h^2} \Big)^{\frac{3N}{2}}
+      \Big( \frac{2\pi k_BT}{k} \Big)^{\frac{3N-3}{2}}
+\end{align*}
+Then
+\begin{align*}
+  A
+  &=
+    -k_BT \ln Q \\
+  &=
+    -k_BT \ln \frac1{\rho_O} - k_BT \ln \Lambda_p^{-3N} - k_BT \ln \Lambda_s^{3N-3} \\
+  &=
+    k_BT \ln {\rho_O} + Nk_BT \ln \Lambda_p^3 - (N-1) k_BT \ln \Lambda_s^3
+\end{align*}
+
+
+
+\section{Ideal gas with springs}
+Consider the partition function
+\begin{align*}
+  Q
+  &=
+    \frac{1}{h^{3N}}\frac{1}{N_O! N_H!}
+    \frac{N_H!}{2^{N_O}}
+    \int e^{-\beta\sum_i\frac{p_i^2}{2m_i}} dp
+    \int e^{-\beta \sum_i [\,k(\vert r^O_i-r^{H_1}_i\vert - r_0)^2 + k(\vert r^O_i-r^{H_1}_i\vert - r_0)^2]} dr^{H_1}dr^{H_2} dr^O\\
+  &=
+    \frac{1}{h^{3N}}\frac{1}{N_O! 2^{N_O}}
+    (2\pi m k_BT)^{\frac{3N}{2}}
+    V^{N_O}
+    % \Big(\frac{\pi k_BT}{k}\Big)^{\frac{3N_H}2}
+    \Big(\int e^{-\beta k(r - r_0)^2 } d\bm r\Big)^{N_H} \\
+  &=
+    \frac{1}{N_O! 2^{N_O}}
+    \Lambda_p^{-3N}
+    V^{N_O}
+    % \Lambda_k^{3N_H}
+    (V_H)^{N_H}
+\end{align*}
+To compute
+\begin{align*}
+  V_H = \int e^{-\beta k(r - r_0)^2 } d\bm r
+  &=
+    \int_0^\pi\int_0^{2\pi}\int_0^\infty e^{-\beta k(r - r_0)^2 } r^2\sin\phi dr d\theta d\phi\\
+  &=
+    4\pi\int e^{-\beta k(r - r_0)^2 } r^2 dr\\
+  & =
+    4\pi\int r^2 e^{-\frac{(r - r_0)^2}{2 (\sqrt{k_BT/2k})^2}}dr\\
+  & =
+    4\pi \Big(\frac{\pi k_B T}{k}\Big)^\frac12
+    \int r^2
+    \Big(\frac{k}{\pi k_B T}\Big)^\frac12
+    e^{-\frac{(r - r_0)^2}{2 (\sqrt{k_BT/2k})^2}}dr\\
+  &=
+    4\pi \Big(\frac{\pi k_B T}{k}\Big)^\frac12 (r_0^2 + \frac{k_BT}{2k})
+\end{align*}
+Then
+\begin{align*}
+  A
+  &=
+    -k_BT\ln Q\\
+  &=
+    Nk_BT\ln \Lambda_p^3
+    -N_Ok_BT\ln V
+    -N_Hk_BT\ln V_H
+    + k_BT(N_O\ln N_O - N_O + \frac12\ln 2\pi N_O)
+    + N_H k_BT\ln \sqrt2 \\
+  &=
+    Nk_BT\ln \Lambda_p^3
+    + N_Ok_BT\ln\rho_O
+    + N_Hk_BT\ln(\sqrt2/V_H)
+    + k_BT( - N_O + \frac12\ln 2\pi N_O)
+\end{align*}
+
+The pressure of the system is computed by (Tuckerman 4.6.55 and 4.6.63)
+\begin{align*}
+  P
+  = \frac{Nk_BT}{V} +
+  \frac{1}{3V}
+  \Big\langle
+  \sum_i \bm r_i\cdot\bm F_i
+  \Big\rangle
+  = \frac{Nk_BT}{V} +
+  \frac{1}{6V}
+  \Big\langle
+  \sum_{i\neq j} \bm r_{ij}\cdot\bm F_{ij}
+  \Big\rangle
+\end{align*}
+The spring force is given by
+\begin{align*}
+  \bm F_{ij}
+  &=
+    -\nabla_{\bm r_{ij}} [k (r_{ij} - r_0)^2] \\
+  &=
+    -2k(r_{ij} - r_0) \frac{\bm r_{ij}}{r_{ij}}
+\end{align*}
+thus
+\begin{align*}
+  \langle \bm r_{ij}\cdot\bm F_{ij} \rangle
+  &=
+    \langle -2k(r_{ij} - r_0)r_{ij} \rangle \\
+  &=
+    -2k \int r(r - r_0) \frac{1}{V_H} e^{-\beta k(r - r_0)^2} d\bm r \\
+  &=
+    -2k \frac{4\pi}{V_H} \sqrt{2\pi\sigma^2} \int r^3(r - r_0)\frac{1}{\sqrt{2\pi\sigma^2}} e^{-\beta k(r - r_0)^2} dr\\
+  &=
+    -2k \frac{4\pi}{V_H} \sqrt{2\pi\sigma^2} (r_0^4 + 6 r_0^2\sigma^2 + 3 \sigma^4 - r_0^4 - 3r_0^2\sigma^2 )\\
+  &=
+    -2k \frac{12\pi}{V_H} \sqrt{2\pi\sigma^2} \, ( r_0^2 + \sigma^2)\sigma^2
+  % -2k\sigma^2
+  % =
+  % -2k \times \frac{k_BT}{2k}
+  % = -k_BT
+\end{align*}
+Notice that $V_H = 4\pi\sqrt{2\pi\sigma^2} (r_0^2 + \sigma^2)$
+\begin{align*}
+  \langle \bm r_{ij}\cdot\bm F_{ij} \rangle
+  &= -6k \sigma^2 = -3 k_BT
+\end{align*}
+The summation $\sum_{i\neq j}$ has $2N_H$ terms, because each O-H pair is counted twice.
+In sum, we have
+\begin{align*}
+  P = \frac{N_O k_BT}{V}
+\end{align*}
+which is in consistent with
+\begin{align*}
+  P = -\frac{\partial A}{\partial V}
+\end{align*}
+
+\bibliography{ref}{}
+\bibliographystyle{unsrt}
+% \bibliographystyle{apsrev4-1} % Tell bibtex which bibliography style to use
+
+\end{document}
