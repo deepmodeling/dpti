@@ -842,7 +842,10 @@ def handle_compute(args):
     # if args.type == 'helmholtz' :
     print("# Helmholtz free ener per mol (err) [eV]:")
     print(print_format % (fe, fe_err[0], fe_err[1]))
-    if args.type == "gibbs":
+    if args.type == "helmholtz":
+        e1 = fe
+        e1_err = fe_err[0]
+    elif args.type == "gibbs":
         if args.pv is not None:
             pv = args.pv
             print(f"# use manual pv=={pv}")
@@ -857,10 +860,12 @@ def handle_compute(args):
         e1_err = np.sqrt(fe_err[0] ** 2 + pv_err**2)
         print("# Gibbs free ener per mol (err) [eV]:")
         print(print_format % (e1, e1_err, fe_err[1]))
+        info["pv"] = pv
+        info["pv_err"] = pv_err
+    else:
+        raise RuntimeError("known free energy type")
     free_energy_type = args.type
     info["free_energy_type"] = free_energy_type
-    info["pv"] = pv
-    info["pv_err"] = pv_err
     # info['de'] = de
     # info['de_err'] = de_err
     info["e1"] = e1
