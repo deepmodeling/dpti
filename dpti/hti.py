@@ -1030,7 +1030,6 @@ def _post_tasks(
         natoms = get_natoms(equi_conf)
         if "copies" in jdata:
             natoms *= np.prod(jdata["copies"])
-    print("# natoms: %d" % natoms)
 
     all_lambda = []
     all_es = []
