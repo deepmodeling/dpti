@@ -127,7 +127,10 @@ def add_subparsers(module_subparsers):
         "-G", "--pv-err", type=float, default=None, help="press*vol error"
     )
     parser_compute.add_argument(
-        "--npt", type=str, default=None, help="directory of the npt task; will use PV from npt result, where P is the control variable and V varies."
+        "--npt",
+        type=str,
+        default=None,
+        help="directory of the npt task; will use PV from npt result, where P is the control variable and V varies.",
     )
     parser_compute.set_defaults(func=handle_compute)
 
@@ -232,11 +235,10 @@ def handle_compute(args):
             v = npt_info["v"]
             v_err = npt_info["v_err"]
             unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
-            pv = p * v * unit_cvt *3
+            pv = p * v * unit_cvt * 3
             pv_err = p * v_err * unit_cvt * np.sqrt(3)
             print(f"# use pv from npt task: pv = {pv:.6e} pv_err = {pv_err:.6e}")
         if args.npt is None and args.pv is not None:
-
             pv = args.pv
             print(f"# use manual pv=={pv}")
         elif args.npt is None and args.pv is None:

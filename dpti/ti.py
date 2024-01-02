@@ -482,7 +482,11 @@ def post_tasks(
         data = get_thermo(log_name)
         np.savetxt(os.path.join(ii, "data"), data, fmt="%20.6f")
         if stat_col2 is not None:
-            ea, ee = block_avg(data[:, stat_col] + press * data[:, stat_col2] * unit_cvt, skip=stat_skip, block_size=stat_bsize)
+            ea, ee = block_avg(
+                data[:, stat_col] + press * data[:, stat_col2] * unit_cvt,
+                skip=stat_skip,
+                block_size=stat_bsize,
+            )
         else:
             ea, ee = block_avg(data[:, stat_col], skip=stat_skip, block_size=stat_bsize)
         enthalpy, _ = block_avg(data[:, 4], skip=stat_skip, block_size=stat_bsize)

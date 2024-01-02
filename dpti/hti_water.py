@@ -795,7 +795,10 @@ def add_subparsers(module_subparsers):
         "-G", "--pv-err", type=float, default=None, help="press*vol error"
     )
     parser_compute.add_argument(
-        "--npt", type=str, default=None, help="directory of the npt task; will use PV from npt result, where P is the control variable and V varies."
+        "--npt",
+        type=str,
+        default=None,
+        help="directory of the npt task; will use PV from npt result, where P is the control variable and V varies.",
     )
     parser_compute.set_defaults(func=handle_compute)
 
@@ -848,7 +851,7 @@ def handle_compute(args):
     if args.type == "helmholtz":
         e1 = fe
         e1_err = fe_err[0]
-    elif args.type == "gibbs":        
+    elif args.type == "gibbs":
         if args.npt is not None:
             npt_in = json.load(open(os.path.join(args.npt, "jdata.json")))
             npt_info = json.load(open(os.path.join(args.npt, "result.json")))
@@ -856,7 +859,7 @@ def handle_compute(args):
             v = npt_info["v"]
             v_err = npt_info["v_err"]
             unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
-            pv = p * v * unit_cvt *3
+            pv = p * v * unit_cvt * 3
             pv_err = p * v_err * unit_cvt * np.sqrt(3)
             print(f"# use pv from npt task: pv = {pv:.6e} pv_err = {pv_err:.6e}")
         if args.npt is None and args.pv is not None:
