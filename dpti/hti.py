@@ -1324,7 +1324,7 @@ def compute_task(
         print("# Gibbs free ener per atom (stat_err inte_err) [eV]:")
         print(print_format % (e1, e1_err, de_err[1]))
     else:
-        raise RuntimeError("known free energy type")
+        raise RuntimeError("unknown free energy type")
 
     info["free_energy_type"] = free_energy_type
     info["e0"] = e0
