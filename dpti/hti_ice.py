@@ -91,7 +91,8 @@ def add_subparsers(module_subparsers):
     parser_compute.add_argument(
         "-d",
         "--disorder-corr",
-        action="store_true",
+        action="store_false",
+        default=True,
         help="apply disorder correction for ice",
     )
     parser_compute.add_argument(
@@ -124,6 +125,9 @@ def add_subparsers(module_subparsers):
     )
     parser_compute.add_argument(
         "-G", "--pv-err", type=float, default=None, help="press*vol error"
+    )
+    parser_compute.add_argument(
+        "--npt", type=str, default=None, help="directory of the npt task; will use PV from npt result, where P is the control variable and V varies."
     )
     parser_compute.set_defaults(func=handle_compute)
 
@@ -162,6 +166,7 @@ def handle_refine(args):
 
 def handle_compute(args):
     job = args.JOB
+    print(args.disorder_corr)
     jdata = json.load(open(os.path.join(job, "in.json")))
     fp_conf = open(os.path.join(args.JOB, "conf.lmp"))
     sys_data = lmp.to_system_data(fp_conf.read().split("\n"))
@@ -220,15 +225,25 @@ def handle_compute(args):
         e1 = e0 + de - args.shift
         e1_err = de_err[0]
     elif args.type == "gibbs":
-        if args.pv is not None:
+        if args.npt is not None:
+            npt_in = json.load(open(os.path.join(args.npt, "jdata.json")))
+            npt_info = json.load(open(os.path.join(args.npt, "result.json")))
+            p = npt_in["pres"]
+            v = npt_info["v"]
+            v_err = npt_info["v_err"]
+            unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
+            pv = p * v * unit_cvt *3
+            pv_err = p * v_err * unit_cvt * np.sqrt(3)
+            print(f"# use pv from npt task: pv = {pv:.6e} pv_err = {pv_err:.6e}")
+        if args.npt is None and args.pv is not None:
             pv = args.pv
             print(f"# use manual pv=={pv}")
-        else:
+        elif args.npt is None and args.pv is None:
             pv = thermo_info["pv"]
-        if args.pv_err is not None:
+        if args.npt is None and args.pv_err is not None:
             pv_err = args.pv_err
             print(f"# use manual pv_err=={pv_err}")
-        else:
+        elif args.npt is None and args.pv_err is None:
             pv_err = thermo_info["pv_err"]
         e1 = e0 + de + pv - args.shift
         e1_err = np.sqrt(de_err[0] ** 2 + pv_err**2)
