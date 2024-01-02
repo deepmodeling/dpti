@@ -139,6 +139,7 @@ def handle_compute(args):
     nmols = natoms // 3
     hti_dir = args.hti
     jdata_hti = json.load(open(os.path.join(hti_dir, "result.json")))
+    jdata_hti_in = json.load(open(os.path.join(hti_dir, "in.json")))
     if args.Eo is not None and args.hti is not None:
         raise Warning(
             "Both Eo and hti are provided. Eo will be overrided by the e1 value in hti's result.json file. Make sure this is what you want."
@@ -147,6 +148,8 @@ def handle_compute(args):
         args.Eo = jdata_hti["e1"]
     if args.Eo_err is None:
         args.Eo_err = jdata_hti["e1_err"]
+    if args.To is None:
+        args.To = jdata_hti_in["temp"]
     if args.inte_method == "inte":
         ti.post_tasks(
             job,
