@@ -236,6 +236,7 @@ def handle_compute(args):
             pv_err = p * v_err * unit_cvt * np.sqrt(3)
             print(f"# use pv from npt task: pv = {pv:.6e} pv_err = {pv_err:.6e}")
         if args.npt is None and args.pv is not None:
+
             pv = args.pv
             print(f"# use manual pv=={pv}")
         elif args.npt is None and args.pv is None:
