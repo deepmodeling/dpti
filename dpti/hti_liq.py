@@ -536,7 +536,7 @@ def compute_task(
         print("# Gibbs free ener per mol (err) [eV]:")
         print(print_format % (e1, e1_err, fe_err[1]))
     else:
-        raise RuntimeError("known free energy type")
+        raise RuntimeError("unknown free energy type")
 
     info["free_energy_type"] = free_energy_type
     info["pv"] = pv
