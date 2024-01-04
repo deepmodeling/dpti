@@ -763,7 +763,9 @@ def _make_tasks(
         if jdata.get("ens", False):
             ens = jdata.get("ens")
         if ens is not None and ens != "nvt" and ens != "nvt-langevin":
-            raise RuntimeError(f"Unknow ensemble '{ens}': one should use the NVT ensemble in the HTI step. The only supported values for the 'ens' keyword are 'nvt' and 'nvt-langevin'.")
+            raise RuntimeError(
+                f"Unknow ensemble '{ens}': one should use the NVT ensemble in the HTI step. The only supported values for the 'ens' keyword are 'nvt' and 'nvt-langevin'."
+            )
         if idx == 0:
             ens = "nvt-langevin"
         else:
