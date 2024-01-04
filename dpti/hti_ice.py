@@ -255,7 +255,7 @@ def handle_compute(args):
         info["pv"] = pv
         info["pv_err"] = pv_err
     else:
-        raise RuntimeError("known free energy type")
+        raise RuntimeError("unknown free energy type")
     free_energy_type = args.type
     info["free_energy_type"] = free_energy_type
     # info['de'] = de
