@@ -169,7 +169,6 @@ def handle_refine(args):
 
 def handle_compute(args):
     job = args.JOB
-    print(args.disorder_corr)
     jdata = json.load(open(os.path.join(job, "in.json")))
     fp_conf = open(os.path.join(args.JOB, "conf.lmp"))
     sys_data = lmp.to_system_data(fp_conf.read().split("\n"))
