@@ -759,14 +759,19 @@ def _make_tasks(
             meam_potential_basename = os.path.basename(meam_model["potential"])
             relative_link_file(os.path.join("../../", meam_library_basename), "./")
             relative_link_file(os.path.join("../../", meam_potential_basename), "./")
+        ens = None
+        if jdata.get("ens", False):
+            ens = jdata.get("ens")
+        if ens is not None and ens != "nvt" and ens != "nvt-langevin":
+            raise RuntimeError(
+                f"Unknow ensemble '{ens}': one should use the NVT ensemble in the HTI step. The only supported values for the 'ens' keyword are 'nvt' and 'nvt-langevin'."
+            )
         if idx == 0:
             ens = "nvt-langevin"
         else:
             ens = "nvt"
         if langevin:
             ens = "nvt-langevin"
-        if jdata.get("ens", False):
-            ens = jdata.get("ens")
         if ref == "einstein":
             lmp_str = _gen_lammps_input(
                 "conf.lmp",
