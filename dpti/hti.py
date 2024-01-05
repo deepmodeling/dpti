@@ -406,7 +406,10 @@ def _gen_lammps_input(
             else:
                 ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol v_l_spring c_e_deep c_allmsd[*]\n"
     else:
-        ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_deep c_e_deep c_allmsd[*]\n"
+        if switch == "three-step":
+            ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_diff[1] c_e_diff[1] c_allmsd[*]\n"
+        else:
+            ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_deep c_e_deep c_allmsd[*]\n"
     ret += "thermo_modify   format 9 %.16e\n"
     ret += "thermo_modify   format 10 %.16e\n"
     ret += "dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n"
