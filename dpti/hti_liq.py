@@ -601,8 +601,12 @@ def add_module_subparsers(main_subparsers):
     parser_run = module_subparsers.add_parser("run", help="run the job")
     parser_run.add_argument("JOB", type=str, help="folder of the job")
     parser_run.add_argument("machine", type=str, help="machine.json file for the job")
-    parser_run.add_argument("task_name", type=str, help="task name, can be 00, 01, or 02")
-    parser_run.add_argument("--use-dp", type=bool, default=True, help="whether to use Deep Potential or not")
+    parser_run.add_argument(
+        "task_name", type=str, help="task name, can be 00, 01, or 02"
+    )
+    parser_run.add_argument(
+        "--use-dp", type=bool, default=True, help="whether to use Deep Potential or not"
+    )
     parser_run.set_defaults(func=handle_run)
 
     #    fp_conf = open(os.path.join(args.JOB, 'conf.lmp'))
@@ -638,8 +642,10 @@ def handle_gen(args):
     jdata = json.load(open(args.PARAM))
     make_tasks(output, jdata, if_meam=args.meam)
 
+
 def handle_run(args):
     hti.run_task(args.JOB, args.machine, args.task_name, args.use_dp)
+
 
 def handle_compute(args):
     compute_task(

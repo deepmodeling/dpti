@@ -10,7 +10,8 @@ import pymbar
 import scipy.constants as pc
 
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
-from dpdispatcher import Submission, Task, Resources, Machine
+from dpdispatcher import Machine, Resources, Submission, Task
+
 from dpti.einstein import free_energy, frenkel
 from dpti.lib.lammps import get_natoms, get_thermo
 
@@ -1386,32 +1387,50 @@ def hti_phase_trans_analyze(job, jdata=None):
 
     return if_phase_trans
 
+
 def run_task(task_dir, machine_file, task_name, use_dp=True):
-    job_work_dir_ = glob.glob(os.path.join(task_dir, task_name+"*"))
+    job_work_dir_ = glob.glob(os.path.join(task_dir, task_name + "*"))
     assert len(job_work_dir_) == 1
     job_work_dir = job_work_dir_[0]
     task_dir_list = glob.glob(os.path.join(job_work_dir, "task*"))
     task_dir_list = sorted(task_dir_list)
     work_base_dir = os.path.join(os.getcwd())
-    with open(machine_file, 'r') as f:
+    with open(machine_file) as f:
         mdata = json.load(f)
-    machine = Machine.load_from_dict(mdata['machine'])
-    resources = Resources.load_from_dict(mdata['resources'])
+    machine = Machine.load_from_dict(mdata["machine"])
+    resources = Resources.load_from_dict(mdata["resources"])
 
     submission = Submission(
-        work_base=work_base_dir, 
-        resources=resources, 
-        machine=machine, 
+        work_base=work_base_dir,
+        resources=resources,
+        machine=machine,
     )
 
     if use_dp:
-        task_list = [ Task(command='ln -s ../../graph.pb graph.pb; lmp -i in.lammps', task_work_path=ii, forward_files=['in.lammps', 'conf.lmp'], backward_files=['log*', 'dump.hti', 'out.lmp']) for ii in task_dir_list ]
-        submission.forward_common_files = ['graph.pb']
+        task_list = [
+            Task(
+                command="ln -s ../../graph.pb graph.pb; lmp -i in.lammps",
+                task_work_path=ii,
+                forward_files=["in.lammps", "conf.lmp"],
+                backward_files=["log*", "dump.hti", "out.lmp"],
+            )
+            for ii in task_dir_list
+        ]
+        submission.forward_common_files = ["graph.pb"]
     else:
-        task_list = [ Task(command='lmp -i in.lammps', task_work_path=ii, forward_files=['in.lammps', 'conf.lmp'], backward_files=['log*', 'dump.hti', 'out.lmp']) for ii in task_dir_list ]
+        task_list = [
+            Task(
+                command="lmp -i in.lammps",
+                task_work_path=ii,
+                forward_files=["in.lammps", "conf.lmp"],
+                backward_files=["log*", "dump.hti", "out.lmp"],
+            )
+            for ii in task_dir_list
+        ]
 
     submission.register_task_list(task_list=task_list)
     submission.run_submission()
+
 
 def add_module_subparsers(main_subparsers):
     module_parser = main_subparsers.add_parser(
@@ -1493,8 +1512,12 @@ def add_module_subparsers(main_subparsers):
     parser_run = module_subparsers.add_parser("run", help="run the job")
     parser_run.add_argument("JOB", type=str, help="folder of the job")
     parser_run.add_argument("machine", type=str, help="machine.json file for the job")
-    parser_run.add_argument("task_name", type=str, help="task name, can be 00, 01, or 02")
-    parser_run.add_argument("--use-dp", type=bool, default=True, help="whether to use Deep Potential or not")
+    parser_run.add_argument(
+        "task_name", type=str, help="task name, can be 00, 01, or 02"
+    )
+    parser_run.add_argument(
+        "--use-dp", type=bool, default=True, help="whether to use Deep Potential or not"
+    )
     parser_run.set_defaults(func=handle_run)
 
 
@@ -1521,6 +1544,7 @@ def handle_compute(args):
     )
     # if 'reference' not in jdata :
     #     jdata['reference'] = 'einstein'
+
 
 def handle_run(args):
     run_task(args.JOB, args.machine, args.task_name, args.use_dp)

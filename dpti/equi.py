@@ -7,7 +7,7 @@ import os
 import numpy as np
 import scipy.constants as pc
 from dargs import Argument
-from dpdispatcher import Submission, Task, Resources, Machine
+from dpdispatcher import Machine, Resources, Submission, Task
 
 from dpti.lib.dump import system_data
 
@@ -600,27 +600,35 @@ def post_task(iter_name, natoms=None, is_water=None):
     # open(, 'w').write(json.dumps(info)).close()
     return info_dict
 
+
 def run_task(task_name, machine_file):
     task_dir_list = [task_name]
     work_base_dir = os.path.join(os.getcwd())
-    with open(machine_file, 'r') as f:
+    with open(machine_file) as f:
         mdata = json.load(f)
-    machine = Machine.load_from_dict(mdata['machine'])
-    resources = Resources.load_from_dict(mdata['resources'])
+    machine = Machine.load_from_dict(mdata["machine"])
+    resources = Resources.load_from_dict(mdata["resources"])
 
     submission = Submission(
-        work_base=work_base_dir, 
-        resources=resources, 
-        machine=machine, 
+        work_base=work_base_dir,
+        resources=resources,
+        machine=machine,
     )
 
-    task_list = [ Task(command='ln -s ../graph.pb graph.pb; lmp -in in.lammps', 
-        task_work_path=ii, forward_files=['in.lammps', '*.lmp'], backward_files=['log*', 'dump.equi', 'out.lmp']) 
-        for ii in task_dir_list ]
+    task_list = [
+        Task(
+            command="ln -s ../graph.pb graph.pb; lmp -in in.lammps",
+            task_work_path=ii,
+            forward_files=["in.lammps", "*.lmp"],
+            backward_files=["log*", "dump.equi", "out.lmp"],
+        )
+        for ii in task_dir_list
+    ]
 
-    submission.forward_common_files = ['graph.pb']
+    submission.forward_common_files = ["graph.pb"]
     submission.register_task_list(task_list=task_list)
     submission.run_submission()
+
 
 def add_module_subparsers(main_subparsers):
     module_parser = main_subparsers.add_parser("equi", help="equilibration simulations")
@@ -713,6 +721,7 @@ def handle_stat_bond(args):
 
 def handle_compute(args):
     post_task(args.JOB)
+
 
 def handle_run(args):
     run_task(args.JOB, args.machine)
