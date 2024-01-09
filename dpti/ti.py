@@ -439,6 +439,7 @@ def post_tasks(
     stat_skip = jdata["stat_skip"]
     stat_bsize = jdata["stat_bsize"]
     ens = jdata["ens"]
+    press = jdata["press"]
     path = jdata["path"]
 
     all_tasks = glob.glob(os.path.join(iter_name, "task.[0-9]*"))
@@ -452,13 +453,16 @@ def post_tasks(
     integrand_err = []
     all_enthalpy = []
     all_msd_xyz = []
+    stat_col2 = None
     if "nvt" in ens and path == "t":
         # TotEng
         stat_col = 3
         print("# TI in NVT along T path")
     elif "npt" in ens and (path == "t" or path == "t-ginv"):
         # Enthalpy
-        stat_col = 4
+        stat_col = 3
+        stat_col2 = 7
+        unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
         print("# TI in NPT along T path")
     elif "npt" in ens and path == "p":
         # volume
@@ -477,8 +481,15 @@ def post_tasks(
         log_name = os.path.join(ii, "log.lammps")
         data = get_thermo(log_name)
         np.savetxt(os.path.join(ii, "data"), data, fmt="%20.6f")
-        ea, ee = block_avg(data[:, stat_col], skip=stat_skip, block_size=stat_bsize)
-        enthalpy, _ = block_avg(data[:, 5], skip=stat_skip, block_size=stat_bsize)
+        if stat_col2 is not None:
+            ea, ee = block_avg(
+                data[:, stat_col] + press * data[:, stat_col2] * unit_cvt,
+                skip=stat_skip,
+                block_size=stat_bsize,
+            )
+        else:
+            ea, ee = block_avg(data[:, stat_col], skip=stat_skip, block_size=stat_bsize)
+        enthalpy, _ = block_avg(data[:, 4], skip=stat_skip, block_size=stat_bsize)
         msd_xyz = data[-1, -1]
         # COM corr
         if path == "t" or path == "t-ginv":
