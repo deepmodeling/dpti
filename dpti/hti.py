@@ -1405,7 +1405,7 @@ def run_task(task_dir, machine_file, task_name, use_dp=True):
     )
 
     if use_dp:
-        task_list = [ Task(command='ln -s ../../graph.pb graph.pb; lmp -i in.lammps', task_work_path=ii, forward_files=['in.lammps', 'conf.lmp'], backward_files=['log*', 'dump.hti', 'out.lmp']) for ii in task_dir_list ]
+        task_list = [ Task(command='ln -s ../../../graph.pb graph.pb; lmp -i in.lammps', task_work_path=ii, forward_files=['in.lammps', 'conf.lmp'], backward_files=['log*', 'dump.hti', 'out.lmp']) for ii in task_dir_list ]
         submission.forward_common_files = ['graph.pb']
     else:
         task_list = [ Task(command='lmp -i in.lammps', task_work_path=ii, forward_files=['in.lammps', 'conf.lmp'], backward_files=['log*', 'dump.hti', 'out.lmp']) for ii in task_dir_list ]
