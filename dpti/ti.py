@@ -9,6 +9,7 @@ import numpy as np
 import pymbar
 import scipy.constants as pc
 
+from dpdispatcher import Machine, Resources, Submission, Task
 from dpti.lib.lammps import get_natoms, get_thermo
 
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
@@ -918,6 +919,35 @@ def compute_task(job, inte_method, Eo, Eo_err, To, scheme="simpson"):
         raise RuntimeError("unknow integration method")
     return info
 
+def run_task(task_name, machine_file):
+    task_dir_list = glob.glob(os.path.join(task_name, "task.*"))
+    task_dir_list = sorted(task_dir_list)
+    work_base_dir = os.path.join(os.getcwd())
+    with open(machine_file) as f:
+        mdata = json.load(f)
+    machine = Machine.load_from_dict(mdata["machine"])
+    resources = Resources.load_from_dict(mdata["resources"])
+
+    submission = Submission(
+        work_base=work_base_dir,
+        resources=resources,
+        machine=machine,
+    )
+
+    task_list = [
+        Task(
+            command="ln -s ../../graph.pb graph.pb; lmp -in in.lammps",
+            task_work_path=ii,
+            forward_files=["in.lammps", "*.lmp"],
+            backward_files=['log*', 'out.lmp', 'traj.dump'],
+        )
+        for ii in task_dir_list
+    ]
+
+    submission.forward_common_files = ["graph.pb"]
+    submission.register_task_list(task_list=task_list)
+    submission.run_submission()
+
 
 def add_module_subparsers(main_subparsers):
     module_parser = main_subparsers.add_parser(
@@ -998,6 +1028,11 @@ def add_module_subparsers(main_subparsers):
     )
     parser_refine.set_defaults(func=handle_refine)
 
+    parser_run = module_subparsers.add_parser("run", help="run the job")
+    parser_run.add_argument("JOB", type=str, help="folder of the job")
+    parser_run.add_argument("machine", type=str, help="machine.json file for the job")
+    parser_run.set_defaults(func=handle_run)
+
 
 def handle_gen(args):
     output = args.output
@@ -1036,3 +1071,6 @@ def handle_compute(args):
 
 def handle_refine(args):
     refine_task(args.input, args.output, args.error)
+
+def handle_run(args):
+    run_task(args.JOB, args.machine)
