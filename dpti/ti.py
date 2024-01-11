@@ -8,8 +8,8 @@ import shutil
 import numpy as np
 import pymbar
 import scipy.constants as pc
-
 from dpdispatcher import Machine, Resources, Submission, Task
+
 from dpti.lib.lammps import get_natoms, get_thermo
 
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
@@ -919,6 +919,7 @@ def compute_task(job, inte_method, Eo, Eo_err, To, scheme="simpson"):
         raise RuntimeError("unknow integration method")
     return info
 
+
 def run_task(task_name, machine_file):
     task_dir_list = glob.glob(os.path.join(task_name, "task.*"))
     task_dir_list = sorted(task_dir_list)
@@ -939,7 +940,7 @@ def run_task(task_name, machine_file):
             command="ln -s ../../graph.pb graph.pb; lmp -in in.lammps",
             task_work_path=ii,
             forward_files=["in.lammps", "*.lmp"],
-            backward_files=['log*', 'out.lmp', 'traj.dump'],
+            backward_files=["log*", "out.lmp", "traj.dump"],
         )
         for ii in task_dir_list
     ]
@@ -1071,6 +1072,7 @@ def handle_compute(args):
 
 def handle_refine(args):
     refine_task(args.input, args.output, args.error)
+
 
 def handle_run(args):
     run_task(args.JOB, args.machine)
