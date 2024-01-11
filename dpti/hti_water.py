@@ -823,7 +823,7 @@ def add_subparsers(module_subparsers):
         "task_name", type=str, help="task name, can be 00, 01, or 02"
     )
     parser_run.add_argument(
-        "--use-dp", type=bool, default=True, help="whether to use Deep Potential or not"
+        "--no-dp", action="store_true", help="whether to use Deep Potential or not"
     )
     parser_run.set_defaults(func=handle_run)
 
@@ -903,7 +903,7 @@ def handle_compute(args):
 
 
 def handle_run(args):
-    hti.run_task(args.JOB, args.machine, args.task_name, args.use_dp)
+    hti.run_task(args.JOB, args.machine, args.task_name, args.no_dp)
 
 
 if __name__ == "__main__":

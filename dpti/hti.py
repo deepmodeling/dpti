@@ -1388,7 +1388,7 @@ def hti_phase_trans_analyze(job, jdata=None):
     return if_phase_trans
 
 
-def run_task(task_dir, machine_file, task_name, use_dp=True):
+def run_task(task_dir, machine_file, task_name, no_dp=False):
     job_work_dir_ = glob.glob(os.path.join(task_dir, task_name + "*"))
     assert len(job_work_dir_) == 1
     job_work_dir = job_work_dir_[0]
@@ -1406,7 +1406,7 @@ def run_task(task_dir, machine_file, task_name, use_dp=True):
         machine=machine,
     )
 
-    if use_dp:
+    if not no_dp:
         task_list = [
             Task(
                 command="ln -s ../../../graph.pb graph.pb; lmp -i in.lammps",
@@ -1516,7 +1516,7 @@ def add_module_subparsers(main_subparsers):
         "task_name", type=str, help="task name, can be 00, 01, or 02"
     )
     parser_run.add_argument(
-        "--use-dp", type=bool, default=True, help="whether to use Deep Potential or not"
+        "--no-dp", action="store_true", help="whether to use Deep Potential or not"
     )
     parser_run.set_defaults(func=handle_run)
 
@@ -1547,4 +1547,4 @@ def handle_compute(args):
 
 
 def handle_run(args):
-    run_task(args.JOB, args.machine, args.task_name, args.use_dp)
+    run_task(args.JOB, args.machine, args.task_name, args.no_dp)
