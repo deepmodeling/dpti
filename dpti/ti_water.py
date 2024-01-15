@@ -121,6 +121,11 @@ def add_subparsers(module_subparsers):
     )
     parser_refine.set_defaults(func=handle_refine)
 
+    parser_run = module_subparsers.add_parser("run", help="run the job")
+    parser_run.add_argument("JOB", type=str, help="folder of the job")
+    parser_run.add_argument("machine", type=str, help="machine.json file for the job")
+    parser_run.set_defaults(func=handle_run)
+
 
 def handle_gen(args):
     output = args.output
@@ -169,6 +174,10 @@ def handle_compute(args):
 
 def handle_refine(args):
     ti.refine_task(args.input, args.output, args.error)
+
+
+def handle_run(args):
+    ti.run_task(args.JOB, args.machine)
 
 
 if __name__ == "__main__":

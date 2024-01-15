@@ -151,6 +151,17 @@ def add_subparsers(module_subparsers):
     )
     parser_refine.set_defaults(func=handle_refine)
 
+    parser_run = module_subparsers.add_parser("run", help="run the job")
+    parser_run.add_argument("JOB", type=str, help="folder of the job")
+    parser_run.add_argument("machine", type=str, help="machine.json file for the job")
+    parser_run.add_argument(
+        "task_name", type=str, help="task name, can be 00, 01, or 02"
+    )
+    parser_run.add_argument(
+        "--no-dp", action="store_true", help="whether to use Deep Potential or not"
+    )
+    parser_run.set_defaults(func=handle_run)
+
 
 def handle_gen(args):
     output = args.output
@@ -264,6 +275,10 @@ def handle_compute(args):
     with open(os.path.join(job, "result.json"), "w") as result:
         result.write(json.dumps(info))
     return info
+
+
+def handle_run(args):
+    hti.run_task(args.JOB, args.machine, args.task_name, args.no_dp)
 
 
 if __name__ == "__main__":
