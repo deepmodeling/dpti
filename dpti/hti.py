@@ -1406,27 +1406,18 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
         machine=machine,
     )
 
+    command = "lmp -i in.lammps" if no_dp else "ln -s ../../../graph.pb graph.pb; lmp -i in.lammps"
+    task_list = [
+        Task(
+            command=command,
+            task_work_path=ii,
+            forward_files=["in.lammps", "conf.lmp"],
+            backward_files=["log*", "dump.hti", "out.lmp"],
+        )
+        for ii in task_dir_list
+    ]
     if not no_dp:
-        task_list = [
-            Task(
-                command="ln -s ../../../graph.pb graph.pb; lmp -i in.lammps",
-                task_work_path=ii,
-                forward_files=["in.lammps", "conf.lmp"],
-                backward_files=["log*", "dump.hti", "out.lmp"],
-            )
-            for ii in task_dir_list
-        ]
         submission.forward_common_files = ["graph.pb"]
-    else:
-        task_list = [
-            Task(
-                command="lmp -i in.lammps",
-                task_work_path=ii,
-                forward_files=["in.lammps", "conf.lmp"],
-                backward_files=["log*", "dump.hti", "out.lmp"],
-            )
-            for ii in task_dir_list
-        ]
 
     submission.register_task_list(task_list=task_list)
     submission.run_submission()
