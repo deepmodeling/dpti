@@ -468,7 +468,10 @@ def water_bond(iter_name, skip=1):
                 tt.append(np.arccos(np.dot(drj, drk) / (ndrj * ndrk)))
         all_rr += rr
         all_tt += tt
-    print("# statistics over %d frames %d angles" % (len(sections) - 1 - skip, len(all_tt)))
+    print(
+        "# statistics over %d frames %d angles"
+        % (len(sections) - 1 - skip, len(all_tt))
+    )
     return (np.average(all_rr)), (np.average(all_tt))
 
 
