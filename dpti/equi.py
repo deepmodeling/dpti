@@ -603,7 +603,7 @@ def post_task(iter_name, natoms=None, is_water=None):
 
 def run_task(task_name, machine_file):
     task_dir_list = [task_name]
-    work_base_dir = os.path.join(os.getcwd())
+    work_base_dir = os.path.abspath('.')
     with open(machine_file) as f:
         mdata = json.load(f)
     machine = Machine.load_from_dict(mdata["machine"])
