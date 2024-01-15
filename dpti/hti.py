@@ -1394,7 +1394,7 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
     job_work_dir = job_work_dir_[0]
     task_dir_list = glob.glob(os.path.join(job_work_dir, "task*"))
     task_dir_list = sorted(task_dir_list)
-    work_base_dir = os.path.abspath(".")
+    work_base_dir = os.getcwd()
     with open(machine_file) as f:
         mdata = json.load(f)
     machine = Machine.load_from_dict(mdata["machine"])

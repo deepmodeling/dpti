@@ -923,7 +923,7 @@ def compute_task(job, inte_method, Eo, Eo_err, To, scheme="simpson"):
 def run_task(task_name, machine_file):
     task_dir_list = glob.glob(os.path.join(task_name, "task.*"))
     task_dir_list = sorted(task_dir_list)
-    work_base_dir = os.path.join(os.getcwd())
+    work_base_dir = os.getcwd()
     with open(machine_file) as f:
         mdata = json.load(f)
     machine = Machine.load_from_dict(mdata["machine"])
