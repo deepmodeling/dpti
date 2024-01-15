@@ -1394,7 +1394,7 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
     job_work_dir = job_work_dir_[0]
     task_dir_list = glob.glob(os.path.join(job_work_dir, "task*"))
     task_dir_list = sorted(task_dir_list)
-    work_base_dir = os.path.join(os.getcwd())
+    work_base_dir = os.getcwd()
     with open(machine_file) as f:
         mdata = json.load(f)
     machine = Machine.load_from_dict(mdata["machine"])
@@ -1406,27 +1406,22 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
         machine=machine,
     )
 
+    command = (
+        "lmp -i in.lammps"
+        if no_dp
+        else "ln -s ../../../graph.pb graph.pb; lmp -i in.lammps"
+    )
+    task_list = [
+        Task(
+            command=command,
+            task_work_path=ii,
+            forward_files=["in.lammps", "conf.lmp"],
+            backward_files=["log*", "dump.hti", "out.lmp"],
+        )
+        for ii in task_dir_list
+    ]
     if not no_dp:
-        task_list = [
-            Task(
-                command="ln -s ../../../graph.pb graph.pb; lmp -i in.lammps",
-                task_work_path=ii,
-                forward_files=["in.lammps", "conf.lmp"],
-                backward_files=["log*", "dump.hti", "out.lmp"],
-            )
-            for ii in task_dir_list
-        ]
         submission.forward_common_files = ["graph.pb"]
-    else:
-        task_list = [
-            Task(
-                command="lmp -i in.lammps",
-                task_work_path=ii,
-                forward_files=["in.lammps", "conf.lmp"],
-                backward_files=["log*", "dump.hti", "out.lmp"],
-            )
-            for ii in task_dir_list
-        ]
 
     submission.register_task_list(task_list=task_list)
     submission.run_submission()

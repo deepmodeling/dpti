@@ -175,8 +175,10 @@ def handle_compute(args):
 def handle_refine(args):
     ti.refine_task(args.input, args.output, args.error)
 
+
 def handle_run(args):
     ti.run_task(args.JOB, args.machine)
+
 
 if __name__ == "__main__":
     _main()
