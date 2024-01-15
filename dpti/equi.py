@@ -468,7 +468,7 @@ def water_bond(iter_name, skip=1):
                 tt.append(np.arccos(np.dot(drj, drk) / (ndrj * ndrk)))
         all_rr += rr
         all_tt += tt
-    print("# statistics over %d frames %d angles" % (len(sections) - 1, len(all_tt)))
+    print("# statistics over %d frames %d angles" % (len(sections) - 1 - skip, len(all_tt)))
     return (np.average(all_rr)), (np.average(all_tt))
 
 
@@ -617,15 +617,15 @@ def run_task(task_name, machine_file):
 
     task_list = [
         Task(
-            command="ln -s ../graph.pb graph.pb; lmp -in in.lammps",
+            command="lmp -in in.lammps",
             task_work_path=ii,
-            forward_files=["in.lammps", "*.lmp"],
+            forward_files=["in.lammps", "*.lmp", "graph.pb"],
             backward_files=["log*", "dump.equi", "out.lmp"],
         )
         for ii in task_dir_list
     ]
 
-    submission.forward_common_files = ["graph.pb"]
+    submission.forward_common_files = []
     submission.register_task_list(task_list=task_list)
     submission.run_submission()
 
