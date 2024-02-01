@@ -2,7 +2,15 @@ deepmodeling, deepmd, dpti, free energy, phase diagram
 
 ---
 
-github:  [https://github.com/deepmodeling/dpti](https://github.com/deepmodeling/dpti)<br />relating docs: [https://www.yuque.com/dpti/manual/ilzmlb](https://www.yuque.com/dpti/manual/ilzmlb)
+github:  [https://github.com/deepmodeling/dpti](https://github.com/deepmodeling/dpti)<br />
+
+relating docs: [https://www.yuque.com/dpti/manual/ilzmlb](https://www.yuque.com/dpti/manual/ilzmlb)
+
+relating docs about free energy calculation:
+[https://nb.bohrium.dp.tech/detail/18465833825](https://nb.bohrium.dp.tech/detail/18465833825)
+
+
+
 <a name="0487c87d66ac0af8f7df818b7e010bd0"></a>
 # 🌾OutPut show
 
