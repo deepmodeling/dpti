@@ -13,4 +13,3 @@ exec gosu airflow "$@"
 # whoami
 # echo "$@"
 # exec "$@"
-

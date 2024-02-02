@@ -14,7 +14,7 @@ RUN service postgresql start \
 && sudo -u postgres psql -U postgres --command="CREATE DATABASE airflow_db;" \
 && sudo -u postgres psql -U postgres --command="CREATE USER airflow WITH PASSWORD 'airflow_pw';" \
 && sudo -u postgres psql -U postgres --command="GRANT ALL PRIVILEGES ON DATABASE airflow_db TO airflow;" \
-&& sudo -u postgres psql -U postgres --command="ALTER DATABASE airflow_db OWNER TO airflow;" 
+&& sudo -u postgres psql -U postgres --command="ALTER DATABASE airflow_db OWNER TO airflow;"
 
 ENV AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow_pw@localhost:5432/airflow_db"
 
