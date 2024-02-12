@@ -233,11 +233,13 @@ def make_tasks(iter_name, jdata):
                     tau_t=tau_t,
                     thermo_freq=thermo_freq,
                     dump_freq=dump_freq,
-                    copies=copies
+                    copies=copies,
                 )
                 with open(os.path.join(mass_scale_y_abs_dir, "in.lmp"), "w") as f:
                     f.write(lmp_str)
-                with open(os.path.join(mass_scale_y_abs_dir, "settings.json"), "w") as f:
+                with open(
+                    os.path.join(mass_scale_y_abs_dir, "settings.json"), "w"
+                ) as f:
                     json.dump(settings, f, indent=4)
 
 
