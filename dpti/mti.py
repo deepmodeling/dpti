@@ -1,28 +1,18 @@
 #!/usr/bin/env python3
 
 import argparse
-import glob
 import json
 import os
-import shutil
 
 import numpy as np
-import pymbar
-import scipy.constants as pc
-from dpdispatcher import Machine, Resources, Submission, Task
-
-from dpti.lib.lammps import get_natoms, get_thermo
 
 from dpti.lib.utils import (
-    block_avg,
-    compute_nrefine,
     create_path,
     get_first_matched_key_from_dict,
-    get_task_file_abspath,
-    integrate_range,
     parse_seq,
     relative_link_file,
 )
+
 
 def _gen_lammps_input(
     conf_file,
@@ -39,7 +29,7 @@ def _gen_lammps_input(
     tau_p=0.5,
     thermo_freq=100,
     dump_freq=100,
-    copies=None
+    copies=None,
 ):
     if nbeads is not None:
         if nbeads <= 0:
@@ -112,6 +102,7 @@ def _gen_lammps_input(
 
     return ret
 
+
 def make_tasks(iter_name, jdata):
     ti_settings = jdata.copy()
     equi_conf = jdata["equi_conf"]
@@ -146,16 +137,20 @@ def make_tasks(iter_name, jdata):
         tau_p = jdata["tau_p"]
     else:
         raise RuntimeError("invalid ens")
-    
+
     job_type = jdata["job_type"]
-    assert job_type == "nbead_convergence" or job_type == "mass_ti", "Unknow job_type. Only nbead_convergence and mass_ti are supported."
+    assert (
+        job_type == "nbead_convergence" or job_type == "mass_ti"
+    ), "Unknow job_type. Only nbead_convergence and mass_ti are supported."
     mass_scale_y_seq = get_first_matched_key_from_dict(jdata, ["mass_scale_y"])
     mass_scale_y_list = parse_seq(mass_scale_y_seq)
-    mass_scales = (1./np.array(mass_scale_y_list))**2
+    mass_scales = (1.0 / np.array(mass_scale_y_list)) ** 2
     nbead_seq = get_first_matched_key_from_dict(jdata, ["nbead"])
     nbead_list = parse_seq(nbead_seq)
     if job_type == "mass_ti":
-        assert len(mass_scale_y_list) == len(nbead_list), "For mass TI tasks, you must provide one value of nbead for each value of mass_scale_y."
+        assert (
+            len(mass_scale_y_list) == len(nbead_list)
+        ), "For mass TI tasks, you must provide one value of nbead for each value of mass_scale_y."
 
     job_abs_dir = create_path(iter_name)
     ti_settings["equi_conf"] = relative_link_file(equi_conf, job_abs_dir)
@@ -169,9 +164,7 @@ def make_tasks(iter_name, jdata):
         settings = {}
         if path == "t":
             temp = temp_list[ii]
-            pres = pres
         elif path == "p":
-            temp = temp
             pres = pres_list[ii]
         else:
             raise RuntimeError("unsupported path")
@@ -206,11 +199,13 @@ def make_tasks(iter_name, jdata):
                         tau_t=tau_t,
                         thermo_freq=thermo_freq,
                         dump_freq=dump_freq,
-                        copies=copies
+                        copies=copies,
                     )
                     with open(os.path.join(nbead_abs_dir, "in.lmp"), "w") as f:
                         f.write(lmp_str)
-                    with open(os.path.join(nbead_abs_dir, "settings.json"), "w") as f:
+                    with open(
+                        os.path.join(mass_scale_y_abs_dir, "settings.json"), "w"
+                    ) as f:
                         json.dump(settings, f, indent=4)
         elif job_type == "mass_ti":
             for jj in range(len(mass_scale_y_list)):
@@ -246,8 +241,6 @@ def make_tasks(iter_name, jdata):
                     json.dump(settings, f, indent=4)
 
 
-
-
 def _main():
     parser = argparse.ArgumentParser(
         description="Compute free energy of ice by Hamiltonian TI"
@@ -270,9 +263,11 @@ def exec_args(args, parser):
     else:
         parser.print_help()
 
+
 def add_module_subparsers(main_subparsers):
     module_parser = main_subparsers.add_parser(
-        "mti", help="mass thermodynamic integration: quantum free energy calculation using PIMD"
+        "mti",
+        help="mass thermodynamic integration: quantum free energy calculation using PIMD",
     )
     module_subparsers = module_parser.add_subparsers(
         help="commands of mass thermodynamic integration",
@@ -280,6 +275,7 @@ def add_module_subparsers(main_subparsers):
         required=True,
     )
     add_subparsers(module_subparsers)
+
 
 def add_subparsers(module_subparsers):
     parser_gen = module_subparsers.add_parser("gen", help="Generate a job")
@@ -293,10 +289,12 @@ def add_subparsers(module_subparsers):
     )
     parser_gen.set_defaults(func=handle_gen)
 
+
 def handle_gen(args):
     with open(args.PARAM) as j:
         jdata = json.load(j)
     make_tasks(args.output, jdata)
+
 
 if __name__ == "__main__":
     _main()
