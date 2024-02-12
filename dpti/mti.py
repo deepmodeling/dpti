@@ -263,7 +263,7 @@ def run_task(task_name, jdata, machine_file):
         mdata = json.load(f)
     task_exec = mdata["command"]
     number_node = int(mdata["resources"]["number_node"])
-    
+
     machine = Machine.load_from_dict(mdata["machine"])
     task_list = []
     for ii in task_dir_list:
