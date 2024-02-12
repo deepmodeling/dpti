@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import glob
 import json
 import os
@@ -38,9 +39,7 @@ def _gen_lammps_input(
     tau_p=0.5,
     thermo_freq=100,
     dump_freq=100,
-    copies=None,
-    if_meam=False,
-    meam_model=None,
+    copies=None
 ):
     if nbeads is not None:
         if nbeads <= 0:
@@ -65,6 +64,7 @@ def _gen_lammps_input(
     ret += "units           metal\n"
     ret += "boundary        p p p\n"
     ret += "atom_style      atomic\n"
+    ret += "atom_modify     map yes\n"
     ret += "# --------------------- ATOM DEFINITION ------------------\n"
     ret += "box             tilt large\n"
     ret += f'if "${{restart}} > 0" then "read_restart ${{ibead}}.restart.*" else "read_data {conf_file}"\n'
@@ -73,15 +73,11 @@ def _gen_lammps_input(
     for jj in range(len(mass_map)):
         ret += "mass            %d %f\n" % (jj + 1, mass_map[jj] * mass_scale)
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
-    if if_meam:
-        ret += "pair_style      meam\n"
-        ret += f'pair_coeff      * * {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
-    else:
-        ret += "pair_style      deepmd %s\n" % model
-        ret += "pair_coeff * *\n"
+    ret += "pair_style      deepmd %s\n" % model
+    ret += "pair_coeff * *\n"
     ret += "# --------------------- MD SETTINGS ----------------------\n"
     ret += "neighbor        2.0 bin\n"
-    ret += "neigh_modify    every 10 delay 0 check yes\n"
+    ret += "neigh_modify    every 10 delay 0 check no\n"
     ret += "timestep        %s\n" % timestep
     ret += "thermo          ${THERMO_FREQ}\n"
     ret += "compute         allmsd all msd\n"
@@ -116,17 +112,14 @@ def _gen_lammps_input(
 
     return ret
 
-def make_tasks(iter_name, jdata, if_meam=None):
+def make_tasks(iter_name, jdata):
     ti_settings = jdata.copy()
-    if if_meam is None:
-        if_meam = jdata.get("if_meam", None)
     equi_conf = jdata["equi_conf"]
     equi_conf = os.path.abspath(equi_conf)
     copies = None
     if "copies" in jdata:
         copies = jdata["copies"]
     model = jdata["model"]
-    meam_model = jdata.get("meam_model", None)
     mass_map = get_first_matched_key_from_dict(jdata, ["model_mass_map", "mass_map"])
     nsteps = jdata["nsteps"]
     timestep = get_first_matched_key_from_dict(jdata, ["timestep", "dt"])
@@ -136,26 +129,10 @@ def make_tasks(iter_name, jdata, if_meam=None):
     )
     ens = jdata["ens"]
     path = jdata["path"]
-    mass_scale_y_seq = get_first_matched_key_from_dict(jdata, ["mass_scale_y_seq"])
-    mass_scale_y_list = parse_seq(mass_scale_y_seq)
-    ntasks = len(mass_scale_y_list)
-    if "nvt" in ens:
-        if path == "t":
-            
-            temp_list = parse_seq(temp_seq)
-            tau_t = jdata["tau_t"]
-            ntasks = len(temp_list)
-        else:
-            raise RuntimeError("supported path of nvt ens is 't'")
-    elif "npt" in ens:
+    if "npt" in ens:
         if path == "t":
             temp_seq = get_first_matched_key_from_dict(jdata, ["temp_seq", "temps"])
             temp_list = parse_seq(temp_seq)
-            pres = get_first_matched_key_from_dict(jdata, ["pres", "press"])
-            ntasks = len(temp_list)
-        elif path == "t-ginv":
-            temp_seq = get_first_matched_key_from_dict(jdata, ["temp_seq", "temps"])
-            temp_list = parse_seq_ginv(temp_seq)
             pres = get_first_matched_key_from_dict(jdata, ["pres", "press"])
             ntasks = len(temp_list)
         elif path == "p":
@@ -169,5 +146,152 @@ def make_tasks(iter_name, jdata, if_meam=None):
         tau_p = jdata["tau_p"]
     else:
         raise RuntimeError("invalid ens")
+    
+    job_type = jdata["job_type"]
+    assert job_type == "nbead_convergence" or job_type == "mass_ti", "Unknow job_type. Only nbead_convergence and mass_ti are supported."
+    mass_scale_y_seq = get_first_matched_key_from_dict(jdata, ["mass_scale_y"])
+    mass_scale_y_list = parse_seq(mass_scale_y_seq)
+    mass_scales = (1./np.array(mass_scale_y_list))**2
+    nbead_seq = get_first_matched_key_from_dict(jdata, ["nbead"])
+    nbead_list = parse_seq(nbead_seq)
+    if job_type == "mass_ti":
+        assert len(mass_scale_y_list) == len(nbead_list), "For mass TI tasks, you must provide one value of nbead for each value of mass_scale_y."
 
     job_abs_dir = create_path(iter_name)
+    ti_settings["equi_conf"] = relative_link_file(equi_conf, job_abs_dir)
+    ti_settings["model"] = relative_link_file(model, job_abs_dir)
+    with open(os.path.join(job_abs_dir, "mti_settings.json"), "w") as f:
+        json.dump(ti_settings, f, indent=4)
+
+    for ii in range(ntasks):
+        task_dir = os.path.join(job_abs_dir, "task.%06d" % ii)
+        task_abs_dir = create_path(task_dir)
+        settings = {}
+        if path == "t":
+            temp = temp_list[ii]
+            pres = pres
+            settings["temp"] = temp
+            settings["pres"] = pres
+            if job_type == "nbead_convergence":
+                for jj in range(len(mass_scale_y_list)):
+                    mass_scale_y_dir = os.path.join(task_abs_dir, "mass_scale_y.%06d" % jj)
+                    mass_scale_y_abs_dir = create_path(mass_scale_y_dir)
+                    settings["mass_scale_y"] = mass_scale_y_list[jj]
+                    settings["mass_scale"] = mass_scales[jj]
+                    for kk in range(len(nbead_list)):
+                        nbead_dir = os.path.join(mass_scale_y_abs_dir, "nbead.%06d" % kk)
+                        nbead_abs_dir = create_path(nbead_dir)
+                        settings["nbead"] = nbead_list[kk]
+                        relative_link_file(equi_conf, nbead_abs_dir)
+                        task_model = model
+                        if model:
+                            relative_link_file(model, nbead_abs_dir)
+                            task_model = os.path.basename(model)
+                        lmp_str = _gen_lammps_input(
+                            os.path.basename(equi_conf),
+                            mass_map,
+                            mass_scales[jj],
+                            task_model,
+                            nbead_list[kk],
+                            nsteps,
+                            timestep,
+                            ens,
+                            temp_list[ii],
+                            pres=pres,
+                            tau_t=tau_t,
+                            thermo_freq=thermo_freq,
+                            dump_freq=dump_freq,
+                            copies=copies
+                        )
+                        with open(os.path.join(nbead_abs_dir, "in.lmp"), "w") as f:
+                            f.write(lmp_str)
+                        with open(os.path.join(nbead_abs_dir, "settings.json"), "w") as f:
+                            json.dump(settings, f, indent=4)
+            elif job_type == "mass_ti":
+                for jj in range(len(mass_scale_y_list)):
+                    mass_scale_y_dir = os.path.join(task_abs_dir, "mass_scale_y.%06d" % jj)
+                    mass_scale_y_abs_dir = create_path(mass_scale_y_dir)
+                    settings["mass_scale_y"] = mass_scale_y_list[jj]
+                    settings["mass_scale"] = mass_scales[jj]
+                    settings["nbead"] = nbead_list[jj]
+                    relative_link_file(equi_conf, mass_scale_y_abs_dir)
+                    task_model = model
+                    if model:
+                        relative_link_file(model, mass_scale_y_abs_dir)
+                        task_model = os.path.basename(model)
+                    lmp_str = _gen_lammps_input(
+                        os.path.basename(equi_conf),
+                        mass_map,
+                        mass_scales[jj],
+                        task_model,
+                        nbead_list[jj],
+                        nsteps,
+                        timestep,
+                        ens,
+                        temp_list[ii],
+                        pres=pres,
+                        tau_t=tau_t,
+                        thermo_freq=thermo_freq,
+                        dump_freq=dump_freq,
+                        copies=copies
+                    )
+                    with open(os.path.join(mass_scale_y_abs_dir, "in.lmp"), "w") as f:
+                        f.write(lmp_str)
+                    with open(os.path.join(mass_scale_y_abs_dir, "settings.json"), "w") as f:
+                        json.dump(settings, f, indent=4)
+
+
+
+
+def _main():
+    parser = argparse.ArgumentParser(
+        description="Compute free energy of ice by Hamiltonian TI"
+    )
+    main_subparsers = parser.add_subparsers(
+        title="modules",
+        description="the subcommands of dpti",
+        help="module-level help",
+        dest="module",
+        required=True,
+    )
+    add_subparsers(main_subparsers)
+    args = parser.parse_args()
+    exec_args(args, parser)
+
+
+def exec_args(args, parser):
+    if hasattr(args, "func"):
+        args.func(args)
+    else:
+        parser.print_help()
+
+def add_module_subparsers(main_subparsers):
+    module_parser = main_subparsers.add_parser(
+        "mti", help="mass thermodynamic integration: quantum free energy calculation using PIMD"
+    )
+    module_subparsers = module_parser.add_subparsers(
+        help="commands of mass thermodynamic integration",
+        dest="command",
+        required=True,
+    )
+    add_subparsers(module_subparsers)
+
+def add_subparsers(module_subparsers):
+    parser_gen = module_subparsers.add_parser("gen", help="Generate a job")
+    parser_gen.add_argument("PARAM", type=str, help="json parameter file")
+    parser_gen.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        default="new_job",
+        help="the output folder for the job",
+    )
+    parser_gen.set_defaults(func=handle_gen)
+
+def handle_gen(args):
+    with open(args.PARAM) as j:
+        jdata = json.load(j)
+    make_tasks(args.output, jdata)
+
+if __name__ == "__main__":
+    _main()
