@@ -7,6 +7,7 @@ import os
 
 import numpy as np
 from dpdispatcher import Machine, Resources, Submission, Task
+
 from dpti.lib.utils import (
     create_path,
     get_first_matched_key_from_dict,
@@ -204,9 +205,7 @@ def make_tasks(iter_name, jdata):
                     )
                     with open(os.path.join(nbead_abs_dir, "in.lammps"), "w") as f:
                         f.write(lmp_str)
-                    with open(
-                        os.path.join(nbead_abs_dir, "settings.json"), "w"
-                    ) as f:
+                    with open(os.path.join(nbead_abs_dir, "settings.json"), "w") as f:
                         json.dump(settings, f, indent=4)
         elif job_type == "mass_ti":
             for jj in range(len(mass_scale_y_list)):
@@ -243,16 +242,21 @@ def make_tasks(iter_name, jdata):
                 ) as f:
                     json.dump(settings, f, indent=4)
 
+
 def run_task(task_name, jdata, machine_file):
     job_type = jdata["job_type"]
     if job_type == "nbead_convergence":
-        task_dir_list = glob.glob(os.path.join(task_name, "task.*/mass_scale_y.*/nbead.*"))
+        task_dir_list = glob.glob(
+            os.path.join(task_name, "task.*/mass_scale_y.*/nbead.*")
+        )
         link_model = "ln -s ../../../graph.pb"
     elif job_type == "mass_ti":
         task_dir_list = glob.glob(os.path.join(task_name, "task.*/mass_scale_y.*"))
         link_model = "ln -s ../../graph.pb"
     else:
-        raise RuntimeError("Unknow job_type. Only nbead_convergence and mass_ti are supported.")
+        raise RuntimeError(
+            "Unknow job_type. Only nbead_convergence and mass_ti are supported."
+        )
     task_dir_list = sorted(task_dir_list)
     work_base_dir = os.getcwd()
     with open(machine_file) as f:
@@ -339,10 +343,12 @@ def handle_gen(args):
         jdata = json.load(j)
     make_tasks(args.output, jdata)
 
+
 def handle_run(args):
     with open(args.PARAM) as j:
         jdata = json.load(j)
     run_task(args.JOB, jdata, args.machine)
+
 
 if __name__ == "__main__":
     _main()
