@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 import argparse
+import glob
 import json
 import os
 
 import numpy as np
-
+from dpdispatcher import Machine, Resources, Submission, Task
 from dpti.lib.utils import (
     create_path,
     get_first_matched_key_from_dict,
@@ -201,10 +202,10 @@ def make_tasks(iter_name, jdata):
                         dump_freq=dump_freq,
                         copies=copies,
                     )
-                    with open(os.path.join(nbead_abs_dir, "in.lmp"), "w") as f:
+                    with open(os.path.join(nbead_abs_dir, "in.lammps"), "w") as f:
                         f.write(lmp_str)
                     with open(
-                        os.path.join(mass_scale_y_abs_dir, "settings.json"), "w"
+                        os.path.join(nbead_abs_dir, "settings.json"), "w"
                     ) as f:
                         json.dump(settings, f, indent=4)
         elif job_type == "mass_ti":
@@ -235,10 +236,51 @@ def make_tasks(iter_name, jdata):
                     dump_freq=dump_freq,
                     copies=copies
                 )
-                with open(os.path.join(mass_scale_y_abs_dir, "in.lmp"), "w") as f:
+                with open(os.path.join(mass_scale_y_abs_dir, "in.lammps"), "w") as f:
                     f.write(lmp_str)
                 with open(os.path.join(mass_scale_y_abs_dir, "settings.json"), "w") as f:
                     json.dump(settings, f, indent=4)
+
+def run_task(task_name, jdata, machine_file):
+    job_type = jdata["job_type"]
+    if job_type == "nbead_convergence":
+        task_dir_list = glob.glob(os.path.join(task_name, "task.*/mass_scale_y.*/nbead.*"))
+        link_model = "ln -s ../../../graph.pb"
+    elif job_type == "mass_ti":
+        task_dir_list = glob.glob(os.path.join(task_name, "task.*/mass_scale_y.*"))
+        link_model = "ln -s ../../graph.pb"
+    else:
+        raise RuntimeError("Unknow job_type. Only nbead_convergence and mass_ti are supported.")
+    task_dir_list = sorted(task_dir_list)
+    work_base_dir = os.getcwd()
+    with open(machine_file) as f:
+        mdata = json.load(f)
+    task_exec = mdata["command"]
+    machine = Machine.load_from_dict(mdata["machine"])
+    resources = Resources.load_from_dict(mdata["resources"])
+
+    submission = Submission(
+        work_base=work_base_dir,
+        resources=resources,
+        machine=machine,
+    )
+
+    task_list = []
+    for ii in task_dir_list:
+        setting = json.load(open(os.path.join(ii, "settings.json")))
+        nbead = int(setting["nbead"])
+        task_list.append(
+            Task(
+                command=f"{link_model}; {task_exec} -in in.lammps -p {nbead}x1 -log log",
+                task_work_path=ii,
+                forward_files=["in.lammps", "*.lmp"],
+                backward_files=["log*", "*out.lmp", "*.dump"],
+            )
+        )
+
+    submission.forward_common_files = ["graph.pb"]
+    submission.register_task_list(task_list=task_list)
+    submission.run_submission()
 
 
 def _main():
@@ -295,6 +337,10 @@ def handle_gen(args):
         jdata = json.load(j)
     make_tasks(args.output, jdata)
 
+def handle_run(args):
+    with open(args.PARAM) as j:
+        jdata = json.load(j)
+    run_task(args.JOB, jdata, args.machine)
 
 if __name__ == "__main__":
     _main()
