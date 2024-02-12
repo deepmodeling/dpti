@@ -1,6 +1,6 @@
 import argparse
 
-from . import equi, gdi, hti, hti_ice, hti_liq, hti_water, ti, ti_water, mti
+from . import equi, gdi, hti, hti_ice, hti_liq, hti_water, mti, ti, ti_water
 
 # from . import gdi
 
