@@ -170,61 +170,34 @@ def make_tasks(iter_name, jdata):
         if path == "t":
             temp = temp_list[ii]
             pres = pres
-            settings["temp"] = temp
-            settings["pres"] = pres
-            if job_type == "nbead_convergence":
-                for jj in range(len(mass_scale_y_list)):
-                    mass_scale_y_dir = os.path.join(task_abs_dir, "mass_scale_y.%06d" % jj)
-                    mass_scale_y_abs_dir = create_path(mass_scale_y_dir)
-                    settings["mass_scale_y"] = mass_scale_y_list[jj]
-                    settings["mass_scale"] = mass_scales[jj]
-                    for kk in range(len(nbead_list)):
-                        nbead_dir = os.path.join(mass_scale_y_abs_dir, "nbead.%06d" % kk)
-                        nbead_abs_dir = create_path(nbead_dir)
-                        settings["nbead"] = nbead_list[kk]
-                        relative_link_file(equi_conf, nbead_abs_dir)
-                        task_model = model
-                        if model:
-                            relative_link_file(model, nbead_abs_dir)
-                            task_model = os.path.basename(model)
-                        lmp_str = _gen_lammps_input(
-                            os.path.basename(equi_conf),
-                            mass_map,
-                            mass_scales[jj],
-                            task_model,
-                            nbead_list[kk],
-                            nsteps,
-                            timestep,
-                            ens,
-                            temp_list[ii],
-                            pres=pres,
-                            tau_t=tau_t,
-                            thermo_freq=thermo_freq,
-                            dump_freq=dump_freq,
-                            copies=copies
-                        )
-                        with open(os.path.join(nbead_abs_dir, "in.lmp"), "w") as f:
-                            f.write(lmp_str)
-                        with open(os.path.join(nbead_abs_dir, "settings.json"), "w") as f:
-                            json.dump(settings, f, indent=4)
-            elif job_type == "mass_ti":
-                for jj in range(len(mass_scale_y_list)):
-                    mass_scale_y_dir = os.path.join(task_abs_dir, "mass_scale_y.%06d" % jj)
-                    mass_scale_y_abs_dir = create_path(mass_scale_y_dir)
-                    settings["mass_scale_y"] = mass_scale_y_list[jj]
-                    settings["mass_scale"] = mass_scales[jj]
-                    settings["nbead"] = nbead_list[jj]
-                    relative_link_file(equi_conf, mass_scale_y_abs_dir)
+        elif path == "p":
+            temp = temp
+            pres = pres_list[ii]
+        else:
+            raise RuntimeError("unsupported path")
+        settings["temp"] = temp
+        settings["pres"] = pres
+        if job_type == "nbead_convergence":
+            for jj in range(len(mass_scale_y_list)):
+                mass_scale_y_dir = os.path.join(task_abs_dir, "mass_scale_y.%06d" % jj)
+                mass_scale_y_abs_dir = create_path(mass_scale_y_dir)
+                settings["mass_scale_y"] = mass_scale_y_list[jj]
+                settings["mass_scale"] = mass_scales[jj]
+                for kk in range(len(nbead_list)):
+                    nbead_dir = os.path.join(mass_scale_y_abs_dir, "nbead.%06d" % kk)
+                    nbead_abs_dir = create_path(nbead_dir)
+                    settings["nbead"] = nbead_list[kk]
+                    relative_link_file(equi_conf, nbead_abs_dir)
                     task_model = model
                     if model:
-                        relative_link_file(model, mass_scale_y_abs_dir)
+                        relative_link_file(model, nbead_abs_dir)
                         task_model = os.path.basename(model)
                     lmp_str = _gen_lammps_input(
                         os.path.basename(equi_conf),
                         mass_map,
                         mass_scales[jj],
                         task_model,
-                        nbead_list[jj],
+                        nbead_list[kk],
                         nsteps,
                         timestep,
                         ens,
@@ -235,10 +208,42 @@ def make_tasks(iter_name, jdata):
                         dump_freq=dump_freq,
                         copies=copies
                     )
-                    with open(os.path.join(mass_scale_y_abs_dir, "in.lmp"), "w") as f:
+                    with open(os.path.join(nbead_abs_dir, "in.lmp"), "w") as f:
                         f.write(lmp_str)
-                    with open(os.path.join(mass_scale_y_abs_dir, "settings.json"), "w") as f:
+                    with open(os.path.join(nbead_abs_dir, "settings.json"), "w") as f:
                         json.dump(settings, f, indent=4)
+        elif job_type == "mass_ti":
+            for jj in range(len(mass_scale_y_list)):
+                mass_scale_y_dir = os.path.join(task_abs_dir, "mass_scale_y.%06d" % jj)
+                mass_scale_y_abs_dir = create_path(mass_scale_y_dir)
+                settings["mass_scale_y"] = mass_scale_y_list[jj]
+                settings["mass_scale"] = mass_scales[jj]
+                settings["nbead"] = nbead_list[jj]
+                relative_link_file(equi_conf, mass_scale_y_abs_dir)
+                task_model = model
+                if model:
+                    relative_link_file(model, mass_scale_y_abs_dir)
+                    task_model = os.path.basename(model)
+                lmp_str = _gen_lammps_input(
+                    os.path.basename(equi_conf),
+                    mass_map,
+                    mass_scales[jj],
+                    task_model,
+                    nbead_list[jj],
+                    nsteps,
+                    timestep,
+                    ens,
+                    temp_list[ii],
+                    pres=pres,
+                    tau_t=tau_t,
+                    thermo_freq=thermo_freq,
+                    dump_freq=dump_freq,
+                    copies=copies
+                )
+                with open(os.path.join(mass_scale_y_abs_dir, "in.lmp"), "w") as f:
+                    f.write(lmp_str)
+                with open(os.path.join(mass_scale_y_abs_dir, "settings.json"), "w") as f:
+                    json.dump(settings, f, indent=4)
 
 
 
