@@ -280,7 +280,7 @@ def run_task(task_name, jdata, machine_file):
 
         task_list.append(
             Task(
-                command=f"{link_model}; {task_exec} -in in.lammps -p {nbead}x1 -log log",
+                command=f"{link_model}; if ls *.restart.100000 1> /dev/null 2>&1; then {task_exec} -in in.lammps -p {nbead}x1 -log log -v restart 1; else {task_exec} -in in.lammps -p {nbead}x1 -log log -v restart 0; fi",
                 task_work_path=ii,
                 forward_files=["in.lammps", "*.lmp"],
                 backward_files=["log*", "*out.lmp", "*.dump"],
