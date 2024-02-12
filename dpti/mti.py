@@ -262,19 +262,22 @@ def run_task(task_name, jdata, machine_file):
     with open(machine_file) as f:
         mdata = json.load(f)
     task_exec = mdata["command"]
+    number_node = int(mdata["resources"]["number_node"])
+    
     machine = Machine.load_from_dict(mdata["machine"])
-    resources = Resources.load_from_dict(mdata["resources"])
-
-    submission = Submission(
-        work_base=work_base_dir,
-        resources=resources,
-        machine=machine,
-    )
-
     task_list = []
     for ii in task_dir_list:
         setting = json.load(open(os.path.join(ii, "settings.json")))
         nbead = int(setting["nbead"])
+        mdata["resources"]["cpu_per_node"] = int(np.ceil(nbead / number_node))
+        resources = Resources.load_from_dict(mdata["resources"])
+
+        submission = Submission(
+            work_base=work_base_dir,
+            resources=resources,
+            machine=machine,
+        )
+
         task_list.append(
             Task(
                 command=f"{link_model}; {task_exec} -in in.lammps -p {nbead}x1 -log log",
