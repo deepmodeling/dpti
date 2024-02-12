@@ -337,6 +337,12 @@ def add_subparsers(module_subparsers):
     )
     parser_gen.set_defaults(func=handle_gen)
 
+    parser_run = module_subparsers.add_parser("run", help="run the job")
+    parser_run.add_argument("JOB", type=str, help="folder of the job")
+    parser_run.add_argument("PARAM", type=str, help="json parameter file")
+    parser_run.add_argument("machine", type=str, help="machine.json file for the job")
+    parser_run.set_defaults(func=handle_run)
+
 
 def handle_gen(args):
     with open(args.PARAM) as j:
