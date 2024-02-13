@@ -292,11 +292,11 @@ def run_task(task_name, jdata, machine_file):
         )
 
         task = Task(
-                command=f"{link_model}; if ls *.restart.100000 1> /dev/null 2>&1; then {task_exec} -in in.lammps -p {nbead}x1 -log log -v restart 1; else {task_exec} -in in.lammps -p {nbead}x1 -log log -v restart 0; fi",
-                task_work_path=ii,
-                forward_files=["in.lammps", "*.lmp", "graph.pb"],
-                backward_files=["log*", "*out.lmp", "*.dump"],
-            )
+            command=f"{link_model}; if ls *.restart.100000 1> /dev/null 2>&1; then {task_exec} -in in.lammps -p {nbead}x1 -log log -v restart 1; else {task_exec} -in in.lammps -p {nbead}x1 -log log -v restart 0; fi",
+            task_work_path=ii,
+            forward_files=["in.lammps", "*.lmp", "graph.pb"],
+            backward_files=["log*", "*out.lmp", "*.dump"],
+        )
 
         submission.forward_common_files = []
         submission.register_task_list(task_list=[task])
