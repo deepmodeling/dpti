@@ -300,7 +300,7 @@ def run_task(task_name, jdata, machine_file):
 
         submission.forward_common_files = []
         submission.register_task_list(task_list=[task])
-        submission.run_submission()
+        submission.run_submission(exit_on_submit=True)
 
 
 def _main():
