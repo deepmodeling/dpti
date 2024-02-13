@@ -149,6 +149,10 @@ def make_tasks(iter_name, jdata):
     mass_scales = (1.0 / np.array(mass_scale_y_list)) ** 2
     nbead_seq = get_first_matched_key_from_dict(jdata, ["nbead"])
     nbead_list = parse_seq(nbead_seq)
+    nnode_seq = jdata.get("nnode", None)
+    if nnode_seq is not None:
+        nnode_list = parse_seq (nnode_seq)
+        assert len(nbead_list) == len(nnode_list), "Lists nbead and nnode should have same length. Please specify one nnode for each nbead."
     if job_type == "mass_ti":
         assert (
             len(mass_scale_y_list) == len(nbead_list)
@@ -182,6 +186,8 @@ def make_tasks(iter_name, jdata):
                     nbead_dir = os.path.join(mass_scale_y_abs_dir, "nbead.%06d" % kk)
                     nbead_abs_dir = create_path(nbead_dir)
                     settings["nbead"] = nbead_list[kk]
+                    if nnode_seq is not None:
+                        settings["nnode"] = nnode_list[kk]
                     relative_link_file(equi_conf, nbead_abs_dir)
                     task_model = model
                     if model:
@@ -214,6 +220,8 @@ def make_tasks(iter_name, jdata):
                 settings["mass_scale_y"] = mass_scale_y_list[jj]
                 settings["mass_scale"] = mass_scales[jj]
                 settings["nbead"] = nbead_list[jj]
+                if nnode_seq is not None:
+                    settings["nnode"] = nnode_list[jj]
                 relative_link_file(equi_conf, mass_scale_y_abs_dir)
                 task_model = model
                 if model:
@@ -262,13 +270,17 @@ def run_task(task_name, jdata, machine_file):
     with open(machine_file) as f:
         mdata = json.load(f)
     task_exec = mdata["command"]
-    number_node = int(mdata["resources"]["number_node"])
+    number_node = mdata.get("resources", {}).get("number_node", 1)
 
     machine = Machine.load_from_dict(mdata["machine"])
     task_list = []
     for ii in task_dir_list:
         setting = json.load(open(os.path.join(ii, "settings.json")))
         nbead = int(setting["nbead"])
+        nnode = setting.get("nnode", None)
+        if nnode is not None:
+            mdata["resources"]["number_node"] = int(nnode)
+            number_node = nnode
         mdata["resources"]["cpu_per_node"] = int(np.ceil(nbead / number_node))
         resources = Resources.load_from_dict(mdata["resources"])
 
