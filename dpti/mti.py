@@ -151,8 +151,10 @@ def make_tasks(iter_name, jdata):
     nbead_list = parse_seq(nbead_seq)
     nnode_seq = jdata.get("nnode", None)
     if nnode_seq is not None:
-        nnode_list = parse_seq (nnode_seq)
-        assert len(nbead_list) == len(nnode_list), "Lists nbead and nnode should have same length. Please specify one nnode for each nbead."
+        nnode_list = parse_seq(nnode_seq)
+        assert (
+            len(nbead_list) == len(nnode_list)
+        ), "Lists nbead and nnode should have same length. Please specify one nnode for each nbead."
     if job_type == "mass_ti":
         assert (
             len(mass_scale_y_list) == len(nbead_list)
