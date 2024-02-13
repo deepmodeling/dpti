@@ -273,7 +273,6 @@ def run_task(task_name, jdata, machine_file):
     number_node = mdata.get("resources", {}).get("number_node", 1)
 
     machine = Machine.load_from_dict(mdata["machine"])
-    task_list = []
     for ii in task_dir_list:
         setting = json.load(open(os.path.join(ii, "settings.json")))
         nbead = int(setting["nbead"])
@@ -290,18 +289,16 @@ def run_task(task_name, jdata, machine_file):
             machine=machine,
         )
 
-        task_list.append(
-            Task(
+        task = Task(
                 command=f"{link_model}; if ls *.restart.100000 1> /dev/null 2>&1; then {task_exec} -in in.lammps -p {nbead}x1 -log log -v restart 1; else {task_exec} -in in.lammps -p {nbead}x1 -log log -v restart 0; fi",
                 task_work_path=ii,
-                forward_files=["in.lammps", "*.lmp"],
+                forward_files=["in.lammps", "*.lmp", "graph.pb"],
                 backward_files=["log*", "*out.lmp", "*.dump"],
             )
-        )
 
-    submission.forward_common_files = ["graph.pb"]
-    submission.register_task_list(task_list=task_list)
-    submission.run_submission()
+        submission.forward_common_files = []
+        submission.register_task_list(task_list=[task])
+        submission.run_submission()
 
 
 def _main():
