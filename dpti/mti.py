@@ -8,7 +8,7 @@ import os
 import numpy as np
 from dpdispatcher import Machine, Resources, Submission, Task
 
-from dpti.lib.lammps import get_natoms
+from dpti.lib.lammps import get_natoms, get_thermo
 from dpti.lib.utils import (
     create_path,
     get_first_matched_key_from_dict,
@@ -313,6 +313,22 @@ def post_tasks(iter_name, jdata, natoms_mol=None):
             natoms *= np.prod(jdata["copies"])
     if natoms_mol is not None:
         natoms /= natoms_mol
+    job_type = jdata["job_type"]
+    if job_type == "nbead_convergence":
+        task_dir_list = glob.glob(
+            os.path.join(iter_name, "task.*/mass_scale_y.*/nbead.*")
+        )
+    elif job_type == "mass_ti":
+        task_dir_list = glob.glob(os.path.join(iter_name, "task.*/mass_scale_y.*"))
+    else:
+        raise RuntimeError(
+            "Unknow job_type. Only nbead_convergence and mass_ti are supported."
+        )
+    task_dir_list = sorted(task_dir_list)
+    for ii in task_dir_list:
+        log_name = os.path.join(ii, "log.0")
+        data = get_thermo(log_name)
+        np.savetxt(os.path.join(ii, "data"), data, fmt="%.6e")
     return
 
 
