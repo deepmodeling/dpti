@@ -8,9 +8,12 @@ import os
 import numpy as np
 from dpdispatcher import Machine, Resources, Submission, Task
 
+from dpti.lib.lammps import get_natoms, get_thermo
+
 from dpti.lib.utils import (
     create_path,
     get_first_matched_key_from_dict,
+    get_task_file_abspath,
     parse_seq,
     relative_link_file,
 )
@@ -302,6 +305,15 @@ def run_task(task_name, jdata, machine_file):
         submission.register_task_list(task_list=[task])
         submission.run_submission(exit_on_submit=True)
 
+def post_tasks(iter_name, jdata, natoms_mol=None):
+    equi_conf = get_task_file_abspath(iter_name, jdata["equi_conf"])
+    if natoms is None:
+        natoms = get_natoms(equi_conf)
+        if "copies" in jdata:
+            natoms *= np.prod(jdata["copies"])
+    if natoms_mol is not None:
+        natoms /= natoms_mol
+    return
 
 def _main():
     parser = argparse.ArgumentParser(
@@ -357,6 +369,13 @@ def add_subparsers(module_subparsers):
     parser_run.add_argument("machine", type=str, help="machine.json file for the job")
     parser_run.set_defaults(func=handle_run)
 
+    parser_compute = module_subparsers.add_parser(
+        "compute", help="Compute the result of a job"
+    )
+    parser_compute.add_argument("JOB", type=str, help="folder of the job")
+    parser_compute.add_argument("--natom_mol", type=int, help="the number of atoms in the molecule")
+    parser_compute.set_defaults(func=handle_compute)
+
 
 def handle_gen(args):
     with open(args.PARAM) as j:
@@ -369,6 +388,10 @@ def handle_run(args):
         jdata = json.load(j)
     run_task(args.JOB, jdata, args.machine)
 
-
+def handle_compute(args):
+    with open(os.path.join(args.JOB, "mti_settings.json")) as j:
+        jdata = json.load(j)
+    post_tasks(args.JOB, jdata, args.natom_mol)
+               
 if __name__ == "__main__":
     _main()
