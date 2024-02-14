@@ -307,10 +307,9 @@ def run_task(task_name, jdata, machine_file):
 
 def post_tasks(iter_name, jdata, natoms_mol=None):
     equi_conf = get_task_file_abspath(iter_name, jdata["equi_conf"])
-    if natoms is None:
-        natoms = get_natoms(equi_conf)
-        if "copies" in jdata:
-            natoms *= np.prod(jdata["copies"])
+    natoms = get_natoms(equi_conf)
+    if "copies" in jdata:
+        natoms *= np.prod(jdata["copies"])
     if natoms_mol is not None:
         natoms /= natoms_mol
     job_type = jdata["job_type"]
