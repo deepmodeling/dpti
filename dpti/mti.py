@@ -320,9 +320,8 @@ def post_tasks(iter_name, jdata, natoms_mol=None):
     job_type = jdata["job_type"]
     stat_skip = jdata["stat_skip"]
     stat_bsize = jdata["stat_bsize"]
-    counts = {}
     if job_type == "nbead_convergence":
-        task_structure = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+        counts = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
         task_dir_list = glob.glob(
             os.path.join(iter_name, "task.*/mass_scale_y.*/nbead.*")
         )
@@ -340,6 +339,7 @@ def post_tasks(iter_name, jdata, natoms_mol=None):
             counts[task][mass_scale_y][nbead] += 1
 
     elif job_type == "mass_ti":
+        counts = defaultdict(lambda: defaultdict(int))
         task_dir_list = glob.glob(os.path.join(iter_name, "task.*/mass_scale_y.*"))
         task_dir_list = sorted(task_dir_list)
         for ii in task_dir_list:
