@@ -10,13 +10,15 @@ from dpdispatcher import Machine, Resources, Submission, Task
 
 from dpti.lib.lammps import get_natoms, get_thermo
 from dpti.lib.utils import (
+    block_avg,
     create_path,
     get_first_matched_key_from_dict,
     get_task_file_abspath,
+    integrate_range,
     parse_seq,
     relative_link_file,
 )
-
+from collections import defaultdict
 
 def _gen_lammps_input(
     conf_file,
@@ -92,10 +94,12 @@ def _gen_lammps_input(
         raise RuntimeError("unknow ensemble %s\n" % ens)
     if ens == "nvt" or ens == "nve":
         ret += "thermo_style    custom step temp f_1[5] f_1[7] c_allmsd[*]\n"
-        ret += "thermo_modify   format 3*4 %6.8e\n"
+        ret += "thermo_modify   format float %6.8e\n"
+        ret += "fix print all print ${THERMO_FREQ} \"$(step) $(temp) f_1[5] f_1[7]\" append ${ibead}.out title \"# step temp K_primi K_cv\" screen no"
     elif "npt" in ens:
         ret += "thermo_style    custom step temp vol density f_1[5] f_1[7] f_1[8] f_1[10] c_allmsd[*]\n"
-        ret += "thermo_modify   format 3*4 %6.8e\n"
+        ret += "thermo_modify   format float %6.8e\n"
+        ret += "fix print all print ${THERMO_FREQ} \"$(step) $(temp) $(vol) $(density) f_1[5] f_1[7]\" append ${ibead}.out title \"# step temp vol density K_primi K_cv\" screen no"
     else:
         raise RuntimeError("unknow ensemble %s\n" % ens)
     ret += "# --------------------- INITIALIZE -----------------------\n"
@@ -313,22 +317,100 @@ def post_tasks(iter_name, jdata, natoms_mol=None):
     if natoms_mol is not None:
         natoms /= natoms_mol
     job_type = jdata["job_type"]
+    stat_skip = jdata["stat_skip"]
+    stat_bsize = jdata["stat_bsize"]
+    counts = {}
     if job_type == "nbead_convergence":
+        task_structure = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
         task_dir_list = glob.glob(
             os.path.join(iter_name, "task.*/mass_scale_y.*/nbead.*")
         )
+        task_dir_list = sorted(task_dir_list)
+        for ii in task_dir_list:
+            parts = ii.split(os.sep)
+            task, mass_scale_y, nbead = None, None, None
+            for part in parts:
+                if part.startswith('task.'):
+                    task = part
+                elif part.startswith('mass_scale_y.'):
+                    mass_scale_y = part
+                elif part.startswith('nbead.'):
+                    nbead = part
+            counts[task][mass_scale_y][nbead] += 1
+        
     elif job_type == "mass_ti":
         task_dir_list = glob.glob(os.path.join(iter_name, "task.*/mass_scale_y.*"))
+        task_dir_list = sorted(task_dir_list)
+        for ii in task_dir_list:
+            parts = ii.split(os.sep)
+            task, mass_scale_y = None, None
+            for part in parts:
+                if part.startswith('task.'):
+                    task = part
+                elif part.startswith('mass_scale_y.'):
+                    mass_scale_y = part
+            counts[task][mass_scale_y] += 1
     else:
         raise RuntimeError(
             "Unknow job_type. Only nbead_convergence and mass_ti are supported."
         )
-    task_dir_list = sorted(task_dir_list)
-    for ii in task_dir_list:
-        log_name = os.path.join(ii, "log.0")
-        data = get_thermo(log_name)
-        np.savetxt(os.path.join(ii, "data"), data, fmt="%.6e")
-    return
+    ens = jdata["ens"]
+    if ens == "nvt" or ens == "nve":
+        stat_col = 3
+    elif "npt" in ens:
+        stat_col = 5
+    else:
+        raise RuntimeError("unsupported ens")
+    
+    if job_type == "nbead_convergence":
+        for task in counts.keys():
+            for mass_scale_y in counts[task].keys():
+                result = []
+                for nbead in counts[task][mass_scale_y].keys():
+                    if counts[task][mass_scale_y][nbead] == 0:
+                        continue
+                    task_dir = os.path.join(iter_name, task, mass_scale_y, nbead)
+                    settings = json.load(open(os.path.join(task_dir, "settings.json")))
+                    out_files = glob.glob(os.path.join(task_dir, "*1.out"))
+                    if len(out_files) == 0:
+                        log_name = os.path.join(task_dir, "log.0")
+                        data = get_thermo(log_name)
+                        np.savetxt(os.path.join(task_dir, "data"), data, fmt="%.6e")
+                    else:
+                        out_files = sorted(out_files)
+                        data = np.loadtxt(out_files[0])
+                    num_nbead = settings["nbead"]
+                    kcv, kcverr = block_avg(data[:, stat_col], skip=stat_skip, block_size=stat_bsize)
+                    result.append([num_nbead, kcv, kcverr])
+                result = np.array(result)
+                np.savetxt(os.path.join(iter_name, task, mass_scale_y, "kcv.out"), result, fmt=["%12d", "%22.6e", "%22.6e"])
+    elif job_type == "mass_ti":
+        for task in counts.keys():
+            result = []
+            for mass_scale_y in counts[task].keys():
+                if counts[task][mass_scale_y] == 0:
+                    continue
+                task_dir = os.path.join(iter_name, task, mass_scale_y)
+                settings = json.load(open(os.path.join(task_dir, "settings.json")))
+                out_files = glob.glob(os.path.join(task_dir, "*1.out"))
+                if len(out_files) == 0:
+                    log_name = os.path.join(task_dir, "log.0")
+                    data = get_thermo(log_name)
+                    np.savetxt(os.path.join(task_dir, "data"), data, fmt="%.6e")
+                else:
+                    out_files = sorted(out_files)
+                    data = np.loadtxt(out_files[0])
+                mass_scale_y_value = settings["mass_scale_y"]
+                kcv, kcverr = block_avg(data[:, stat_col], skip=stat_skip, block_size=stat_bsize)
+                result.append([mass_scale_y_value, kcv, kcverr])
+            result = np.array(result)
+            np.savetxt(os.path.join(iter_name, task, "kcv.out"), result, fmt=["%22.6e", "%22.6e", "%22.6e"], header="# mass_scale_y kcv kcv_err")
+            mass_scale_y_values, kcv_inte, kcv_inte_err, kcv_stat_err = integrate_range(result[:, 0], result[:, 1], result[:, 2])
+            np.savetxt(os.path.join(iter_name, task, "kcv_inte.out"), np.array([kcv_inte, kcv_inte_err, kcv_stat_err]), fmt=["%22.6e", "%22.6e", "%22.6e"], header="# kcv_inte kcv_inte_err kcv_stat_err")
+    else:
+        raise RuntimeError(
+            "Unknow job_type. Only nbead_convergence and mass_ti are supported."
+        )
 
 
 def _main():
