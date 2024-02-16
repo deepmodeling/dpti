@@ -390,7 +390,7 @@ def post_tasks(iter_name, jdata, natoms_mol=None):
                     os.path.join(iter_name, task, mass_scale_y, "kcv.out"),
                     result,
                     fmt=["%12d", "%22.6e", "%22.6e"],
-                    header=f"{'nbead':>12} {'kcv'>22} {'kcv_err'>22}",
+                    header=f"{'nbead':>12} {'kcv':>22} {'kcv_err':>22}",
                 )
     elif job_type == "mass_ti":
         for task in counts.keys():
