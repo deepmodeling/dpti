@@ -9,6 +9,7 @@ RUN apt-get update
 RUN apt-get -y install postgresql-16
 RUN apt-get -y install git
 
+# create airflow postgresql database
 RUN service postgresql start \
 && service postgresql status \
 && sudo -u postgres psql -U postgres --command="CREATE DATABASE airflow_db;" \
@@ -19,7 +20,7 @@ RUN service postgresql start \
 ENV AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql+psycopg2://airflow:airflow_pw@localhost:5432/airflow_db"
 
 
-# RUN ls /home/airflow/airflow/airflow.cfg
+# download dpti source code and install
 USER airflow
 WORKDIR /home/airflow
 RUN git clone https://mirror.ghproxy.com/github.com/deepmodeling/dpti.git
@@ -35,11 +36,13 @@ ENV AIRFLOW_HOME=/home/airflow/airflow/
 RUN service postgresql start && service postgresql status \
 && sudo --preserve-env=AIRFLOW__DATABASE__SQL_ALCHEMY_CONN --login -u airflow airflow db init
 
+# configure airflow
 USER airflow
 RUN sed -i "s|sqlite:////home/airflow/airflow/airflow.db|"$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN"|" /home/airflow/airflow/airflow.cfg
 RUN sed -i "s|SequentialExecutor|LocalExecutor|" /home/airflow/airflow/airflow.cfg
 RUN sed -i "s|load_examples = True|load_examples = False|" /home/airflow/airflow/airflow.cfg
 
+# initialize airflow database
 USER root
 RUN service postgresql start && service postgresql status \
 && sudo --login -u airflow airflow db init
@@ -52,13 +55,14 @@ RUN service postgresql start && service postgresql status \
     --lastname Parker \
     --role Admin \
     --email spiderman@superhero.org
-# RUN ls /home/airflow/airflow/airflow.cfg
 
+# install dpti DAGs
 USER airflow
 RUN mkdir -p ~/airflow/dags/
 RUN ln -s ~/dpti/workflow/DpFreeEnergy.py  ~/airflow/dags/
 RUN ln -s ~/dpti/workflow/DpFreeEnergyWater.py  ~/airflow/dags/
 
+# setup docker image
 USER root
 RUN apt-get -y install gosu
 COPY entry.sh /entry.sh
@@ -68,3 +72,5 @@ ENTRYPOINT ["/entry.sh"]
 # ENTRYPOINT service postgresql start && service postgresql status && exec gosu airflow "$@"
 
 # ENTRYPOINT ["/bin/bash"]
+
+
