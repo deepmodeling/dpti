@@ -72,5 +72,3 @@ ENTRYPOINT ["/entry.sh"]
 # ENTRYPOINT service postgresql start && service postgresql status && exec gosu airflow "$@"
 
 # ENTRYPOINT ["/bin/bash"]
-
-
