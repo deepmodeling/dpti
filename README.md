@@ -449,9 +449,48 @@ The average value the of the 100 point value in each chunk will treated as chunk
 And the 490 chunk values will also be averaged as the final result value for this MD.
 
 
+## FreeEnergy.json
+The json file used as entry for each calculation.
+
+| Field | Type | Example | Description |
+| --- | --- | --- | --- |
+| target_temp | integer | 200 | target simulation temperature unit:K |
+| target_pres | integer | 20000 | target simulation pressure unit:Bar.(20000Bar==2GPa) |
+| work_base_dir | string | "/home/fengbo/4_Sn/14_free_energy_airflow_test" | the dir will this file locates |
+| ti_path | string | "t" or "p" | indicate protocol used inthis calculation in TI calculation(along t keep p; along p keep t) |
+| conf_lmp | string | "beta.lmp" | structure file name  |
+| ens | choice:"npt-iso", "npt-aniso", "npt-xy" | 0.002 | the ensemble used in NPT and TI simulation. (solid:npt-aniso; liquid:npt-iso) |
+| if_liquid | string | bool | true for liquid, false for other  |
+
+
+
+# FAQ
+
+## simulation related:
+
+### phase transition:
+For thermodynamics integration: there is a restrict that no phase transition should happen during the integration path.
+This means that for the simulation process lambda changing from 0 to 1, the structure of system should not change dramatically. (like metal to liquid, lattice constants largely change).
+
+In practice, we could monitor the RDF(compute rdf) of the structure during simulation. The rdf could be used as an indicator for the structure changes. The RMSD value of this system could also be used as indicator.
+
+### integration path:
+
+For thermodynamics integration, sometimes it may not be a choice to directly change from the initial state(Einstein solid, Ideal Gas) to the final target state. 
+
+To extend the integration and avoid phase transition during MD simulation, it may be better to introduce some intermediate during simulation, this is implemented in dpti software called two-steps and three-steps.(At least, this strategy could take effects for water(ice) and metal Tin(Sn))
+
+For researcher, it is recommended to try both the direct path protocol and the intermediate state protocol. And compare the results.
+And repeat the calculation at least for one more time at a specific temperature and pressure and check the result consistence. 
+
+If the result errors lie in about 1meV/per atom. (maybe about 10K-20K in phase diagram) We could treat it as a reliable result.
+
+### atom number in simulation:
+Usually the atom number should be about 100-200. Larger system is OK.
+Size effect is not obvious.(increasing the simulation size will usually get similar free energy values).
+
+
 # Troubleshooting
-
-
 
 
 <a name="a06a67f0f7f8127369b77b7736067707"></a>
