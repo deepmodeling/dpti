@@ -334,7 +334,7 @@ For solid, the settings used in Hamiltonian thermodyniamics integration (HTI)
 | langevin |  bool |  true | whether use langevin  thermostat  |
 | nsteps | integer | 200000 | MD steps in each simulation |
 | timestep | float | 0.002 | time_step in lammps MD simulation (unit: picosecond) |
-| thermo_freq | integer | 10 | statistic frequency |
+| thermo_freq | integer | 10 | statistic frequency(lammps keywork `thermo`) |
 | stat_skip | integer | 10000 | skip the first n steps in statistic  |
 | stat_bsize | integer | 200 | batch size in statistic |
 | temp | integer | 400 | the target temperature in HTI calculation  |
@@ -437,8 +437,20 @@ The gdi.json is used for gibbs-duham integration.  When you know the one point a
 | tau_t | float | 0.1 | MD NPT tau_t |
 | tau_p | float  | 1.0 | MD NPT tau_p |
 | thermo_freq | integer | 10 | MD thermo frequency |
-| stat_skip | integer | 5000 | skip the first 5000 steps in lammps log |
+| stat_skip | integer | 5000 | skip the first 5000 value in lammps log |
 | stat_bsize | integer | 100 | statistic batch size |
+
+##  thermo_freq, stat_bsize, stat_skip example:
+if we set nsteps==500000, thermo_freq==10, stat_bsize==100, stat_skip==1000,
+then first we will run a 500000 steps MD, and generate 500000/10==50000 data points.
+the first stat_skip==1000 points will be ignored, 
+then the last 49000 points will be grouped into 49000/100==490 chunks.
+The average value the of the 100 point value in each chunk will treated as chunk value.
+And the 490 chunk values will also be averaged as the final result value for this MD.
+
+
+# Troubleshooting
+
 
 
 
