@@ -95,6 +95,12 @@ airflow users create \
 <a name="1f33d89b89d0c8f710b7496190e86666"></a>
 # 🚀Quick Start
 
+## with docker
+```docker pull deepmodeling/dpti```
+
+further information:see [docker README.md](docker/README.md)
+
+## manually
 
 ```bash
  # copy dpti'workflow file
