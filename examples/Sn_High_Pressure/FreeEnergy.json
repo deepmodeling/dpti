@@ -1,6 +1,6 @@
 {
-  "target_temp": 200, 
-  "target_pres": 20000,  
+  "target_temp": 200,
+  "target_pres": 20000,
   "work_base_dir": "/root/airflow/workdir",
   "ti_path": "t",
   "conf_lmp":"beta.lmp",
