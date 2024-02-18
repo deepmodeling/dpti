@@ -5,7 +5,7 @@ The files in this dir describe the relating json files for calculating Tin's Fre
 
 The example simulation MD steps:
 
-NPT: 1M steps. NVT:200K 
+NPT: 1M steps. NVT:200K
 TI:300K HTI 500K for each lambda value.
 
 This example can be treated as an example template and parameters could be changed for your own research.

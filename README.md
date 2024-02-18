@@ -443,7 +443,7 @@ The gdi.json is used for gibbs-duham integration.  When you know the one point a
 ##  thermo_freq, stat_bsize, stat_skip example:
 if we set nsteps==500000, thermo_freq==10, stat_bsize==100, stat_skip==1000,
 then first we will run a 500000 steps MD, and generate 500000/10==50000 data points.
-the first stat_skip==1000 points will be ignored, 
+the first stat_skip==1000 points will be ignored,
 then the last 49000 points will be grouped into 49000/100==490 chunks.
 The average value the of the 100 point value in each chunk will treated as chunk value.
 And the 490 chunk values will also be averaged as the final result value for this MD.
