@@ -622,12 +622,12 @@ In practice, we could monitor the RDF(compute rdf) of the structure during simul
 
 ### integration path:
 
-For thermodynamics integration, sometimes it may not be a choice to directly change from the initial state(Einstein solid, Ideal Gas) to the final target state. 
+For thermodynamics integration, sometimes it may not be a choice to directly change from the initial state(Einstein solid, Ideal Gas) to the final target state.
 
 To extend the integration and avoid phase transition during MD simulation, it may be better to introduce some intermediate during simulation, this is implemented in dpti software called two-steps and three-steps.(At least, this strategy could take effects for water(ice) and metal Tin(Sn))
 
 For researcher, it is recommended to try both the direct path protocol and the intermediate state protocol. And compare the results.
-And repeat the calculation at least for one more time at a specific temperature and pressure and check the result consistence. 
+And repeat the calculation at least for one more time at a specific temperature and pressure and check the result consistence.
 
 If the result errors lie in about 1meV/per atom. (maybe about 10K-20K in phase diagram) We could treat it as a reliable result.
 
