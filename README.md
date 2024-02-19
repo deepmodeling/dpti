@@ -89,7 +89,7 @@ dpti hti gen hti.json -s three-step
 
 ### TI
 
-For temperature 200K, in order to generate integration path pressure from 0 to 10000 of interval 500. 
+For temperature 200K, in order to generate integration path pressure from 0 to 10000 of interval 500.
 
 in `ti.p.json`, we writes
 ```json
@@ -127,8 +127,6 @@ dpti gdi pb.json machine.json -g gdidata.json
 ## For airflow workflow:
 
 Sometimes, we need to do **high-throughput** calculations(which means we need to calculate a series of temperature, pressure points for multiple phases).
-
-If you only have a few tasks to execute, this part may not be essential
 
 It would be a great burden for users to execute these tasks manually and monitor the tasks' execution.
 
