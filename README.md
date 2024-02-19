@@ -195,7 +195,7 @@ It includes these steps:
 cd dpti/
 pip install .
 # use this command to check installation
-dpti --help 
+dpti --help
 ```
 
 ## docker image:
@@ -227,7 +227,7 @@ pip install .
 
 apahche-airflow require a database backend.Here we refer to this doc [postgresql offical docs for download](https://www.postgresql.org/download/)
 
-and use this command 
+and use this command
 ```
 psql -h
 ```
@@ -721,4 +721,3 @@ If the result errors lie in about 1meV/per atom. (maybe about 10K-20K in phase d
 ### atom number in simulation:
 Usually the atom number should be about 100-200. Larger system is OK.
 Size effect is not obvious.(increasing the simulation size will usually get similar free energy values).
-
