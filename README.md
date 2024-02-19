@@ -2,11 +2,21 @@ deepmodeling, deepmd, dpti, free energy, phase diagram
 
 ---
 
-github:  [https://github.com/deepmodeling/dpti](https://github.com/deepmodeling/dpti)<br />
+# 🏞brief Introduction
 
-relating docs: [https://www.yuque.com/dpti/manual/ilzmlb](https://www.yuque.com/dpti/manual/ilzmlb)
+**dpti** (deep potential thermodynamic integration) is a python package for calculating free energy, doing thermodynamic integration and figuring out pressure-temperature phase diagram for materials with molecular dynamics (MD) simulation methods.
 
-relating docs about free energy calculation:
+
+<br />The user will get Gibbs (Helmholtz) free energy of a system at different temperature and pressure conditions. With these free energy results, the user could determine the phase transition points and coexistence curve on the pressure-volume phase diagram.
+<a name="xuFE2"></a>
+
+useful docs:
+
+github README.md:  [https://github.com/deepmodeling/dpti/README.md](https://github.com/deepmodeling/dpti/README.md)
+
+some discussion notes: [https://www.yuque.com/dpti/manual/ilzmlb](https://www.yuque.com/dpti/manual/ilzmlb)
+
+intruction to free energy calculation:
 [https://nb.bohrium.dp.tech/detail/18465833825](https://nb.bohrium.dp.tech/detail/18465833825)
 
 
@@ -34,31 +44,28 @@ We could use dpti to calculate out the Press-Volume phase diagram of metals.<br 
 <br />
 
 <a name="ad44045ba5f9b5ebf81388ff611d8d5b"></a>
-# 🏞brief Introduction
 
-**dpti** (deep potential thermodynamic integration) is a python package for calculating free energy, doing thermodynamic integration and figuring out pressure-temperature phase diagram for materials with molecular dynamics (MD) simulation methods.
-
-
-<br />The user will get Gibbs (Helmholtz) free energy of a system at different temperature and pressure conditions. With these free energy results, the user could determine the phase transition points and coexistence curve on the pressure-volume phase diagram.
-<a name="xuFE2"></a>
 # 🦴software introduction
 At first, dpti is a collection of python scripts to generate LAMMPS input scripts and to anaylze results from LAMMPS logs.<br />
 <br />In dpti, there are many MD simulations tasks and scripts need to be run sequentially or concurrently. Before and after these MD simulation tasks, we may run a lot of MD scirpts to prepare the input files or analyze the logs to extract the useful data.<br />
 <br />Then the dpti developers use apache-airflow to resolve the MD tasks dependencies and managing running tasks. <br />
 
 
-# USE:
+# Software Usage:
 
-the examples dir `examples/` in source code contains the essential files and jsons.
+>the examples dir `examples/` in source code contains the essential files and jsons.
 
 ## for CLI tools:
 The following scripts can be used by Python CLI to generate essential scripts for LAMMPS simulation.
 
 the CLI entry:
 
-`dpti --help`
+```
+# after installation: pip install .
+dpti --help
+```
 
-### Equi(npt and nvt)
+### Equi(npt and nvt simulation)
 The following scripts are used to generate essential tools.
 
 ```
@@ -76,7 +83,7 @@ This is an example for HTI three-step simulations.
 
 ```
 cd examples/hti/
-dpti ti --help
+dpti hti --help
 dpti hti gen hti.json -s three-step
 ```
 
@@ -117,17 +124,21 @@ dpti gdi pb.json machine.json -g gdidata.json
 ```
 
 
-## for airflow workflow:
+## For airflow workflow:
 
-Sometimes, we need to do high-throughput calculations(which means we need to calculate a series of temperature, pressure points for multiple phases). 
+Sometimes, we need to do **high-throughput** calculations(which means we need to calculate a series of temperature, pressure points for multiple phases).
+
+If you only have a few tasks to execute, this part may not be essential
 
 It would be a great burden for users to execute these tasks manually and monitor the tasks' execution.
 
 We provide the workflow tools based on apache-airflow workflow framework.
 
+>we refer this docs [airflow official docs](https://airflow.apache.org/docs/apache-airflow/stable/index.html) for more instructions.
+
 
 ### TI_Workflow
-
+We implement a workflow de
 implemented at `workflow/DpFreeEnergy.py`
 
 example dir and json:
@@ -136,15 +147,26 @@ cd examples/
 cat examples/FreeEnergy.json
 ```
 
+Requirement: setup apache-airflow or use the docker version dpti
 ```
-cd examples/
+docker run --name dpti -p 9999:8080 -it deepmodeling/dpti:latest /bin/bash
+docker exec -it dpti /bin/bash
+```
+Then we provide a basic example for apache-airflow usage
+
+```
+# pwd at /home/airflow/
+cd dpti/examples/
 airflow dags trigger  TI_taskflow  --conf $(printf "%s" $(cat FreeEnergy.json))
 ```
 
 
-Input: Lammps structure file.
-Output: free energy values at given temperature and pressure.
-Parameters: Given temperature(or the range), Given pressure(or therange), force field,Lammps simulation ensemble and etc.
+
+**Input:** Lammps structure file.
+
+**Output:** free energy values at given temperature and pressure.
+
+**Parameters:** Given temperature(or the range), Given pressure(or therange), force field,Lammps simulation ensemble and etc.
 
 we implement a workflow called TI_taskflow:
 It includes these steps:
@@ -153,6 +175,7 @@ It includes these steps:
 3. HTI: free energy at given temperature and pressure
 4. TI: free energy values at the given range of temperature/pressure.
 
+### website to manage and monitor these jobs.
 
 
 
@@ -173,6 +196,8 @@ It includes these steps:
 # conda activate dpti
 cd dpti/
 pip install .
+# use this command to check installation
+dpti --help 
 ```
 
 ## docker image:
@@ -181,7 +206,10 @@ docker pull deepmodeling/dpti
 ```
 The useful files and command see [this file](docker/README.md
 
-## manually installation
+## Manually installation
+
+>the [Dockerfile](docker/Dockerfile) at `docker/` dir may be helpful for mannually installation.
+
 
 dpti use apache-airflow as workflow framework, and dpdispatcher to interact with the HPC systems (slurm or PBS).
 
@@ -190,13 +218,20 @@ airflow use realation database (PostgreSQL, MySQL or Sqlite) as backend to store
 
 <a name="d3066b89f26f2ffcef7d0f8647512881"></a>
 ### install dpti and dpdispatcher.
-git clone the following packages and install.<br />[https://github.com/deepmodeling/dpdispatcher](https://github.com/deepmodeling/dpdispatcher)<br />[https://github.com/deepmodeling/dpti](https://github.com/deepmodeling/dpti)
+git clone the following packages and install.<br />
+[https://github.com/deepmodeling/dpti](https://github.com/deepmodeling/dpti)
 ```bash
 cd dpti/
-python setup.py install
+pip install .
+```
 
-cd dpdispatcher/
-python setup.py install
+### install postgresql backend
+
+apahche-airflow require a database backend.Here we refer to this doc [postgresql offical docs for download](https://www.postgresql.org/download/)
+
+and use this command 
+```
+psql -h
 ```
 
 
@@ -207,6 +242,11 @@ airflow user manual: [https://airflow.apache.org/docs/apache-airflow/stable/inde
 # airflow will create at ~/airflow
 airflow -h
 cd ~/airflow
+
+# usually the configuration file location
+# we refer this doc for further information
+# https://airflow.apache.org/docs/apache-airflow/stable/configurations-ref.html
+vi ~/airflow/airflow.cfg
 
 # airflow will initialize datebase with sqlite
 airflow db init
@@ -242,7 +282,7 @@ airflow users create \
 ## with docker
 ```docker pull deepmodeling/dpti```
 
-further information:see [docker README.md](docker/README.md)
+further information(useful command and files, examples):see [docker README.md](docker/README.md)
 
 ## manually
 
@@ -270,7 +310,7 @@ Airflow use relation database as  backend. And PostgreSQL is widely used in airf
 
 <a name="nppPR"></a>
 ### install database
-airflow's introduction on how to set up database backend: [https://airflow.apache.org/docs/apache-airflow/stable/howto/set-up-database.html](https://airflow.apache.org/docs/apache-airflow/stable/howto/set-up-database.html)
+airflow's introduction on how to set up database backend: [apache-airflow:set up database](https://airflow.apache.org/docs/apache-airflow/stable/howto/set-up-database.html)
 ```bash
 # install apache-airflow postgresql module
 pip install apache-airflow-providers-postgres
@@ -307,7 +347,7 @@ configure  ~/airflow/airflow.cfg<br />
 sql_alchemy_conn = postgresql+psycopg2://<user>:<password>@<host>:<port>/<db_name>
 ```
 <a name="Yh8QG"></a>
-### configure a
+### configure apache-airflow
 reset db and webserver scheduler
 ```
 # reset db
@@ -319,12 +359,23 @@ airflow scheduler # -D
 <a name="QsNiC"></a>
 ### airflow webserver
 
-TODO
+If things work well, we could type the ip and prot in the web Browser and use the web service to monitor and manage the tasks operated by apache-airflow.
+
+We refer to this doc [apache-airflow webserver guide](https://airflow.apache.org/docs/apache-airflow/stable/security/webserver.html) for further information.
+
+after login(usually with default username and password:airflow, airflow)
+
+[![template_webserver.png](https://s11.ax1x.com/2024/02/19/pFYmlWj.png)](https://imgse.com/i/pFYmlWj)
 
 <br />
 
 <a name="253840892aedd2058f97c95ac6ef6366"></a>
-# 💪extra info
+
+### ssh to use the webserver
+
+Sometime, apache-airflow runs on remote machine and user can `ssh` to contect to the cloud server by command like ` ssh -L localhost:8080:localhost:8080 user1@67.xxx.xxx.25`  and visit [http://localhost:8080/](http://localhost:8080/) to monitor the free energy calculation tasks process.
+
+### apache-airflow: further instruction
 
 The backend of this software is based on the software `airflow`. The following command can start the calculation.
 
@@ -335,29 +386,32 @@ The backend of this software is based on the software `airflow`. The following c
 airflow trigger_dag HTI_taskflow --conf $(printf "%s" $(cat FreeEnergy.json))
 airflow trigger_dag TI_taskflow --conf $(printf "%s" $(cat FreeEnergy.meam.json))
 ```
+#### FreeEnergy.json
 
+We usually want to calculate the free energy of a metal at a specific pressure or temperature.  And the crystal structure of the metal can be various. For example,  we want to calculate the free energy of metal Sn of bcc structure at 200 K and 50000 bar (5GPa). In order to caculate the per atom free energy of metal Sn. First, We must prepare a configuration file named bcc.lmp and modify the [FreeEnergy.json](#ULX0o) or [FreeEnergyLiquid.json](#WuLBQ) and modify the key-value pair  like "structure": "bcc", "target_temp": 200, "target_press" : 50000.  And decide  whether to integrate along the  t(temperature) path  or along the p(pressure) path . Modify the "path" key-value pair for this.  The key-value pair "ensemble" for lammps MD simulation. Usually the ensemble shoule be consistent with the crystal intrinsic structure. That means we should set "npt-iso" for structure "bcc" to keep the simulation box changes simultaneously in x, y, z directions.
 
-1. We usually want to calculate the free energy of a metal at a specific pressure or temperature.  And the crystal structure of the metal can be various. For example,  we want to calculate the free energy of metal Sn of bcc structure at 200 K and 50000 bar (5GPa). In order to caculate the per atom free energy of metal Sn. First, We must prepare a configuration file named bcc.lmp and modify the [FreeEnergy.json](#ULX0o) or [FreeEnergyLiquid.json](#WuLBQ) and modify the key-value pair  like "structure": "bcc", "target_temp": 200, "target_press" : 50000.  And decide  whether to integrate along the  t(temperature) path  or along the p(pressure) path . Modify the "path" key-value pair for this.  The key-value pair "ensemble" for lammps MD simulation. Usually the ensemble shoule be consistent with the crystal intrinsic structure. That means we should set "npt-iso" for structure "bcc" to keep the simulation box changes simultaneously in x, y, z directions.
-2. modify the ti.t.json or ti.p.json, and change the key-value pair "temps" or "press" .  For ti.t.json, the tar_temp of FreeEnergy.json must be in the list  which the key-value pair "temps" of ti.t.json represents. And similarly for ti.p.json, the tar_press of FreeEnergy.json must be in the list which the key-value pair "temps" of ti.t.json represents.
-3. Use the command `airflow trigger_dag`  mentioned above. This command will start a [airflow dag](https://airflow.apache.org/docs/apache-airflow/stable/concepts.html).This dag is wrote and maintained by the dpti software developer. It is used to make the calculation to be done more autocally . The user could monitor the task state and calculation procedure at [a website](#2aabcbd6). The user can also rerun, restart, delete the whole calculation or some part of the calculations.
-4. Wait until the calculation finish. Usually the whole procedure continues for about 6 to 10 hours. The calculations will be done autocally.
-5. Find the results in [Results Show](#2aabcbd6) part. The user could use the tables and data of it and plot the curve.
+#### ti-path json
+Modify the ti.t.json or ti.p.json, and change the key-value pair "temps" or "press" .  For ti.t.json, the tar_temp of FreeEnergy.json must be in the list  which the key-value pair "temps" of ti.t.json represents. And similarly for ti.p.json, the tar_press of FreeEnergy.json must be in the list which the key-value pair "temps" of ti.t.json represents.
+
+#### workflow
+1. Use the command `airflow trigger_dag`  mentioned above. This command will start a [airflow dag](https://airflow.apache.org/docs/apache-airflow/stable/concepts.html).This dag is wrote and maintained by the dpti software developer. It is used to make the calculation to be done more autocally . The user could monitor the task state and calculation procedure at [a website](#2aabcbd6). The user can also rerun, restart, delete the whole calculation or some part of the calculations.
+2. Wait until the calculation finish. Usually the whole procedure continues for about 6 to 10 hours. The calculations will be done autocally.
+3. Find the results in [Results Show](#2aabcbd6) part. The user could use the tables and data of it and plot the curve.
 
 
 
 <a name="ac613c1818ba355261da25b7b1a1e194"></a>
-# 📌Results Show
+# 📌Calculation Results and files
 
 <br />For each step, the result files are located at the corresponding location.<br />For example, we start a calculation at `/home/user1/metal_Sn/1_free_energy/400K-0bar-bcc-t`<br />
 <br />For NPT MD simulation, the result file will  locate at `/home/user1/metal_Sn/1_free_energy/400K-0bar-bcc-t/NPT_sim/result`<br />
 <br />For TI simulation the result will locate at `/home/fengbo/4_Sn/1_free_energy/400K-0bar-bct-t/TI_sim/result`<br />
 <br />You may want to use the result file and datas of  TI_sim/result and plot the free_energy vs T curve for different structure and find the crossing point.<br />
 
-The user can ssh contect to the aliyun cloud server by command like ` ssh -L localhost:8080:localhost:8080 user1@67.xxx.xxx.25`  and visit [http://localhost:8080/](http://localhost:8080/) to monitor the free energy calculation tasks procedure.
+For HTI simulation the result will locate at `/home/fengbo/4_Sn/1_free_energy/400K-0bar-bct-t/HTI_sim/result`, a pure txt file.
 
-
-<br />
-<br />
+The hti out file at
+`new_job/02.spring_off/hti.out` which records the integration node on the path is also helpful.
 
 <a name="ce1a1845ed13daf90d6c7ab2e135f1e0"></a>
 # 💎The procedure of the free energy calculations
@@ -592,23 +646,58 @@ then the last 49000 points will be grouped into 49000/100==490 chunks.
 The average value the of the 100 point value in each chunk will treated as chunk value.
 And the 490 chunk values will also be averaged as the final result value for this MD.
 
+### FreeEnergy.json
+The json file controls the whole calculation process.
+And for each step, it uses corresponding `npt.json` `nvt.json` `hti.json` `ti.json`
 
-## FreeEnergy.json
-The json file used as entry for each calculation.
+
 
 | Field | Type | Example | Description |
 | --- | --- | --- | --- |
 | target_temp | integer | 200 | target simulation temperature unit:K |
 | target_pres | integer | 20000 | target simulation pressure unit:Bar.(20000Bar==2GPa) |
-| work_base_dir | string | "/home/fengbo/4_Sn/14_free_energy_airflow_test" | the dir will this file locates |
+| work_base_dir | string | "/home/fengbo/4_Sn/14_free_energy_airflow_test" | should be changed to the dir will this file locates |
 | ti_path | string | "t" or "p" | indicate protocol used inthis calculation in TI calculation(along t keep p; along p keep t) |
 | conf_lmp | string | "beta.lmp" | structure file name  |
 | ens | choice:"npt-iso", "npt-aniso", "npt-xy" | 0.002 | the ensemble used in NPT and TI simulation. (solid:npt-aniso; liquid:npt-iso) |
 | if_liquid | string | bool | true for liquid, false for other  |
 
+### pb.json
+
+example command:
+
+```python gdi.py pb.josn machine.json -g gdidata.json```
+
+This file is used by `dpti gdi` module
+
+| Field | Type | Example | Description |
+| --- | --- | --- | --- |
+| equi_conf | string | "beta.lmp" | target simulation temperature unit:K |
+| ens | choice: "npt-aniso" "npt-iso" "npt-xy" | "npt-xy" | simulation ensemble |
+| model | string | "../graph.pb" | model path |
+
+### gdidata.json
+
+This file is used to specify the values GDI (phase coexisting line simulation)
+
+This example shows begining phase transition point at 1GPa,270K. And we want to extend to 1.35GPa .
 
 
+>Note: when calculating, the solver keeps the local error estimates less than `atol + rtol * abs(y)`. See:[scipy.integrate.solve_ivp doc](https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html)
 
+Note: if `direction` defines GDI:calculation behaviour.
+"p": changing pressure from `begin` to `end` with initial temperature `initial_value`.
+
+"t": changing temperature from `begin` to `end` with initial pressure `initial_value`.
+
+| Field | Type | Example | Description |
+| --- | --- | --- | --- |
+| begin | integer | 10000 | begin simulation temperature or pressure. unit:K/Bar |
+| end | integer | 13500 | end simulation temperature or pressure. unit:K/Bar |
+| initial_value | integer | 270 | given initial value |
+| abs_tol | float | 2 | used by scipy solve_ivp function |
+| rel_tol | float | 0.001 | used by scipy solve_ivp function. |
+| direction | choice:"t" "p"| "p" | see above |
 
 # FAQ
 
@@ -635,11 +724,3 @@ If the result errors lie in about 1meV/per atom. (maybe about 10K-20K in phase d
 Usually the atom number should be about 100-200. Larger system is OK.
 Size effect is not obvious.(increasing the simulation size will usually get similar free energy values).
 
-
-# Troubleshooting
-
-
-<a name="a06a67f0f7f8127369b77b7736067707"></a>
-# **👀**Troubleshooting
-TODO<br />
-<br />
