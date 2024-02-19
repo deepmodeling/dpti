@@ -14,6 +14,16 @@ relating docs about free energy calculation:
 <a name="0487c87d66ac0af8f7df818b7e010bd0"></a>
 # 🌾OutPut show
 
+## for water and ice
+
+see: [PRL:Phase Diagram of a Deep Potential Water Model](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.126.236001)
+
+Phase diagram of water. DP model (red solid lines) and experiment (gray solid lines) for $T<420K$. Black letters indicate phases that are stable in the experiment and model. The original figure is in article。
+
+![water_phase_diagram.png](https://journals.aps.org/prl/article/10.1103/PhysRevLett.126.236001/figures/1/medium)
+
+
+## for metal Tin(Sn)
 We could use dpti to calculate out the Press-Volume phase diagram of metals.<br />The picture below shows the metal Sn phase diagram results calculated by one of the authors.
 
 
@@ -36,8 +46,142 @@ At first, dpti is a collection of python scripts to generate LAMMPS input script
 <br />In dpti, there are many MD simulations tasks and scripts need to be run sequentially or concurrently. Before and after these MD simulation tasks, we may run a lot of MD scirpts to prepare the input files or analyze the logs to extract the useful data.<br />
 <br />Then the dpti developers use apache-airflow to resolve the MD tasks dependencies and managing running tasks. <br />
 
+
+# USE:
+
+the examples dir `examples/` in source code contains the essential files and jsons.
+
+## for CLI tools:
+The following scripts can be used by Python CLI to generate essential scripts for LAMMPS simulation.
+
+the CLI entry:
+
+`dpti --help`
+
+### Equi(npt and nvt)
+The following scripts are used to generate essential tools.
+
+```
+cd exampls/equi/
+dpti equi --help`
+dpti equi gen npt.json
+dpti equi gen nvt.json
+```
+The dir `new_job/` contains the simulation files
+
+
+### HTI
+
+This is an example for HTI three-step simulations.
+
+```
+cd examples/hti/
+dpti ti --help
+dpti hti gen hti.json -s three-step
+```
+
+### TI
+
+For temperature 200K, in order to generate integration path pressure from 0 to 10000 of interval 500. 
+
+in `ti.p.json`, we writes
+```json
+"temp":200,
+"pres_seq":[
+    "0:10000:500",
+    "10000"
+]
+```
+
+```
+cd examples/ti/
+dpti ti gen ti.t.json
+```
+
+In order to generate TI path changing temperature, we use
+```
+dpti ti gen ti.p.json
+```
+
+
+### GDI
+An example for finding coexisting line between Sn `beta` and `alpha` phase.
+
+by `gdidata.json`:
+starting point is 1GPa,270K. (calculated by HTI method)
+We want to extend to 1.35 GPa.
+
+```
+cd examples/gdi/
+dpti gdi pb.json machine.json -g gdidata.json
+```
+
+
+## for airflow workflow:
+
+Sometimes, we need to do high-throughput calculations(which means we need to calculate a series of temperature, pressure points for multiple phases). 
+
+It would be a great burden for users to execute these tasks manually and monitor the tasks' execution.
+
+We provide the workflow tools based on apache-airflow workflow framework.
+
+
+### TI_Workflow
+
+implemented at `workflow/DpFreeEnergy.py`
+
+example dir and json:
+```
+cd examples/
+cat examples/FreeEnergy.json
+```
+
+```
+cd examples/
+airflow dags trigger  TI_taskflow  --conf $(printf "%s" $(cat FreeEnergy.json))
+```
+
+
+Input: Lammps structure file.
+Output: free energy values at given temperature and pressure.
+Parameters: Given temperature(or the range), Given pressure(or therange), force field,Lammps simulation ensemble and etc.
+
+we implement a workflow called TI_taskflow:
+It includes these steps:
+1. npt simulation to get lattice constant.
+2. nvt simulation.
+3. HTI: free energy at given temperature and pressure
+4. TI: free energy values at the given range of temperature/pressure.
+
+
+
+
+
+``
+
+
 <a name="46bdda688b5bc33d261bccfb389fdf55"></a>
 # 📃Installation
+
+
+## local CLI tools installtion
+
+
+```
+# usually create a new python environment
+# conda create --name dpti
+# conda activate dpti
+cd dpti/
+pip install .
+```
+
+## docker image:
+```
+docker pull deepmodeling/dpti
+```
+The useful files and command see [this file](docker/README.md
+
+## manually installation
 
 dpti use apache-airflow as workflow framework, and dpdispatcher to interact with the HPC systems (slurm or PBS).
 
@@ -461,6 +605,8 @@ The json file used as entry for each calculation.
 | conf_lmp | string | "beta.lmp" | structure file name  |
 | ens | choice:"npt-iso", "npt-aniso", "npt-xy" | 0.002 | the ensemble used in NPT and TI simulation. (solid:npt-aniso; liquid:npt-iso) |
 | if_liquid | string | bool | true for liquid, false for other  |
+
+
 
 
 

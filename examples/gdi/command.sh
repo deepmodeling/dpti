@@ -1,1 +1,2 @@
-python gdi.py pb.josn machine.json -g gdidata.json
+python gdi.py pb.json machine.json -g gdidata.json
+dpti gdi pb.json machine.json -g gdidata.json
