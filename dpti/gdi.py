@@ -404,15 +404,16 @@ class GibbsDuhemFunc:
         print("__call__", x, y)
         if self.inte_dir == "t":
             # x: temp, y: pres
+            print(f"making dpdt. x:temp:{x}; y:pres:{y}")
             [dv, dh] = make_dpdt(
-                x,
-                y,
-                self.inte_dir,
-                self.task_path,
-                self.mdata,
-                self.natoms,
-                self.shift,
-                self.verbose,
+                temp=x,
+                pres=y[0],
+                inte_dir=self.inte_dir,
+                task_path=self.task_path,
+                mdata=self.mdata,
+                natoms=self.natoms,
+                shift=self.shift,
+                verbose=self.verbose,
                 if_meam=self.if_meam,
                 meam_model=self.meam_model,
                 workflow=self.workflow,
@@ -421,15 +422,16 @@ class GibbsDuhemFunc:
 
         elif self.inte_dir == "p":
             # x: pres, y: temp
+            print(f"making dpdt. x:pres:{x}; y:temp:{y}")
             [dv, dh] = make_dpdt(
-                y,
-                x,
-                self.inte_dir,
-                self.task_path,
-                self.mdata,
-                self.natoms,
-                self.shift,
-                self.verbose,
+                temp=y[0],
+                pres=x,
+                inte_dir=self.inte_dir,
+                task_path=self.task_path,
+                mdata=self.mdata,
+                natoms=self.natoms,
+                shift=self.shift,
+                verbose=self.verbose,
                 if_meam=self.if_meam,
                 meam_model=self.meam_model,
                 workflow=self.workflow,
@@ -508,9 +510,9 @@ def gdi_main_loop(jdata, mdata, gdidata_dict={}, gdidata_cli={}, workflow=None):
     )
 
     sol = solve_ivp(
-        gdf,
-        [gdidata["begin"], gdidata["end"]],
-        [gdidata["initial_value"]],
+        fun=gdf,
+        t_span=[gdidata["begin"], gdidata["end"]],
+        y0=[gdidata["initial_value"]],
         t_eval=gdidata["step_value"],
         method="RK23",
         atol=gdidata["abs_tol"],
