@@ -401,6 +401,8 @@ class GibbsDuhemFunc:
         self.ev2bar = pc.electron_volt / (pc.angstrom**3) * 1e-5
 
     def __call__(self, x, y):
+        # note according to scipy solve_ivp doc:
+        # x is a scalar; the ndarray y have shape (n,) n==dimension
         print("__call__", x, y)
         if self.inte_dir == "t":
             # x: temp, y: pres
