@@ -1,41 +1,45 @@
-import os, json, shutil, textwrap
-import numpy as np
+import textwrap
 import unittest
-from context import dpti
-from unittest.mock import MagicMock, patch, PropertyMock
-from dpti.lib.utils import get_file_md5
-from dpti import ti
+from unittest.mock import MagicMock, patch
+
 from potential_common import meam_model
+
+from dpti import ti
 
 
 class TestTiGenLammpsInput(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
 
-    @patch('numpy.random')
+    @patch("numpy.random.default_rng")
     def test_deepmd(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
-        input = dict(
-            conf_file='conf.lmp', 
-            mass_map=[118.71,],
-            model="graph.pb",
-            nsteps=200000,
-            timestep=0.002,
-            ens='npt',
-            temp=200,
-            pres=50000, 
-            tau_t=0.1,
-            tau_p=0.5,
-            thermo_freq=10,
-            copies=None,
-            if_meam=False,
-            meam_model=None
-        )
-        ret1 = textwrap.dedent("""\
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
+        input = {
+            "conf_file": "conf.lmp",
+            "mass_map": [
+                118.71,
+            ],
+            "model": "graph.pb",
+            "nsteps": 200000,
+            "timestep": 0.002,
+            "ens": "npt",
+            "temp": 200,
+            "pres": 50000,
+            "tau_t": 0.1,
+            "tau_p": 0.5,
+            "thermo_freq": 10,
+            "dump_freq": 10,
+            "copies": None,
+            "if_meam": False,
+            "meam_model": None,
+        }
+        ret1 = textwrap.dedent(
+            """\
         clear
         # --------------------- VARIABLES-------------------------
         variable        NSTEPS          equal 200000
         variable        THERMO_FREQ     equal 10
+        variable        DUMP_FREQ       equal 10
         variable        TEMP            equal 200.000000
         variable        PRES            equal 50000.000000
         variable        TAU_T           equal 0.100000
@@ -58,8 +62,8 @@ class TestTiGenLammpsInput(unittest.TestCase):
         thermo          ${THERMO_FREQ}
         compute         allmsd all msd
         thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]
-        thermo_modify   4*8 format %20.6f
-        # dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z
+        thermo_modify   format 4*8 %20.6f
+        dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z
         fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}
         fix             mzero all momentum 10 linear 1 1 1
         # --------------------- INITIALIZE -----------------------
@@ -68,34 +72,40 @@ class TestTiGenLammpsInput(unittest.TestCase):
         # --------------------- RUN ------------------------------
         run             ${NSTEPS}
         write_data      out.lmp
-        """)
+        """
+        )
         ret2 = ti._gen_lammps_input(**input)
         self.assertEqual(ret1, ret2)
 
-    @patch('numpy.random')
+    @patch("numpy.random.default_rng")
     def test_meam(self, patch_random):
-        patch_random.randint = MagicMock(return_value=7858)
-        input = dict(
-            conf_file='conf.lmp', 
-            mass_map=[118.71,],
-            model="graph.pb",
-            nsteps=200000,
-            timestep=0.002,
-            ens='npt',
-            temp=200,
-            pres=50000, 
-            tau_t=0.1,
-            tau_p=0.5,
-            thermo_freq=10,
-            copies=None,
-            if_meam=True,
-            meam_model=meam_model
-        )
-        ret1 = textwrap.dedent("""\
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
+        input = {
+            "conf_file": "conf.lmp",
+            "mass_map": [
+                118.71,
+            ],
+            "model": "graph.pb",
+            "nsteps": 200000,
+            "timestep": 0.002,
+            "ens": "npt",
+            "temp": 200,
+            "pres": 50000,
+            "tau_t": 0.1,
+            "tau_p": 0.5,
+            "thermo_freq": 10,
+            "dump_freq": 10,
+            "copies": None,
+            "if_meam": True,
+            "meam_model": meam_model,
+        }
+        ret1 = textwrap.dedent(
+            """\
         clear
         # --------------------- VARIABLES-------------------------
         variable        NSTEPS          equal 200000
         variable        THERMO_FREQ     equal 10
+        variable        DUMP_FREQ       equal 10
         variable        TEMP            equal 200.000000
         variable        PRES            equal 50000.000000
         variable        TAU_T           equal 0.100000
@@ -118,8 +128,8 @@ class TestTiGenLammpsInput(unittest.TestCase):
         thermo          ${THERMO_FREQ}
         compute         allmsd all msd
         thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]
-        thermo_modify   4*8 format %20.6f
-        # dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z
+        thermo_modify   format 4*8 %20.6f
+        dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z
         fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}
         fix             mzero all momentum 10 linear 1 1 1
         # --------------------- INITIALIZE -----------------------
@@ -128,10 +138,11 @@ class TestTiGenLammpsInput(unittest.TestCase):
         # --------------------- RUN ------------------------------
         run             ${NSTEPS}
         write_data      out.lmp
-        """)
+        """
+        )
         ret2 = ti._gen_lammps_input(**input)
         self.assertEqual(ret1, ret2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
