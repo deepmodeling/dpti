@@ -1,29 +1,33 @@
-import os, textwrap
-import numpy as np
+import textwrap
 import unittest
-from context import dpti
+
 from potential_common import soft_param, soft_param_three_element
+
 from dpti.hti_liq import _ff_soft_on
+
 
 class TestFfSpring(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
 
     def test_one_element(self):
-        input = dict(lamb=0.075, sparam=soft_param)
-        ret1 = textwrap.dedent("""\
+        input = {"lamb": 0.075, "sparam": soft_param}
+        ret1 = textwrap.dedent(
+            """\
         variable        EPSILON equal 0.030000
         pair_style      lj/cut/soft 1.000000 0.500000 6.000000
         pair_coeff      1 1 ${EPSILON} 2.493672 0.500000
         fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_LAMBDA scale yes
         compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_EPSILON
-        """)
+        """
+        )
         ret2 = _ff_soft_on(**input)
         self.assertEqual(ret1, ret2)
 
     def test_three_element(self):
-        input = dict(lamb=0.075, sparam=soft_param_three_element)
-        ret1 = textwrap.dedent("""\
+        input = {"lamb": 0.075, "sparam": soft_param_three_element}
+        ret1 = textwrap.dedent(
+            """\
         variable        EPSILON equal 0.030000
         pair_style      lj/cut/soft 1.000000 0.600000 6.000000
         pair_coeff      1 1 ${EPSILON} 2.000000 0.500000
@@ -34,7 +38,8 @@ class TestFfSpring(unittest.TestCase):
         pair_coeff      3 3 ${EPSILON} 2.220000 0.500000
         fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_LAMBDA scale yes
         compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_EPSILON
-        """)
+        """
+        )
         ret2 = _ff_soft_on(**input)
         self.assertEqual(ret1, ret2)
         # print(ret2)

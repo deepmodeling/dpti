@@ -1,23 +1,26 @@
-import os, textwrap
-import numpy as np
+import textwrap
 import unittest
+
 from context import dpti
-from potential_common import soft_param, soft_param_three_element, meam_model
+from potential_common import meam_model, soft_param
+
 
 class TestFfSpring(unittest.TestCase):
-    def setUp(self) :
+    def setUp(self):
         self.maxDiff = None
 
     def test_lj_on(self):
-        input = dict(lamb=0.075,
-            model="graph.pb",
-            m_spring_k=[118.71],
-            step="lj_on",
-            sparam=soft_param,
-            if_meam=False,
-            meam_model=None
-        )
-        ret1 = textwrap.dedent("""\
+        input = {
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "m_spring_k": [118.71],
+            "step": "lj_on",
+            "sparam": soft_param,
+            "if_meam": False,
+            "meam_model": None,
+        }
+        ret1 = textwrap.dedent(
+            """\
         # --------------------- FORCE FIELDS ---------------------
         variable        EPSILON equal 0.030000
         pair_style      lj/cut/soft 1.000000 0.500000 6.000000
@@ -28,7 +31,8 @@ class TestFfSpring(unittest.TestCase):
         fix             l_spring_1 type_1 spring/self 1.1871000000e+02
         fix_modify      l_spring_1 energy yes
         variable        l_spring equal f_l_spring_1
-        """)
+        """
+        )
         ret2 = dpti.hti._ff_soft_lj(**input)
         # print('--------')
         # # print(ret1)
@@ -38,15 +42,17 @@ class TestFfSpring(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_deep_on(self):
-        input = dict(lamb=0.075,
-            model="graph.pb",
-            m_spring_k=[118.71],
-            step="deep_on",
-            sparam=soft_param,
-            if_meam=False,
-            meam_model=None
-        )
-        ret1 = textwrap.dedent("""\
+        input = {
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "m_spring_k": [118.71],
+            "step": "deep_on",
+            "sparam": soft_param,
+            "if_meam": False,
+            "meam_model": None,
+        }
+        ret1 = textwrap.dedent(
+            """\
         # --------------------- FORCE FIELDS ---------------------
         variable        EPSILON equal 0.030000
         variable        ONE equal 1
@@ -59,7 +65,8 @@ class TestFfSpring(unittest.TestCase):
         fix             l_spring_1 type_1 spring/self 1.1871000000e+02
         fix_modify      l_spring_1 energy yes
         variable        l_spring equal f_l_spring_1
-        """)
+        """
+        )
         ret2 = dpti.hti._ff_soft_lj(**input)
         # print('--------')
         # print(ret1)
@@ -69,15 +76,17 @@ class TestFfSpring(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_spring_off(self):
-        input = dict(lamb=0.075,
-            model="graph.pb",
-            m_spring_k=[118.71],
-            step="spring_off",
-            sparam=soft_param,
-            if_meam=False,
-            meam_model=None
-        )
-        ret1 = textwrap.dedent("""\
+        input = {
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "m_spring_k": [118.71],
+            "step": "spring_off",
+            "sparam": soft_param,
+            "if_meam": False,
+            "meam_model": None,
+        }
+        ret1 = textwrap.dedent(
+            """\
         # --------------------- FORCE FIELDS ---------------------
         variable        EPSILON equal 0.030000
         variable        INV_EPSILON equal -${EPSILON}
@@ -90,21 +99,24 @@ class TestFfSpring(unittest.TestCase):
         fix             l_spring_1 type_1 spring/self 1.0980675000e+02
         fix_modify      l_spring_1 energy yes
         variable        l_spring equal f_l_spring_1
-        """)
+        """
+        )
         ret2 = dpti.hti._ff_soft_lj(**input)
         self.assertEqual(ret1, ret2)
 
-# def test_me
+    # def test_me
     def test_meam_deep_on(self):
-        input = dict(lamb=0.075,
-            model="graph.pb",
-            m_spring_k=[118.71],
-            step="deep_on",
-            sparam=soft_param,
-            if_meam=True,
-            meam_model=meam_model
-        )
-        ret1 = textwrap.dedent("""\
+        input = {
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "m_spring_k": [118.71],
+            "step": "deep_on",
+            "sparam": soft_param,
+            "if_meam": True,
+            "meam_model": meam_model,
+        }
+        ret1 = textwrap.dedent(
+            """\
         # --------------------- FORCE FIELDS ---------------------
         variable        EPSILON equal 0.030000
         variable        ONE equal 1
@@ -117,7 +129,8 @@ class TestFfSpring(unittest.TestCase):
         fix             l_spring_1 type_1 spring/self 1.1871000000e+02
         fix_modify      l_spring_1 energy yes
         variable        l_spring equal f_l_spring_1
-        """)
+        """
+        )
         ret2 = dpti.hti._ff_soft_lj(**input)
         # print('--------')
         # print(ret1)
@@ -127,16 +140,18 @@ class TestFfSpring(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_meam_spring_off(self):
-        input = dict(lamb=0.075,
-            model="graph.pb",
-            m_spring_k=[118.71],
-            step="spring_off",
-            sparam=soft_param,
-            if_meam=True,
-            meam_model=meam_model
-        )
-        
-        ret1 = textwrap.dedent("""\
+        input = {
+            "lamb": 0.075,
+            "model": "graph.pb",
+            "m_spring_k": [118.71],
+            "step": "spring_off",
+            "sparam": soft_param,
+            "if_meam": True,
+            "meam_model": meam_model,
+        }
+
+        ret1 = textwrap.dedent(
+            """\
         # --------------------- FORCE FIELDS ---------------------
         variable        EPSILON equal 0.030000
         variable        INV_EPSILON equal -${EPSILON}
@@ -149,7 +164,8 @@ class TestFfSpring(unittest.TestCase):
         fix             l_spring_1 type_1 spring/self 1.0980675000e+02
         fix_modify      l_spring_1 energy yes
         variable        l_spring equal f_l_spring_1
-        """)
+        """
+        )
         ret2 = dpti.hti._ff_soft_lj(**input)
         # print('--------')
         # print(ret1)
@@ -202,5 +218,5 @@ class TestFfSpring(unittest.TestCase):
 #         self.assertEqual(ret1, ret2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

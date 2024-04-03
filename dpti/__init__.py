@@ -1,11 +1,15 @@
-# s.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-# import dpti
-# from . import lib
-# import .lib
-# from . import equi
-# from . import hti
-# from . import hti_liq
-# from . import ti
-# from . import gdi
-# from dpti import lib
+NAME = "dpti"
+SHORT_CMD = "dpti"
+
+__all__ = [
+    "dpti",
+    "equi",
+    "gdi",
+    "hti",
+    "hti_liq",
+    "hti_ice",
+    "hti_water",
+    "ti",
+    "ti_water",
+    "lib",
+]
