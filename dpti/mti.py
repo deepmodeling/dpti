@@ -26,6 +26,7 @@ def _gen_lammps_input(
     mass_map,
     mass_scale,
     model,
+    template_ff,
     nbeads,
     nsteps,
     timestep,
@@ -70,8 +71,11 @@ def _gen_lammps_input(
     for jj in range(len(mass_map)):
         ret += "mass            %d %f\n" % (jj + 1, mass_map[jj] * mass_scale)
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
-    ret += "pair_style      deepmd %s\n" % model
-    ret += "pair_coeff * *\n"
+    if model is not None:
+        ret += "pair_style      deepmd %s\n" % model
+        ret += "pair_coeff * *\n"
+    elif template_ff is not None:
+        ret += template_ff
     ret += "# --------------------- MD SETTINGS ----------------------\n"
     ret += "neighbor        2.0 bin\n"
     ret += "neigh_modify    every 10 delay 0 check no\n"
@@ -119,7 +123,16 @@ def make_tasks(iter_name, jdata):
     copies = None
     if "copies" in jdata:
         copies = jdata["copies"]
-    model = jdata["model"]
+    model = jdata.get("model", None)
+    template_ff_file = jdata.get("template_ff", None)
+    template_ff = None
+    if template_ff_file is not None:
+        with open(template_ff_file) as f:
+            template_ff = f.read()
+    if model is not None and template_ff is not None:
+        raise RuntimeError("You are providing both a dp model and a template forcefield. You can only set one of model and template_ff.")
+    if model is None and template_ff is None:
+        raise RuntimeError("You must provide a dp model or a template forcefield. Please set either model or template_ff.")
     mass_map = get_first_matched_key_from_dict(jdata, ["model_mass_map", "mass_map"])
     nsteps = jdata["nsteps"]
     timestep = get_first_matched_key_from_dict(jdata, ["timestep", "dt"])
@@ -169,7 +182,10 @@ def make_tasks(iter_name, jdata):
 
     job_abs_dir = create_path(iter_name)
     ti_settings["equi_conf"] = relative_link_file(equi_conf, job_abs_dir)
-    ti_settings["model"] = relative_link_file(model, job_abs_dir)
+    if model is not None:
+        ti_settings["model"] = relative_link_file(model, job_abs_dir)
+    if template_ff is not None:
+        ti_settings["template_ff"] = relative_link_file(template_ff, job_abs_dir)
     with open(os.path.join(job_abs_dir, "mti_settings.json"), "w") as f:
         json.dump(ti_settings, f, indent=4)
 
@@ -199,25 +215,44 @@ def make_tasks(iter_name, jdata):
                         settings["nnode"] = nnode_list[kk]
                     relative_link_file(equi_conf, nbead_abs_dir)
                     task_model = model
-                    if model:
+                    if model is not None:
                         relative_link_file(model, nbead_abs_dir)
                         task_model = os.path.basename(model)
-                    lmp_str = _gen_lammps_input(
-                        os.path.basename(equi_conf),
-                        mass_map,
-                        mass_scales[jj],
-                        task_model,
-                        nbead_list[kk],
-                        nsteps,
-                        timestep,
-                        ens,
-                        temp_list[ii],
-                        pres=pres,
-                        tau_t=tau_t,
-                        thermo_freq=thermo_freq,
-                        dump_freq=dump_freq,
-                        copies=copies,
-                    )
+                        lmp_str = _gen_lammps_input(
+                            os.path.basename(equi_conf),
+                            mass_map,
+                            mass_scales[jj],
+                            task_model,
+                            None,
+                            nbead_list[kk],
+                            nsteps,
+                            timestep,
+                            ens,
+                            temp_list[ii],
+                            pres=pres,
+                            tau_t=tau_t,
+                            thermo_freq=thermo_freq,
+                            dump_freq=dump_freq,
+                            copies=copies,
+                        )
+                    elif template_ff is not None:
+                        lmp_str = _gen_lammps_input(
+                            os.path.basename(equi_conf),
+                            mass_map,
+                            mass_scales[jj],
+                            None,
+                            template_ff,
+                            nbead_list[kk],
+                            nsteps,
+                            timestep,
+                            ens,
+                            temp_list[ii],
+                            pres=pres,
+                            tau_t=tau_t,
+                            thermo_freq=thermo_freq,
+                            dump_freq=dump_freq,
+                            copies=copies,
+                        )
                     with open(os.path.join(nbead_abs_dir, "in.lammps"), "w") as f:
                         f.write(lmp_str)
                     with open(os.path.join(nbead_abs_dir, "settings.json"), "w") as f:
