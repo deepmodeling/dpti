@@ -320,6 +320,7 @@ def make_tasks(iter_name, jdata):
 
 def run_task(task_name, jdata, machine_file):
     job_type = jdata["job_type"]
+    nprocs_per_bead = jdata.get("nprocs_per_bead", 1)
     if job_type == "nbead_convergence":
         task_dir_list = glob.glob(
             os.path.join(task_name, "task.*/mass_scale_y.*/nbead.*")
@@ -347,7 +348,7 @@ def run_task(task_name, jdata, machine_file):
         if nnode is not None:
             mdata["resources"]["number_node"] = int(nnode)
             number_node = nnode
-        mdata["resources"]["cpu_per_node"] = int(np.ceil(nbead / number_node))
+        mdata["resources"]["cpu_per_node"] = int(np.ceil(nbead * nprocs_per_bead / number_node))
         resources = Resources.load_from_dict(mdata["resources"])
 
         submission = Submission(
@@ -357,7 +358,7 @@ def run_task(task_name, jdata, machine_file):
         )
 
         task = Task(
-            command=f"{link_model}; if ls *.restart.100000 1> /dev/null 2>&1; then {task_exec} -in in.lammps -p {nbead}x1 -log log -v restart 1; else {task_exec} -in in.lammps -p {nbead}x1 -log log -v restart 0; fi",
+            command=f"{link_model}; if ls *.restart.100000 1> /dev/null 2>&1; then {task_exec} -in in.lammps -p {nbead}x{nprocs_per_bead} -log log -v restart 1; else {task_exec} -in in.lammps -p {nbead}x{nprocs_per_bead} -log log -v restart 0; fi",
             task_work_path=ii,
             forward_files=["in.lammps", "*.lmp", "graph.pb"],
             backward_files=["log*", "*out.lmp", "*.dump"],
