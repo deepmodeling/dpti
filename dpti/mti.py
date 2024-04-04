@@ -275,22 +275,41 @@ def make_tasks(iter_name, jdata):
                 if model:
                     relative_link_file(model, mass_scale_y_abs_dir)
                     task_model = os.path.basename(model)
-                lmp_str = _gen_lammps_input(
-                    os.path.basename(equi_conf),
-                    mass_map,
-                    mass_scales[jj],
-                    task_model,
-                    nbead_list[jj],
-                    nsteps,
-                    timestep,
-                    ens,
-                    temp_list[ii],
-                    pres=pres,
-                    tau_t=tau_t,
-                    thermo_freq=thermo_freq,
-                    dump_freq=dump_freq,
-                    copies=copies,
-                )
+                    lmp_str = _gen_lammps_input(
+                        os.path.basename(equi_conf),
+                        mass_map,
+                        mass_scales[jj],
+                        task_model,
+                        None,
+                        nbead_list[jj],
+                        nsteps,
+                        timestep,
+                        ens,
+                        temp_list[ii],
+                        pres=pres,
+                        tau_t=tau_t,
+                        thermo_freq=thermo_freq,
+                        dump_freq=dump_freq,
+                        copies=copies,
+                    )
+                elif template_ff is not None:
+                    lmp_str = _gen_lammps_input(
+                        os.path.basename(equi_conf),
+                        mass_map,
+                        mass_scales[jj],
+                        None,
+                        template_ff,
+                        nbead_list[jj],
+                        nsteps,
+                        timestep,
+                        ens,
+                        temp_list[ii],
+                        pres=pres,
+                        tau_t=tau_t,
+                        thermo_freq=thermo_freq,
+                        dump_freq=dump_freq,
+                        copies=copies,
+                    )
                 with open(os.path.join(mass_scale_y_abs_dir, "in.lammps"), "w") as f:
                     f.write(lmp_str)
                 with open(
