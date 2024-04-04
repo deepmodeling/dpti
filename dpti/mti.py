@@ -130,9 +130,13 @@ def make_tasks(iter_name, jdata):
         with open(template_ff_file) as f:
             template_ff = f.read()
     if model is not None and template_ff is not None:
-        raise RuntimeError("You are providing both a dp model and a template forcefield. You can only set one of model and template_ff.")
+        raise RuntimeError(
+            "You are providing both a dp model and a template forcefield. You can only set one of model and template_ff."
+        )
     if model is None and template_ff is None:
-        raise RuntimeError("You must provide a dp model or a template forcefield. Please set either model or template_ff.")
+        raise RuntimeError(
+            "You must provide a dp model or a template forcefield. Please set either model or template_ff."
+        )
     mass_map = get_first_matched_key_from_dict(jdata, ["model_mass_map", "mass_map"])
     nsteps = jdata["nsteps"]
     timestep = get_first_matched_key_from_dict(jdata, ["timestep", "dt"])
