@@ -348,7 +348,9 @@ def run_task(task_name, jdata, machine_file):
         if nnode is not None:
             mdata["resources"]["number_node"] = int(nnode)
             number_node = nnode
-        mdata["resources"]["cpu_per_node"] = int(np.ceil(nbead * nprocs_per_bead / number_node))
+        mdata["resources"]["cpu_per_node"] = int(
+            np.ceil(nbead * nprocs_per_bead / number_node)
+        )
         resources = Resources.load_from_dict(mdata["resources"])
 
         submission = Submission(
