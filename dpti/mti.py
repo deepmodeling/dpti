@@ -185,7 +185,7 @@ def make_tasks(iter_name, jdata):
     if model is not None:
         ti_settings["model"] = relative_link_file(model, job_abs_dir)
     if template_ff is not None:
-        ti_settings["template_ff"] = relative_link_file(template_ff, job_abs_dir)
+        ti_settings["template_ff"] = relative_link_file(template_ff_file, job_abs_dir)
     with open(os.path.join(job_abs_dir, "mti_settings.json"), "w") as f:
         json.dump(ti_settings, f, indent=4)
 
