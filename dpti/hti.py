@@ -1407,9 +1407,9 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
     )
 
     command = (
-        "lmp -i in.lammps"
+        f"{mdata['command']} -i in.lammps"
         if no_dp
-        else "ln -s ../../../graph.pb graph.pb; lmp -i in.lammps"
+        else f"ln -s ../../../graph.pb graph.pb; {mdata['command']} -i in.lammps"
     )
     task_list = [
         Task(
