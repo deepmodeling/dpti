@@ -620,7 +620,7 @@ def run_task(task_name, machine_file):
 
     task_list = [
         Task(
-            command="lmp -in in.lammps",
+            command=f"{mdata['command']} -in in.lammps",
             task_work_path=ii,
             forward_files=["in.lammps", "*.lmp", "graph.pb"],
             backward_files=["log*", "dump.equi", "out.lmp"],

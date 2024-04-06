@@ -937,7 +937,7 @@ def run_task(task_name, machine_file):
 
     task_list = [
         Task(
-            command="ln -s ../../graph.pb graph.pb; lmp -in in.lammps",
+            command=f"ln -s ../../graph.pb graph.pb; {mdata['command']} -in in.lammps",
             task_work_path=ii,
             forward_files=["in.lammps", "*.lmp"],
             backward_files=["log*", "out.lmp", "traj.dump"],
