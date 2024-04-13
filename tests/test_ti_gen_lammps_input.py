@@ -71,7 +71,7 @@ class TestTiGenLammpsInput(unittest.TestCase):
         velocity        all zero linear
         # --------------------- RUN ------------------------------
         run             ${NSTEPS}
-        write_data      out.lmp
+        write_data      final.lmp
         """
         )
         ret2 = ti._gen_lammps_input(**input)
@@ -137,7 +137,7 @@ class TestTiGenLammpsInput(unittest.TestCase):
         velocity        all zero linear
         # --------------------- RUN ------------------------------
         run             ${NSTEPS}
-        write_data      out.lmp
+        write_data      final.lmp
         """
         )
         ret2 = ti._gen_lammps_input(**input)
