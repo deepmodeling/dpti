@@ -128,7 +128,7 @@ def _gen_lammps_input(
     ret += "velocity        all zero linear\n"
     ret += "# --------------------- RUN ------------------------------\n"
     ret += "run             ${NSTEPS}\n"
-    ret += "write_data      out.lmp\n"
+    ret += "write_data      final.lmp\n"
 
     return ret
 
@@ -940,7 +940,7 @@ def run_task(task_name, machine_file):
             command=f"ln -s ../../graph.pb graph.pb; {mdata['command']} -in in.lammps",
             task_work_path=ii,
             forward_files=["in.lammps", "*.lmp"],
-            backward_files=["log*", "out.lmp", "traj.dump"],
+            backward_files=["log*", "final.lmp", "traj.dump"],
         )
         for ii in task_dir_list
     ]
