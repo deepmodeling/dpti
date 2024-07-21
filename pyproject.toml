@@ -62,6 +62,7 @@ select = [
     "C4", # flake8-comprehensions
     "RUF", # ruff
     "NPY", # numpy
+    "AIR", # Airflow
 ]
 
 ignore = [
