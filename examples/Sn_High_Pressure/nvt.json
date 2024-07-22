@@ -1,21 +1,21 @@
 {
-    "equi_conf": "conf.lmp",
+    "equi_conf": null,
     "model": "graph.pb",
     "mass_map": [
         118.71
     ],
-    "nsteps": 10000,
+    "nsteps": 200000,
     "timestep": 0.002,
-    "ens": null,
+    "ens": "nvt",
     "temp": null,
     "pres": null,
     "tau_t": 0.2,
     "tau_p": 2.0,
     "thermo_freq": 10,
-    "dump_freq": 1000,
-    "stat_skip": 300,
-    "stat_bsize": 10,
-    "if_meam": false,
+    "dump_freq": 10,
+    "stat_skip": 1000,
+    "stat_bsize": 100,
     "if_dump_avg_posi": false,
+    "if_meam":false,
     "meam_model": {}
 }

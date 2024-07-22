@@ -900,16 +900,16 @@ def _compute_thermo(fname, natoms, stat_skip, stat_bsize):
     thermo_info["p"] = pa
     thermo_info["p_err"] = pe
     thermo_info["v"] = va / natoms
-    thermo_info["v_err"] = ve / np.sqrt(natoms)
+    thermo_info["v_err"] = ve / natoms
     thermo_info["e"] = ea / natoms
-    thermo_info["e_err"] = ee / np.sqrt(natoms)
+    thermo_info["e_err"] = ee / natoms
     thermo_info["h"] = ha / natoms
-    thermo_info["h_err"] = he / np.sqrt(natoms)
+    thermo_info["h_err"] = he / natoms
     thermo_info["t"] = ta
     thermo_info["t_err"] = te
     unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
     thermo_info["pv"] = pa * va * unit_cvt / natoms
-    thermo_info["pv_err"] = pe * va * unit_cvt / np.sqrt(natoms)
+    thermo_info["pv_err"] = pe * va * unit_cvt / natoms
     return thermo_info
 
 
@@ -1062,9 +1062,9 @@ def _post_tasks(
         enthalpy, _ = block_avg(data[:, 4], skip=stat_skip, block_size=stat_bsize)
         msd_xyz = data[-1, -1]
         sa /= natoms
-        se /= np.sqrt(natoms)
+        se /= natoms
         da /= natoms
-        de /= np.sqrt(natoms)
+        de /= natoms
         lmda_name = os.path.join(ii, "lambda.out")
         ll = float(open(lmda_name).read())
         all_lambda.append(ll)
@@ -1253,7 +1253,7 @@ def _post_tasks_mbar(iter_name, jdata, natoms=None, switch="one-step", step="bot
     # Deltaf_ij, dDeltaf_ij, Theta_ij = mbar.getFreeEnergyDifferences()
     Deltaf_ij, dDeltaf_ij = mbar.getFreeEnergyDifferences()
     Deltaf_ij = Deltaf_ij / natoms
-    dDeltaf_ij = dDeltaf_ij / np.sqrt(natoms)
+    dDeltaf_ij = dDeltaf_ij / natoms
 
     diff_e = Deltaf_ij[0, -1] * kt_in_ev
     err = dDeltaf_ij[0, -1] * kt_in_ev
@@ -1407,9 +1407,9 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
     )
 
     command = (
-        "lmp -i in.lammps"
+        f"{mdata['command']} -i in.lammps"
         if no_dp
-        else "ln -s ../../../graph.pb graph.pb; lmp -i in.lammps"
+        else f"ln -s ../../../graph.pb graph.pb; {mdata['command']} -i in.lammps"
     )
     task_list = [
         Task(

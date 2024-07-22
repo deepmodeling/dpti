@@ -35,4 +35,4 @@ velocity        all create ${TEMP} 7858
 velocity        all zero linear
 # --------------------- RUN ------------------------------
 run             ${NSTEPS}
-write_data      out.lmp
+write_data      final.lmp
