@@ -128,7 +128,7 @@ def _gen_lammps_input(
     ret += "velocity        all zero linear\n"
     ret += "# --------------------- RUN ------------------------------\n"
     ret += "run             ${NSTEPS}\n"
-    ret += "write_data      out.lmp\n"
+    ret += "write_data      final.lmp\n"
 
     return ret
 
@@ -332,16 +332,16 @@ def _compute_thermo(lmplog, natoms, stat_skip, stat_bsize):
     thermo_info["p"] = pa
     thermo_info["p_err"] = pe
     thermo_info["v"] = va / natoms
-    thermo_info["v_err"] = ve / np.sqrt(natoms)
+    thermo_info["v_err"] = ve / natoms
     thermo_info["e"] = ea / natoms
-    thermo_info["e_err"] = ee / np.sqrt(natoms)
+    thermo_info["e_err"] = ee / natoms
     thermo_info["h"] = ha / natoms
-    thermo_info["h_err"] = he / np.sqrt(natoms)
+    thermo_info["h_err"] = he / natoms
     thermo_info["t"] = ta
     thermo_info["t_err"] = te
     unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
     thermo_info["pv"] = pa * va * unit_cvt / natoms
-    thermo_info["pv_err"] = pe * va * unit_cvt / np.sqrt(natoms)
+    thermo_info["pv_err"] = pe * va * unit_cvt / natoms
     return thermo_info
 
 
@@ -505,7 +505,7 @@ def post_tasks(
         ea /= natoms
         if path == "t" or path == "t-ginv":
             ea -= shift
-        ee /= np.sqrt(natoms)
+        ee /= natoms
         all_e.append(ea)
         all_e_err.append(ee)
         all_enthalpy.append(enthalpy)
@@ -775,7 +775,7 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms=None):
     mbar = pymbar.MBAR(ukn, nk)
     Deltaf_ij, dDeltaf_ij, Theta_ij = mbar.getFreeEnergyDifferences()
     Deltaf_ij = Deltaf_ij / natoms
-    dDeltaf_ij = dDeltaf_ij / np.sqrt(natoms)
+    dDeltaf_ij = dDeltaf_ij / natoms
 
     all_temps = []
     all_press = []
@@ -937,10 +937,10 @@ def run_task(task_name, machine_file):
 
     task_list = [
         Task(
-            command="ln -s ../../graph.pb graph.pb; lmp -in in.lammps",
+            command=f"ln -s ../../graph.pb graph.pb; {mdata['command']} -in in.lammps",
             task_work_path=ii,
             forward_files=["in.lammps", "*.lmp"],
-            backward_files=["log*", "out.lmp", "traj.dump"],
+            backward_files=["log*", "final.lmp", "traj.dump"],
         )
         for ii in task_dir_list
     ]

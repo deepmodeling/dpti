@@ -1,7 +1,7 @@
 {
     "machine": {
         "batch_type": "pbs",
-        "context_type": "lazy_local",
+        "context_type": "LazyLocal",
         "local_root" : "./"
     },
     "resources": {
