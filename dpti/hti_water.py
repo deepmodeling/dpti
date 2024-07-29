@@ -71,12 +71,7 @@ def _ff_deep_on(lamb, model, bparam, sparam):
     ret = ""
     ret += "variable        EPSILON equal %f\n" % epsilon
     ret += "variable        ONE equal 1\n"
-    ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}  \n".format(
-        model,
-        nn,
-        alpha_lj,
-        rcut,
-    )
+    ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}  \n"
     ret += "pair_coeff      * * deepmd\n"
     ret += f"pair_coeff      1 1 lj/cut/soft ${{EPSILON}} {sigma_oo:f} {activation:f}\n"
     ret += f"pair_coeff      1 2 lj/cut/soft ${{EPSILON}} {sigma_oh:f} {activation:f}\n"
@@ -107,12 +102,7 @@ def _ff_bond_angle_off(lamb, model, bparam, sparam):
     ret += "variable        INV_LAMBDA equal 1-${LAMBDA}\n"
     ret += "variable        EPSILON equal %f\n" % epsilon
     ret += "variable        INV_EPSILON equal -${EPSILON}\n"
-    ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}  \n".format(
-        model,
-        nn,
-        alpha_lj,
-        rcut,
-    )
+    ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}  \n"
     ret += "pair_coeff      * * deepmd\n"
     ret += f"pair_coeff      1 1 lj/cut/soft ${{EPSILON}} {sigma_oo:f} {activation:f}\n"
     ret += f"pair_coeff      1 2 lj/cut/soft ${{EPSILON}} {sigma_oh:f} {activation:f}\n"

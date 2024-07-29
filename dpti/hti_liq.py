@@ -69,22 +69,11 @@ def _ff_deep_on(lamb, sparam, model, if_meam=False, meam_model=None):
     ret += "variable        EPSILON equal %f\n" % epsilon
     ret += "variable        ONE equal 1\n"
     if if_meam:
-        ret += (
-            "pair_style      hybrid/overlay meam lj/cut/soft {:f} {:f} {:f}\n".format(
-                nn,
-                alpha_lj,
-                rcut,
-            )
-        )
+        ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
-        ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}\n".format(
-            model,
-            nn,
-            alpha_lj,
-            rcut,
-        )
+        ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
 
     element_num = sparam.get("element_num", 1)
@@ -124,22 +113,11 @@ def _ff_soft_off(lamb, sparam, model, if_meam=False, meam_model=None):
     ret += "variable        EPSILON equal %f\n" % epsilon
     ret += "variable        INV_EPSILON equal -${EPSILON}\n"
     if if_meam:
-        ret += (
-            "pair_style      hybrid/overlay meam lj/cut/soft {:f} {:f} {:f}\n".format(
-                nn,
-                alpha_lj,
-                rcut,
-            )
-        )
+        ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1} {meam_model[2]} \n'
     else:
-        ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}\n".format(
-            model,
-            nn,
-            alpha_lj,
-            rcut,
-        )
+        ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
 
     element_num = sparam.get("element_num", 1)

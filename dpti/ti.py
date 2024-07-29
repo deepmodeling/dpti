@@ -619,21 +619,9 @@ def post_tasks(
         )
         for ii in range(len(all_temps)):
             print(
-                "{:9.2f}  {:20.12f}  {:9.2e}  {:9.2e}  {:9.2e}".format(
-                    all_temps[ii],
-                    all_fe[ii],
-                    all_fe_err[ii],
-                    all_fe_sys_err[ii],
-                    np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]),
-                )
+                f"{all_temps[ii]:9.2f}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]):9.2e}"
             )
-            result += "{:9.2f}  {:20.12f}  {:9.2e}  {:9.2e}  {:9.2e}\n".format(
-                all_temps[ii],
-                all_fe[ii],
-                all_fe_err[ii],
-                all_fe_sys_err[ii],
-                np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]),
-            )
+            result += f"{all_temps[ii]:9.2f}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]):9.2e}\n"
     elif "npt" in ens:
         print(
             "#%8s  %15s  %20s  %9s  %9s  %9s"
@@ -649,25 +637,9 @@ def post_tasks(
         )
         for ii in range(len(all_temps)):
             print(
-                "{:9.2f}  {:15.8e}  {:20.12f}  {:9.2e}  {:9.2e}  {:9.2e}".format(
-                    all_temps[ii],
-                    all_press[ii],
-                    all_fe[ii],
-                    all_fe_err[ii],
-                    all_fe_sys_err[ii],
-                    np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]),
-                )
+                f"{all_temps[ii]:9.2f}  {all_press[ii]:15.8e}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]):9.2e}"
             )
-            result += (
-                "{:9.2f}  {:15.8e}  {:20.12f}  {:9.2e}  {:9.2e}  {:9.2e}\n".format(
-                    all_temps[ii],
-                    all_press[ii],
-                    all_fe[ii],
-                    all_fe_err[ii],
-                    all_fe_sys_err[ii],
-                    np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]),
-                )
-            )
+            result += f"{all_temps[ii]:9.2f}  {all_press[ii]:15.8e}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]):9.2e}\n"
             # print(all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]))
     # result_file.close()
 
@@ -817,13 +789,7 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms=None):
         )
         for ii in range(len(all_temps)):
             print(
-                "{:9.2f}  {:15.8e}  {:20.12f}  {:9.2e}  {:9.2e}".format(
-                    all_temps[ii],
-                    all_press[ii],
-                    all_fe[ii],
-                    all_fe_err[ii],
-                    all_fe_sys_err[ii],
-                )
+                f"{all_temps[ii]:9.2f}  {all_press[ii]:15.8e}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}"
             )
     # info = dict(start_point_info=info0, end_point_info=info1, all_temps=list(all_temps), all_press=list(all_press),
     #              all_fe=list(all_fe), all_fe_err=list(all_fe_err), all_fe_sys_err=list(all_fe_sys_err))

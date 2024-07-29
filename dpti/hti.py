@@ -85,21 +85,10 @@ def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None):
     #     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
     #     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn \n'
     if if_meam:
-        ret += (
-            "pair_style      hybrid/overlay meam lj/cut/soft {:f} {:f} {:f}\n".format(
-                nn,
-                alpha_lj,
-                rcut,
-            )
-        )
+        ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
     else:
-        ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}\n".format(
-            model,
-            nn,
-            alpha_lj,
-            rcut,
-        )
+        ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
 
     element_num = sparam.get("element_num", 1)
@@ -183,22 +172,11 @@ def _ff_lj_off(lamb, model, sparam, if_meam=False, meam_model=None):
     #     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n'  % (nn, alpha_lj, rcut)
     #     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
     if if_meam:
-        ret += (
-            "pair_style      hybrid/overlay meam lj/cut/soft {:f} {:f} {:f}\n".format(
-                nn,
-                alpha_lj,
-                rcut,
-            )
-        )
+        ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
-        ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}\n".format(
-            model,
-            nn,
-            alpha_lj,
-            rcut,
-        )
+        ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
 
     element_num = sparam.get("element_num", 1)
@@ -265,11 +243,7 @@ def _ff_spring(lamb, m_spring_k, var_spring):
             m_spring_const = m_spring_k[ii] * (1 - lamb)
         else:
             m_spring_const = m_spring_k[ii]
-        ret += "fix             l_spring_{} type_{} spring/self {:.10e}\n".format(
-            ii + 1,
-            ii + 1,
-            m_spring_const,
-        )
+        ret += f"fix             l_spring_{ii + 1} type_{ii + 1} spring/self {m_spring_const:.10e}\n"
         ret += "fix_modify      l_spring_%s energy yes\n" % (ii + 1)
     sum_str = "f_l_spring_1"
     for ii in range(1, ntypes):
