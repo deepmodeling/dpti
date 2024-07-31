@@ -183,10 +183,9 @@ def gen_equi_lammps_input(
         equi_conf=equi_conf,
         pres=pres,
         custom_variables=custom_variables,
-        append=append,
     )
     equi_force_field = gen_equi_force_field(
-        model, if_meam=if_meam, meam_model=meam_model
+        model, if_meam=if_meam, meam_model=meam_model, append=append
     )
     equi_thermo_settings = gen_equi_thermo_settings(timestep=timestep)
     equi_dump_settings = gen_equi_dump_settings(if_dump_avg_posi=if_dump_avg_posi)
