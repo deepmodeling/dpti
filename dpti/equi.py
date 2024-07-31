@@ -87,7 +87,7 @@ def gen_equi_force_field(model, if_meam=False, meam_model=None, append=None):
     if not if_meam:
         ret += "pair_style      deepmd %s" % model
         if append is not None:
-            ret += append
+            ret += " "+append
         ret += "\n"
         ret += "pair_coeff * *\n"
     else:
