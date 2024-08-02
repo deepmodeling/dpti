@@ -1398,9 +1398,12 @@ def hti_phase_trans_analyze(job, jdata=None):
 
 
 def run_task(task_dir, machine_file, task_name, no_dp=False):
-    job_work_dir_ = glob.glob(os.path.join(task_dir, task_name + "*"))
-    assert len(job_work_dir_) == 1
-    job_work_dir = job_work_dir_[0]
+    if task_name == "00" or task_name == "01" or task_name == "02":
+        job_work_dir_ = glob.glob(os.path.join(task_dir, task_name + "*"))
+        assert len(job_work_dir_) == 1
+        job_work_dir = job_work_dir_[0]
+    elif task_name == "one-step":
+        job_work_dir = task_dir
     task_dir_list = glob.glob(os.path.join(job_work_dir, "task*"))
     task_dir_list = sorted(task_dir_list)
     work_base_dir = os.getcwd()
