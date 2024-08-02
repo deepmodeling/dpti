@@ -300,9 +300,9 @@ def _ff_two_steps(lamb, model, m_spring_k, step, append=None):
     ret = ""
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
     if append:
-        ret += f"pair_style      hybrid/overlay deepmd {model:s} {append:s}\n"
+        ret += f"pair_style      deepmd {model:s} {append:s}\n"
     else:
-        ret += f"pair_style      hybrid/overlay deepmd {model:s}\n"
+        ret += f"pair_style      deepmd {model:s}\n"
     ret += "pair_coeff * *\n"
 
     if step == "both" or step == "spring_off":
