@@ -151,6 +151,8 @@ def make_tasks(iter_name, jdata, if_meam=None):
     if "copies" in jdata:
         copies = jdata["copies"]
     model = jdata["model"]
+    custom_variables = jdata.get("custom_variables", None)
+    append = jdata.get("append", None)
     meam_model = jdata.get("meam_model", None)
     # model = os.path.abspath(model)
     # mass_map = jdata['mass_map']
@@ -274,6 +276,8 @@ def make_tasks(iter_name, jdata, if_meam=None):
                 copies=copies,
                 if_meam=if_meam,
                 meam_model=meam_model,
+                custom_variables=custom_variables,
+                append=append,
             )
             thermo_out = temp_list[ii]
             # with open('thermo.out', 'w') as fp :
@@ -295,6 +299,8 @@ def make_tasks(iter_name, jdata, if_meam=None):
                 copies=copies,
                 if_meam=if_meam,
                 meam_model=meam_model,
+                custom_variables=custom_variables,
+                append=append,
             )
             thermo_out = temp_list[ii]
             # with open('thermo.out', 'w') as fp :
@@ -316,6 +322,8 @@ def make_tasks(iter_name, jdata, if_meam=None):
                 copies=copies,
                 if_meam=if_meam,
                 meam_model=meam_model,
+                custom_variables=custom_variables,
+                append=append,
             )
             thermo_out = pres_list[ii]
         else:
