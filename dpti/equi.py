@@ -53,22 +53,22 @@ def gen_equi_header(
     ret += "variable        THERMO_FREQ     equal %d\n" % thermo_freq
     ret += "variable        DUMP_FREQ       equal %d\n" % dump_freq
     ret += "variable        NREPEAT         equal ${NSTEPS}/${DUMP_FREQ}\n"
-    ret += "variable        TEMP            equal %.6f\n" % temp
+    ret += f"variable        TEMP            equal {temp:.6f}\n"
     if custom_variables is not None:
         for key, value in custom_variables.items():
             ret += f"variable        {key}            equal {value}\n"
     # if equi_settings['pres'] is not None :
     if pres is not None:
-        ret += "variable        PRES            equal %.6f\n" % pres
-    ret += "variable        TAU_T           equal %.6f\n" % tau_t
-    ret += "variable        TAU_P           equal %.6f\n" % tau_p
+        ret += f"variable        PRES            equal {pres:.6f}\n"
+    ret += f"variable        TAU_T           equal {tau_t:.6f}\n"
+    ret += f"variable        TAU_P           equal {tau_p:.6f}\n"
     ret += "# ---------------------- INITIALIZAITION ------------------\n"
     ret += "units           metal\n"
     ret += "boundary        p p p\n"
     ret += "atom_style      atomic\n"
     ret += "# --------------------- ATOM DEFINITION ------------------\n"
     ret += "box             tilt large\n"
-    ret += "read_data       %s\n" % equi_conf
+    ret += f"read_data       {equi_conf}\n"
     ret += "change_box      all triclinic\n"
     for jj in range(len(mass_map)):
         ret += "mass            %d %.6f\n" % (jj + 1, mass_map[jj])
@@ -94,7 +94,7 @@ def gen_equi_force_field(model, if_meam=False, meam_model=None, append=None):
     ret = ""
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
     if not if_meam:
-        ret += "pair_style      deepmd %s" % model
+        ret += f"pair_style      deepmd {model}\n"
         if append is not None:
             ret += " " + append
         ret += "\n"
@@ -112,7 +112,7 @@ def gen_equi_thermo_settings(timestep):
     ret = ""
     ret += "# --------------------- MD SETTINGS ----------------------\n"
     ret += "neighbor        1.0 bin\n"
-    ret += "timestep        %.6f\n" % timestep
+    ret += f"timestep        {timestep:.6f}\n"
     ret += "thermo          ${THERMO_FREQ}\n"
     ret += "compute         allmsd all msd\n"
     ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz c_allmsd[*]\n"
@@ -147,7 +147,7 @@ def gen_equi_ensemble_settings(ens):
     elif ens == "nve":
         ret += "fix             1 all nve\n"
     else:
-        raise RuntimeError("unknow ensemble %s\n" % ens)
+        raise RuntimeError(f"unknow ensemble {ens}\n")
     ret += "fix             mzero all momentum 10 linear 1 1 1\n"
     ret += "# --------------------- INITIALIZE -----------------------\n"
     ret += "velocity        all create ${TEMP} %d\n" % (

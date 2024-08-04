@@ -68,10 +68,10 @@ def _gen_lammps_input(
     ret += "variable        NSTEPS          equal %d\n" % nsteps
     ret += "variable        THERMO_FREQ     equal %d\n" % thermo_freq
     ret += "variable        DUMP_FREQ       equal %d\n" % dump_freq
-    ret += "variable        TEMP            equal %f\n" % temp
-    ret += "variable        PRES            equal %f\n" % pres
-    ret += "variable        TAU_T           equal %f\n" % tau_t
-    ret += "variable        TAU_P           equal %f\n" % tau_p
+    ret += f"variable        TEMP            equal {temp:f}\n"
+    ret += f"variable        PRES            equal {pres:f}\n"
+    ret += f"variable        TAU_T           equal {tau_t:f}\n"
+    ret += f"variable        TAU_P           equal {tau_p:f}\n"
     if custom_variables is not None:
         for key, value in custom_variables.items():
             ret += f"variable {key} equal {value}\n"
@@ -81,7 +81,7 @@ def _gen_lammps_input(
     ret += "atom_style      atomic\n"
     ret += "# --------------------- ATOM DEFINITION ------------------\n"
     ret += "box             tilt large\n"
-    ret += "read_data       %s\n" % conf_file
+    ret += f"read_data       {conf_file}\n"
     if copies is not None:
         ret += "replicate       %d %d %d\n" % (copies[0], copies[1], copies[2])
     ret += "change_box      all triclinic\n"
@@ -103,7 +103,7 @@ def _gen_lammps_input(
             ret += "pair_coeff * *\n"
     ret += "# --------------------- MD SETTINGS ----------------------\n"
     ret += "neighbor        1.0 bin\n"
-    ret += "timestep        %s\n" % timestep
+    ret += f"timestep        {timestep}\n"
     ret += "thermo          ${THERMO_FREQ}\n"
     ret += "compute         allmsd all msd\n"
     if ens == "nvt":
@@ -113,7 +113,7 @@ def _gen_lammps_input(
         ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n"
         ret += "thermo_modify   format 4*8 %20.6f\n"
     else:
-        raise RuntimeError("unknow ensemble %s\n" % ens)
+        raise RuntimeError(f"unknow ensemble {ens}\n")
     ret += "dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z\n"
     if ens == "nvt":
         ret += "fix             1 all nvt temp ${TEMP} ${TEMP} ${TAU_T}\n"
@@ -128,7 +128,7 @@ def _gen_lammps_input(
     elif ens == "nve":
         ret += "fix             1 all nve\n"
     else:
-        raise RuntimeError("unknow ensemble %s\n" % ens)
+        raise RuntimeError(f"unknow ensemble {ens}\n")
     ret += "fix             mzero all momentum 10 linear 1 1 1\n"
     ret += "# --------------------- INITIALIZE -----------------------\n"
     ret += "velocity        all create ${TEMP} %d\n" % (
@@ -331,7 +331,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
             raise RuntimeError("invalid ens or path setting")
 
         with open(os.path.join(task_abs_dir, "thermo.out"), "w") as fp:
-            fp.write("%f" % (thermo_out))
+            fp.write(f"{thermo_out:f}")
         with open(os.path.join(task_abs_dir, "in.lammps"), "w") as fp:
             fp.write(lmp_str)
 
@@ -363,7 +363,7 @@ def _compute_thermo(lmplog, natoms, stat_skip, stat_bsize):
 
 
 def _print_thermo_info(info, more_head=""):
-    ptr = "# thermodynamics (normalized by natoms) %s\n" % more_head
+    ptr = f"# thermodynamics (normalized by natoms) {more_head}\n"
     ptr += "# E (err)  [eV]:  {:20.8f} {:20.8f}\n".format(info["e"], info["e_err"])
     ptr += "# H (err)  [eV]:  {:20.8f} {:20.8f}\n".format(info["h"], info["h_err"])
     ptr += "# T (err)   [K]:  {:20.8f} {:20.8f}\n".format(info["t"], info["t_err"])
@@ -636,21 +636,9 @@ def post_tasks(
         )
         for ii in range(len(all_temps)):
             print(
-                "{:9.2f}  {:20.12f}  {:9.2e}  {:9.2e}  {:9.2e}".format(
-                    all_temps[ii],
-                    all_fe[ii],
-                    all_fe_err[ii],
-                    all_fe_sys_err[ii],
-                    np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]),
-                )
+                f"{all_temps[ii]:9.2f}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]):9.2e}"
             )
-            result += "{:9.2f}  {:20.12f}  {:9.2e}  {:9.2e}  {:9.2e}\n".format(
-                all_temps[ii],
-                all_fe[ii],
-                all_fe_err[ii],
-                all_fe_sys_err[ii],
-                np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]),
-            )
+            result += f"{all_temps[ii]:9.2f}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]):9.2e}\n"
     elif "npt" in ens:
         print(
             "#%8s  %15s  %20s  %9s  %9s  %9s"
@@ -666,25 +654,9 @@ def post_tasks(
         )
         for ii in range(len(all_temps)):
             print(
-                "{:9.2f}  {:15.8e}  {:20.12f}  {:9.2e}  {:9.2e}  {:9.2e}".format(
-                    all_temps[ii],
-                    all_press[ii],
-                    all_fe[ii],
-                    all_fe_err[ii],
-                    all_fe_sys_err[ii],
-                    np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]),
-                )
+                f"{all_temps[ii]:9.2f}  {all_press[ii]:15.8e}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]):9.2e}"
             )
-            result += (
-                "{:9.2f}  {:15.8e}  {:20.12f}  {:9.2e}  {:9.2e}  {:9.2e}\n".format(
-                    all_temps[ii],
-                    all_press[ii],
-                    all_fe[ii],
-                    all_fe_err[ii],
-                    all_fe_sys_err[ii],
-                    np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]),
-                )
-            )
+            result += f"{all_temps[ii]:9.2f}  {all_press[ii]:15.8e}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]):9.2e}\n"
             # print(all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]))
     # result_file.close()
 
@@ -834,13 +806,7 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms=None):
         )
         for ii in range(len(all_temps)):
             print(
-                "{:9.2f}  {:15.8e}  {:20.12f}  {:9.2e}  {:9.2e}".format(
-                    all_temps[ii],
-                    all_press[ii],
-                    all_fe[ii],
-                    all_fe_err[ii],
-                    all_fe_sys_err[ii],
-                )
+                f"{all_temps[ii]:9.2f}  {all_press[ii]:15.8e}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}"
             )
     # info = dict(start_point_info=info0, end_point_info=info1, all_temps=list(all_temps), all_press=list(all_press),
     #              all_fe=list(all_fe), all_fe_err=list(all_fe_err), all_fe_sys_err=list(all_fe_sys_err))
@@ -860,7 +826,7 @@ def refine_task(from_task, to_task, err):
     from_ti = os.path.join(from_task, "ti.out")
     if not os.path.isfile(from_ti):
         raise RuntimeError(
-            "cannot find file %s, task should be computed befor refined" % from_ti
+            f"cannot find file {from_ti}, task should be computed befor refined"
         )
     tmp_array = np.loadtxt(from_ti)
     all_t = tmp_array[:, 0]
