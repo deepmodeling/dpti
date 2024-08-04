@@ -134,7 +134,7 @@ def poscar_scale(poscar_in, poscar_out, scale):
     elif "C" == lines[7][0] or "c" == lines[7][0]:
         lines = _poscar_scale_cartesian(lines, scale)
     else:
-        raise RuntimeError("Unknow poscar coord style at line 7: %s" % lines[7])
+        raise RuntimeError(f"Unknow poscar coord style at line 7: {lines[7]}")
     with open(poscar_out, "w") as fout:
         fout.write("".join(lines))
 
