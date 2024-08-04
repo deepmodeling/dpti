@@ -371,7 +371,7 @@ def _gen_lammps_input(
     ret += "variable        INV_LAMBDA      equal %.10e\n" % (1 - lamb)
     if custom_variables is not None:
         for key, value in custom_variables.items():
-            ret += "variable        %s equal %s\n" % (key, value)
+            ret += f"variable {key} equal {value}\n"
     ret += "# ---------------------- INITIALIZAITION ------------------\n"
     ret += "units           metal\n"
     ret += "boundary        p p p\n"
