@@ -49,7 +49,7 @@ class TestEquiHeader(unittest.TestCase):
         ret2 = dpti.equi.gen_equi_header(**input)
         self.assertEqual(ret1, ret2)
 
-    def test_equi_header_npt_custom_varialbe(self):
+    def test_equi_header_npt_custom_variable(self):
         input = {
             "nsteps": 1000000,
             "thermo_freq": 10,
