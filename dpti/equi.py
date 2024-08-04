@@ -35,7 +35,16 @@ from dpti.lib.water import compute_bonds, posi_diff
 # def gen_equi_header(nsteps, prt_freq, dump_freq, temp, pres, tau_t, tau_p, mass_map, conf_file):
 # def gen_equi_header(nsteps, prt_freq, dump_freq, temp, pres, tau_t, tau_p, mass_map, conf_file):
 def gen_equi_header(
-    nsteps, thermo_freq, dump_freq, mass_map, temp, tau_t, tau_p, equi_conf, pres=None, custom_variables=None
+    nsteps,
+    thermo_freq,
+    dump_freq,
+    mass_map,
+    temp,
+    tau_t,
+    tau_p,
+    equi_conf,
+    pres=None,
+    custom_variables=None,
 ):
     ret = ""
     ret += "clear\n"
@@ -87,7 +96,7 @@ def gen_equi_force_field(model, if_meam=False, meam_model=None, append=None):
     if not if_meam:
         ret += "pair_style      deepmd %s" % model
         if append is not None:
-            ret += " "+append
+            ret += " " + append
         ret += "\n"
         ret += "pair_coeff * *\n"
     else:

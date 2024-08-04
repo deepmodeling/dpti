@@ -274,7 +274,9 @@ def _ff_spring(lamb, m_spring_k, var_spring):
     return ret
 
 
-def _ff_soft_lj(lamb, model, m_spring_k, step, sparam, if_meam=False, meam_model=None, append=None):
+def _ff_soft_lj(
+    lamb, model, m_spring_k, step, sparam, if_meam=False, meam_model=None, append=None
+):
     ret = ""
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
     if step == "lj_on":
@@ -282,11 +284,15 @@ def _ff_soft_lj(lamb, model, m_spring_k, step, sparam, if_meam=False, meam_model
         var_spring = False
     elif step == "deep_on":
         # ret += _ff_meam_on(lamb, model, sparam)
-        ret += _ff_deep_on(lamb, model, sparam, if_meam=if_meam, meam_model=meam_model, append=append)
+        ret += _ff_deep_on(
+            lamb, model, sparam, if_meam=if_meam, meam_model=meam_model, append=append
+        )
         var_spring = False
     elif step == "spring_off":
         # ret += _ff_meam_lj_off(lamb, model, sparam)
-        ret += _ff_lj_off(lamb, model, sparam, if_meam=if_meam, meam_model=meam_model, append=append)
+        ret += _ff_lj_off(
+            lamb, model, sparam, if_meam=if_meam, meam_model=meam_model, append=append
+        )
         var_spring = True
     else:
         raise RuntimeError("unkown step", step)
