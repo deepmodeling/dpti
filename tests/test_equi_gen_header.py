@@ -61,9 +61,9 @@ class TestEquiHeader(unittest.TestCase):
             "equi_conf": "conf.lmp",
             "pres": 200000,
             "custom_variables": {
-                "kBeV":		8.617333262e-5,
-                "TeV":		"${TEMP}*${kBeV}",
-    },
+                "kBeV": 8.617333262e-5,
+                "TeV": "${TEMP}*${kBeV}",
+            },
         }
 
         ret1 = textwrap.dedent(
