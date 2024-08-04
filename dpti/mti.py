@@ -54,10 +54,10 @@ def _gen_lammps_input(
     ret += "variable        NSTEPS          equal %d\n" % nsteps
     ret += "variable        THERMO_FREQ     equal %d\n" % thermo_freq
     ret += "variable        DUMP_FREQ       equal %d\n" % dump_freq
-    ret += "variable        TEMP            equal %f\n" % temp
-    ret += "variable        PRES            equal %f\n" % pres
-    ret += "variable        TAU_T           equal %f\n" % tau_t
-    ret += "variable        TAU_P           equal %f\n" % tau_p
+    ret += f"variable        TEMP            equal {temp:f}\n"
+    ret += f"variable        PRES            equal {pres:f}\n"
+    ret += f"variable        TAU_T           equal {tau_t:f}\n"
+    ret += f"variable        TAU_P           equal {tau_p:f}\n"
     ret += "# ---------------------- INITIALIZAITION ------------------\n"
     ret += "units           metal\n"
     ret += "boundary        p p p\n"
@@ -72,14 +72,14 @@ def _gen_lammps_input(
         ret += "mass            %d %f\n" % (jj + 1, mass_map[jj] * mass_scale)
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
     if model is not None:
-        ret += "pair_style      deepmd %s\n" % model
+        ret += f"pair_style      deepmd {model}\n"
         ret += "pair_coeff * *\n"
     elif template_ff is not None:
         ret += template_ff
     ret += "# --------------------- MD SETTINGS ----------------------\n"
     ret += "neighbor        2.0 bin\n"
     ret += "neigh_modify    every 10 delay 0 check no\n"
-    ret += "timestep        %s\n" % timestep
+    ret += f"timestep        {timestep}\n"
     ret += "thermo          ${THERMO_FREQ}\n"
     ret += "compute         allmsd all msd\n"
     ret += "dump            1 all custom ${DUMP_FREQ} ${ibead}.dump id type x y z\n"
@@ -96,7 +96,7 @@ def _gen_lammps_input(
     elif ens == "nve":
         ret += "fix 1 all pimd/langevin ensemble nve integrator obabo temp ${TEMP}\n"
     else:
-        raise RuntimeError("unknow ensemble %s\n" % ens)
+        raise RuntimeError(f"unknow ensemble {ens}\n")
     if ens == "nvt" or ens == "nve":
         ret += "thermo_style    custom step temp f_1[5] f_1[7] c_allmsd[*]\n"
         ret += "thermo_modify   format float %6.8e\n"
@@ -106,7 +106,7 @@ def _gen_lammps_input(
         ret += "thermo_modify   format float %6.8e\n"
         ret += 'fix print all print ${THERMO_FREQ} "$(step) $(temp) $(vol) $(density) $(f_1[5]) $(f_1[7])" append ${ibead}.out title "# step temp vol density K_prim K_cv" screen no'
     else:
-        raise RuntimeError("unknow ensemble %s\n" % ens)
+        raise RuntimeError(f"unknow ensemble {ens}\n")
     ret += "# --------------------- INITIALIZE -----------------------\n"
     ret += "# --------------------- RUN ------------------------------\n"
     ret += "restart         100000 ${ibead}.restart\n"

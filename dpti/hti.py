@@ -43,7 +43,7 @@ def _ff_lj_on(lamb, model, sparam):
     # sigma_hh = sparam['sigma_hh']
     activation = sparam["activation"]
     ret = ""
-    ret += "variable        EPSILON equal %f\n" % epsilon
+    ret += f"variable        EPSILON equal {epsilon:f}\n"
     ret += f"pair_style      lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
 
     element_num = sparam.get("element_num", 1)
@@ -79,27 +79,16 @@ def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None):
     # sigma_hh = sparam['sigma_hh']
     activation = sparam["activation"]
     ret = ""
-    ret += "variable        EPSILON equal %f\n" % epsilon
+    ret += f"variable        EPSILON equal {epsilon:f}\n"
     ret += "variable        ONE equal 1\n"
     # if if_meam:
     #     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
     #     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn \n'
     if if_meam:
-        ret += (
-            "pair_style      hybrid/overlay meam lj/cut/soft {:f} {:f} {:f}\n".format(
-                nn,
-                alpha_lj,
-                rcut,
-            )
-        )
+        ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
     else:
-        ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}\n".format(
-            model,
-            nn,
-            alpha_lj,
-            rcut,
-        )
+        ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
 
     element_num = sparam.get("element_num", 1)
@@ -177,28 +166,17 @@ def _ff_lj_off(lamb, model, sparam, if_meam=False, meam_model=None):
     # sigma_hh = sparam['sigma_hh']
     activation = sparam["activation"]
     ret = ""
-    ret += "variable        EPSILON equal %f\n" % epsilon
+    ret += f"variable        EPSILON equal {epsilon:f}\n"
     ret += "variable        INV_EPSILON equal -${EPSILON}\n"
     # if if_meam:
     #     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n'  % (nn, alpha_lj, rcut)
     #     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
     if if_meam:
-        ret += (
-            "pair_style      hybrid/overlay meam lj/cut/soft {:f} {:f} {:f}\n".format(
-                nn,
-                alpha_lj,
-                rcut,
-            )
-        )
+        ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
-        ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}\n".format(
-            model,
-            nn,
-            alpha_lj,
-            rcut,
-        )
+        ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
 
     element_num = sparam.get("element_num", 1)
@@ -265,16 +243,12 @@ def _ff_spring(lamb, m_spring_k, var_spring):
             m_spring_const = m_spring_k[ii] * (1 - lamb)
         else:
             m_spring_const = m_spring_k[ii]
-        ret += "fix             l_spring_{} type_{} spring/self {:.10e}\n".format(
-            ii + 1,
-            ii + 1,
-            m_spring_const,
-        )
+        ret += f"fix             l_spring_{ii + 1} type_{ii + 1} spring/self {m_spring_const:.10e}\n"
         ret += "fix_modify      l_spring_%s energy yes\n" % (ii + 1)
     sum_str = "f_l_spring_1"
     for ii in range(1, ntypes):
         sum_str += "+f_l_spring_%s" % (ii + 1)
-    ret += "variable        l_spring equal %s\n" % (sum_str)
+    ret += f"variable        l_spring equal {sum_str}\n"
     return ret
 
 
@@ -303,7 +277,7 @@ def _ff_soft_lj(lamb, model, m_spring_k, step, sparam, if_meam=False, meam_model
 def _ff_two_steps(lamb, model, m_spring_k, step):
     ret = ""
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
-    ret += "pair_style      deepmd %s\n" % model
+    ret += f"pair_style      deepmd {model}\n"
     ret += "pair_coeff * *\n"
 
     if step == "both" or step == "spring_off":
@@ -356,11 +330,11 @@ def _gen_lammps_input(
     ret += "variable        NSTEPS          equal %d\n" % nsteps
     ret += "variable        THERMO_FREQ     equal %d\n" % thermo_freq
     ret += "variable        DUMP_FREQ       equal %d\n" % dump_freq
-    ret += "variable        TEMP            equal %f\n" % temp
-    ret += "variable        PRES            equal %f\n" % pres
-    ret += "variable        TAU_T           equal %f\n" % tau_t
-    ret += "variable        TAU_P           equal %f\n" % tau_p
-    ret += "variable        LAMBDA          equal %.10e\n" % lamb
+    ret += f"variable        TEMP            equal {temp:f}\n"
+    ret += f"variable        PRES            equal {pres:f}\n"
+    ret += f"variable        TAU_T           equal {tau_t:f}\n"
+    ret += f"variable        TAU_P           equal {tau_p:f}\n"
+    ret += f"variable        LAMBDA          equal {lamb:.10e}\n"
     ret += "variable        INV_LAMBDA      equal %.10e\n" % (1 - lamb)
     ret += "# ---------------------- INITIALIZAITION ------------------\n"
     ret += "units           metal\n"
@@ -368,7 +342,7 @@ def _gen_lammps_input(
     ret += "atom_style      atomic\n"
     ret += "# --------------------- ATOM DEFINITION ------------------\n"
     ret += "box             tilt large\n"
-    ret += "read_data       %s\n" % conf_file
+    ret += f"read_data       {conf_file}\n"
     if copies is not None:
         ret += "replicate       %d %d %d\n" % (copies[0], copies[1], copies[2])
     ret += "change_box      all triclinic\n"
@@ -393,7 +367,7 @@ def _gen_lammps_input(
 
     ret += "# --------------------- MD SETTINGS ----------------------\n"
     ret += "neighbor        1.0 bin\n"
-    ret += "timestep        %s\n" % timestep
+    ret += f"timestep        {timestep}\n"
     ret += "thermo          ${THERMO_FREQ}\n"
     ret += "compute         allmsd all msd\n"
     if 1 - lamb != 0:
@@ -431,7 +405,7 @@ def _gen_lammps_input(
     elif ens == "nve":
         ret += "fix             1 all nve\n"
     else:
-        raise RuntimeError("unknow ensemble %s\n" % ens)
+        raise RuntimeError(f"unknow ensemble {ens}\n")
     ret += "# --------------------- INITIALIZE -----------------------\n"
     ret += "velocity        all create ${TEMP} %d\n" % (
         np.random.default_rng().integers(1, 2**16)
@@ -832,7 +806,7 @@ def refine_task(
     from_ti = os.path.join(from_task, "hti.out")
     if not os.path.isfile(from_ti):
         raise RuntimeError(
-            "cannot find file %s, task should be computed befor refined" % from_ti
+            f"cannot find file {from_ti}, task should be computed befor refined"
         )
     tmp_array = np.loadtxt(from_ti)
     all_t = tmp_array[:, 0]
@@ -1302,9 +1276,9 @@ def compute_task(
     info = thermo_info.copy()
 
     if jdata["reference"] == "einstein":
-        print("# free ener of Einstein Mole: %20.8f" % e0)
+        print(f"# free ener of Einstein Mole: {e0:20.8f}")
     else:
-        print("# free ener of ideal gas: %20.8f" % e0)
+        print(f"# free ener of ideal gas: {e0:20.8f}")
 
     print(
         ("# fe contrib due to integration " + print_format) % (de, de_err[0], de_err[1])
