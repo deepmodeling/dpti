@@ -72,8 +72,9 @@ def _gen_lammps_input(
     ret += "variable        PRES            equal %f\n" % pres
     ret += "variable        TAU_T           equal %f\n" % tau_t
     ret += "variable        TAU_P           equal %f\n" % tau_p
-    for key, value in custom_variables.items():
-        ret += f"variable {key} equal {value}\n"
+    if custom_variables is not None:
+        for key, value in custom_variables.items():
+            ret += f"variable {key} equal {value}\n"
     ret += "# ---------------------- INITIALIZAITION ------------------\n"
     ret += "units           metal\n"
     ret += "boundary        p p p\n"
