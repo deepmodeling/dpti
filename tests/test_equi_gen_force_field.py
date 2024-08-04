@@ -23,7 +23,12 @@ class TestEquiForceField(unittest.TestCase):
         self.assertEqual(ret1, ret2)
 
     def test_deepmd_append(self):
-        input = {"model": "graph.pb", "if_meam": False, "meam_model": None, "append": "fparam ${TeV}"}
+        input = {
+            "model": "graph.pb",
+            "if_meam": False,
+            "meam_model": None,
+            "append": "fparam ${TeV}",
+        }
 
         ret1 = textwrap.dedent(
             """\
