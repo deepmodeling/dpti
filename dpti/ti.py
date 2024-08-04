@@ -59,6 +59,8 @@ def _gen_lammps_input(
     copies=None,
     if_meam=False,
     meam_model=None,
+    custom_variables=None,
+    append=None,
 ):
     ret = ""
     ret += "clear\n"
@@ -70,6 +72,8 @@ def _gen_lammps_input(
     ret += "variable        PRES            equal %f\n" % pres
     ret += "variable        TAU_T           equal %f\n" % tau_t
     ret += "variable        TAU_P           equal %f\n" % tau_p
+    for key, value in custom_variables.items():
+        ret += f"variable {key} equal {value}\n"
     ret += "# ---------------------- INITIALIZAITION ------------------\n"
     ret += "units           metal\n"
     ret += "boundary        p p p\n"
@@ -90,8 +94,12 @@ def _gen_lammps_input(
         ret += "pair_style      meam\n"
         ret += f'pair_coeff      * * {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
     else:
-        ret += "pair_style      deepmd %s\n" % model
-        ret += "pair_coeff * *\n"
+        if append:
+            ret += f"pair_style      deepmd {model:s} {append:s}\n"
+            ret += "pair_coeff * *\n"
+        else:
+            ret += f"pair_style      deepmd {model:s}\n"
+            ret += "pair_coeff * *\n"
     ret += "# --------------------- MD SETTINGS ----------------------\n"
     ret += "neighbor        1.0 bin\n"
     ret += "timestep        %s\n" % timestep
