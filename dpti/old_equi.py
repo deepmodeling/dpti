@@ -47,18 +47,18 @@ def _gen_lammps_input(
     ret += "variable        THERMO_FREQ     equal %d\n" % prt_freq
     ret += "variable        DUMP_FREQ       equal %d\n" % dump_freq
     ret += "variable        NREPEAT         equal ${NSTEPS}/${DUMP_FREQ}\n"
-    ret += "variable        TEMP            equal %f\n" % temp
+    ret += f"variable        TEMP            equal {temp:f}\n"
     if pres is not None:
-        ret += "variable        PRES            equal %f\n" % pres
-    ret += "variable        TAU_T           equal %f\n" % tau_t
-    ret += "variable        TAU_P           equal %f\n" % tau_p
+        ret += f"variable        PRES            equal {pres:f}\n"
+    ret += f"variable        TAU_T           equal {tau_t:f}\n"
+    ret += f"variable        TAU_P           equal {tau_p:f}\n"
     ret += "# ---------------------- INITIALIZAITION ------------------\n"
     ret += "units           metal\n"
     ret += "boundary        p p p\n"
     ret += "atom_style      atomic\n"
     ret += "# --------------------- ATOM DEFINITION ------------------\n"
     ret += "box             tilt large\n"
-    ret += "read_data       %s\n" % conf_file
+    ret += f"read_data       {conf_file}\n"
     ret += "change_box      all triclinic\n"
     for jj in range(len(mass_map)):
         ret += "mass            %d %f\n" % (jj + 1, mass_map[jj])
@@ -67,11 +67,11 @@ def _gen_lammps_input(
         ret += "pair_style      meam\n"
         ret += f"pair_coeff      * * {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n"
     else:
-        ret += "pair_style      deepmd %s\n" % model
+        ret += f"pair_style      deepmd {model}\n"
         ret += "pair_coeff * *\n"
     ret += "# --------------------- MD SETTINGS ----------------------\n"
     ret += "neighbor        1.0 bin\n"
-    ret += "timestep        %s\n" % dt
+    ret += f"timestep        {dt}\n"
     ret += "thermo          ${THERMO_FREQ}\n"
     ret += "compute         allmsd all msd\n"
     if ens == "nvt":
@@ -79,7 +79,7 @@ def _gen_lammps_input(
     elif "npt" in ens:
         ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz c_allmsd[*]\n"
     else:
-        raise RuntimeError("unknow ensemble %s\n" % ens)
+        raise RuntimeError(f"unknow ensemble {ens}\n")
     if dump_ave_posi:
         ret += "compute         ru all property/atom xu yu zu\n"
         ret += "fix             ap all ave/atom ${DUMP_FREQ} ${NREPEAT} ${NSTEPS} c_ru[1] c_ru[2] c_ru[3]\n"
@@ -100,7 +100,7 @@ def _gen_lammps_input(
     elif ens == "nve":
         ret += "fix             1 all nve\n"
     else:
-        raise RuntimeError("unknow ensemble %s\n" % ens)
+        raise RuntimeError(f"unknow ensemble {ens}\n")
     ret += "fix             mzero all momentum 10 linear 1 1 1\n"
     ret += "# --------------------- INITIALIZE -----------------------\n"
     ret += "velocity        all create ${TEMP} %d\n" % (
@@ -193,18 +193,18 @@ def make_task(
     if ens is None:
         ens = jdata["ens"]
     elif "ens" in jdata:
-        print("ens = %s overrides the ens in json data" % ens)
+        print(f"ens = {ens} overrides the ens in json data")
     jdata["ens"] = ens
     if temp is None:
         temp = jdata["temp"]
     elif "temp" in jdata:
-        print("T = %f overrides the temp in json data" % temp)
+        print(f"T = {temp:f} overrides the temp in json data")
     jdata["temp"] = temp
     if "npt" in ens:
         if pres is None:
             pres = jdata["pres"]
         elif "pres" in jdata:
-            print("P = %f overrides the pres in json data" % pres)
+            print(f"P = {pres:f} overrides the pres in json data")
         jdata["pres"] = pres
     if if_meam is None:
         if_meam = jdata.get("if_meam", False)

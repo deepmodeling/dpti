@@ -36,7 +36,7 @@ def _ff_soft_on(lamb, sparam):
     # sigma = sparam['sigma']
     activation = sparam["activation"]
     ret = ""
-    ret += "variable        EPSILON equal %f\n" % epsilon
+    ret += f"variable        EPSILON equal {epsilon:f}\n"
     ret += f"pair_style      lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
 
     element_num = sparam.get("element_num", 1)
@@ -66,25 +66,14 @@ def _ff_deep_on(lamb, sparam, model, if_meam=False, meam_model=None):
     # sigma = sparam['sigma']
     activation = sparam["activation"]
     ret = ""
-    ret += "variable        EPSILON equal %f\n" % epsilon
+    ret += f"variable        EPSILON equal {epsilon:f}\n"
     ret += "variable        ONE equal 1\n"
     if if_meam:
-        ret += (
-            "pair_style      hybrid/overlay meam lj/cut/soft {:f} {:f} {:f}\n".format(
-                nn,
-                alpha_lj,
-                rcut,
-            )
-        )
+        ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
-        ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}\n".format(
-            model,
-            nn,
-            alpha_lj,
-            rcut,
-        )
+        ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
 
     element_num = sparam.get("element_num", 1)
@@ -121,25 +110,14 @@ def _ff_soft_off(lamb, sparam, model, if_meam=False, meam_model=None):
     activation = sparam["activation"]
     ret = ""
     ret += "variable        INV_LAMBDA equal 1-${LAMBDA}\n"
-    ret += "variable        EPSILON equal %f\n" % epsilon
+    ret += f"variable        EPSILON equal {epsilon:f}\n"
     ret += "variable        INV_EPSILON equal -${EPSILON}\n"
     if if_meam:
-        ret += (
-            "pair_style      hybrid/overlay meam lj/cut/soft {:f} {:f} {:f}\n".format(
-                nn,
-                alpha_lj,
-                rcut,
-            )
-        )
+        ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1} {meam_model[2]} \n'
     else:
-        ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}\n".format(
-            model,
-            nn,
-            alpha_lj,
-            rcut,
-        )
+        ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
 
     element_num = sparam.get("element_num", 1)
@@ -188,11 +166,11 @@ def _gen_lammps_input_ideal(
     ret += "variable        NSTEPS          equal %d\n" % nsteps
     ret += "variable        THERMO_FREQ     equal %d\n" % thermo_freq
     ret += "variable        DUMP_FREQ       equal %d\n" % dump_freq
-    ret += "variable        TEMP            equal %f\n" % temp
-    ret += "variable        PRES            equal %f\n" % pres
-    ret += "variable        TAU_T           equal %f\n" % tau_t
-    ret += "variable        TAU_P           equal %f\n" % tau_p
-    ret += "variable        LAMBDA          equal %.10e\n" % lamb
+    ret += f"variable        TEMP            equal {temp:f}\n"
+    ret += f"variable        PRES            equal {pres:f}\n"
+    ret += f"variable        TAU_T           equal {tau_t:f}\n"
+    ret += f"variable        TAU_P           equal {tau_p:f}\n"
+    ret += f"variable        LAMBDA          equal {lamb:.10e}\n"
     ret += "variable        ZERO            equal 0\n"
     ret += "# ---------------------- INITIALIZAITION ------------------\n"
     ret += "units           metal\n"
@@ -200,7 +178,7 @@ def _gen_lammps_input_ideal(
     ret += "atom_style      atomic\n"
     ret += "# --------------------- ATOM DEFINITION ------------------\n"
     ret += "box             tilt large\n"
-    ret += "read_data       %s\n" % conf_file
+    ret += f"read_data       {conf_file}\n"
     if copies is not None:
         ret += "replicate       %d %d %d\n" % (copies[0], copies[1], copies[2])
     ret += "change_box      all triclinic\n"
@@ -221,7 +199,7 @@ def _gen_lammps_input_ideal(
         raise RuntimeError("unknown step")
     ret += "# --------------------- MD SETTINGS ----------------------\n"
     ret += "neighbor        1.0 bin\n"
-    ret += "timestep        %s\n" % timestep
+    ret += f"timestep        {timestep}\n"
     ret += "compute         allmsd all msd\n"
     ret += "thermo          ${THERMO_FREQ}\n"
     ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_diff[1] c_allmsd[*]\n"
@@ -234,7 +212,7 @@ def _gen_lammps_input_ideal(
     elif ens == "nve":
         ret += "fix             1 all nve\n"
     else:
-        raise RuntimeError("unknow ensemble %s\n" % ens)
+        raise RuntimeError(f"unknow ensemble {ens}\n")
     ret += "fix             mzero all momentum 10 linear 1 1 1\n"
     ret += "# --------------------- INITIALIZE -----------------------\n"
     ret += "velocity        all create ${TEMP} %d\n" % (
