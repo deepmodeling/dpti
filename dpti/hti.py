@@ -182,6 +182,7 @@ def _ff_lj_off(lamb, model, sparam, if_meam=False, meam_model=None, append=None)
             ret += f"pair_style      hybrid/overlay deepmd {model:s} {append:s} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         else:
             ret += f"pair_style      hybrid/overlay deepmd {model:s} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
+        ret += "pair_coeff      * * deepmd\n"
 
     element_num = sparam.get("element_num", 1)
     sigma_key_index = filter(
