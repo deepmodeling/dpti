@@ -514,7 +514,7 @@ def compute_task(
             v = npt_info["v"]
             v_err = npt_info["v_err"]
             unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
-            pv = p * v * unit_cvt * 3
+            pv = p * v * unit_cvt
             pv_err = p * v_err * unit_cvt * np.sqrt(3)
             print(f"# use pv from npt task: pv = {pv:.6e} pv_err = {pv_err:.6e}")
         elif npt is None and manual_pv is None:
