@@ -970,13 +970,13 @@ def add_module_subparsers(main_subparsers):
         help="the method of thermodynamic integration",
     )
     parser_compute.add_argument(
-        "-e", "--Eo", type=float, default=0, help="free energy of starting point"
+        "-e", "--Eo", type=float, default=None, help="free energy of starting point"
     )
     parser_compute.add_argument(
         "-E",
         "--Eo-err",
         type=float,
-        default=0,
+        default=None,
         help="The statistical error of the starting free energy",
     )
     parser_compute.add_argument(
@@ -1028,7 +1028,7 @@ def handle_compute(args):
     hti_dir = args.hti
     jdata_hti = json.load(open(os.path.join(hti_dir, "result.json")))
     if args.Eo is not None and args.hti is not None:
-        raise Warning(
+        raise ValueError(
             "Both Eo and hti are provided. Eo will be overrided by the e1 value in hti's result.json file. Make sure this is what you want."
         )
     if args.Eo is None:
