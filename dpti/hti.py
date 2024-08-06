@@ -1540,7 +1540,9 @@ def add_module_subparsers(main_subparsers):
     parser_run.add_argument("JOB", type=str, help="folder of the job")
     parser_run.add_argument("machine", type=str, help="machine.json file for the job")
     parser_run.add_argument(
-        "task_name", type=str, help="task name, can be one-step, 00, 01, or 02. The task names 00, 01, and 02 are used for the two-step or three-step HTI."
+        "task_name",
+        type=str,
+        help="task name, can be one-step, 00, 01, or 02. The task names 00, 01, and 02 are used for the two-step or three-step HTI.",
     )
     parser_run.add_argument(
         "--no-dp", action="store_true", help="whether to use Deep Potential or not"
