@@ -1412,7 +1412,9 @@ def hti_phase_trans_analyze(job, jdata=None):
 def run_task(task_dir, machine_file, task_name, no_dp=False):
     if task_name == "00" or task_name == "01" or task_name == "02":
         job_work_dir_ = glob.glob(os.path.join(task_dir, task_name + "*"))
-        assert len(job_work_dir_) == 1, f"The task_name you entered is {task_name}. It indicates that you want to run tasks for step {task_name} of the two-step or three-step HTI. Please make sure that there is one and only one {task_name}.* directory in the hti task directory."
+        assert (
+            len(job_work_dir_) == 1
+        ), f"The task_name you entered is {task_name}. It indicates that you want to run tasks for step {task_name} of the two-step or three-step HTI. Please make sure that there is one and only one {task_name}.* directory in the hti task directory."
         job_work_dir = job_work_dir_[0]
     elif task_name == "one-step":
         job_work_dir = task_dir
