@@ -1293,6 +1293,7 @@ def compute_task(
     scheme="simpson",
     manual_pv=None,
     manual_pv_err=None,
+    npt=None,
 ):
     # print('hti.compute_task', job, jdata, method, scheme, free_energy_type)
     # assert 'reference' in jdata
@@ -1329,14 +1330,24 @@ def compute_task(
         print("# Helmholtz free ener per atom (stat_err inte_err) [eV]:")
         print(print_format % (e1, de_err[0], de_err[1]))
     elif free_energy_type == "gibbs":
-        if manual_pv is None:
+        if npt is not None:
+            npt_in = json.load(open(os.path.join(npt, "jdata.json")))
+            npt_info = json.load(open(os.path.join(npt, "result.json")))
+            p = npt_in["pres"]
+            v = npt_info["v"]
+            v_err = npt_info["v_err"]
+            unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
+            pv = p * v * unit_cvt
+            pv_err = p * v_err * unit_cvt * np.sqrt(3)
+            print(f"# use pv from npt task: pv = {pv:.6e} pv_err = {pv_err:.6e}")
+        elif npt is None and manual_pv is None:
             pv = thermo_info["pv"]
-        else:
+        elif npt is None and manual_pv is not None:
             print(f"# use manual_pv={manual_pv}")
             pv = manual_pv
-        if manual_pv_err is None:
+        if npt is None and manual_pv_err is None:
             pv_err = thermo_info["pv_err"]
-        else:
+        elif npt is None and manual_pv_err is not None:
             print(f"# use manual_pv_err={manual_pv_err}")
             pv_err = manual_pv_err
         e1 = e0 + de + pv
@@ -1515,6 +1526,12 @@ def add_module_subparsers(main_subparsers):
     parser_compute.add_argument(
         "-G", "--pv-err", type=float, default=None, help="press*vol error"
     )
+    parser_compute.add_argument(
+        "--npt",
+        type=str,
+        default=None,
+        help="directory of the npt task; will use PV from npt result, where P is the control variable and V varies.",
+    )
     parser_compute.set_defaults(func=handle_compute)
 
     parser_run = module_subparsers.add_parser("run", help="run the job")
@@ -1549,6 +1566,7 @@ def handle_compute(args):
         scheme=args.scheme,
         manual_pv=args.pv,
         manual_pv_err=args.pv_err,
+        npt=args.npt,
     )
     # if 'reference' not in jdata :
     #     jdata['reference'] = 'einstein'
