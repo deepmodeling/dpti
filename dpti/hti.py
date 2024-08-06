@@ -1412,7 +1412,9 @@ def hti_phase_trans_analyze(job, jdata=None):
 def run_task(task_dir, machine_file, task_name="one-step", no_dp=False):
     if task_name == "00" or task_name == "01" or task_name == "02":
         job_work_dir_ = glob.glob(os.path.join(task_dir, task_name + "*"))
-        assert len(job_work_dir_) == 1, f"The task_name you entered is {task_name}. It indicates that you want to run tasks for step {task_name} of the two-step or three-step HTI. Please make sure that there is one and only one {task_name}.* directory in the hti task directory."
+        assert (
+            len(job_work_dir_) == 1
+        ), f"The task_name you entered is {task_name}. It indicates that you want to run tasks for step {task_name} of the two-step or three-step HTI. Please make sure that there is one and only one {task_name}.* directory in the hti task directory."
         job_work_dir = job_work_dir_[0]
     elif task_name == "one-step":
         job_work_dir = task_dir
@@ -1538,7 +1540,10 @@ def add_module_subparsers(main_subparsers):
     parser_run.add_argument("JOB", type=str, help="folder of the job")
     parser_run.add_argument("machine", type=str, help="machine.json file for the job")
     parser_run.add_argument(
-        "task_name", type=str, default="one-step", help="task name, can be one-step, 00, 01, or 02"
+        "task_name",
+        type=str,
+        default="one-step",
+        help="task name, can be one-step, 00, 01, or 02",
     )
     parser_run.add_argument(
         "--no-dp", action="store_true", help="whether to use Deep Potential or not"
