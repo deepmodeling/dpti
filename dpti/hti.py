@@ -628,6 +628,18 @@ def _make_tasks(
     protect_eps = jdata["protect_eps"]
 
     if switch == "one-step":
+        if (
+            jdata.get("lambda", None) is None
+            and jdata.get("lambda_deep_on", None) is not None
+        ):
+            if jdata.get("lambda_lj_on", None) is not None:
+                raise RuntimeError(
+                    "It seems that you are using a json file for the three-step hti calculation. If that is the case, please set the correct switch option by using '-s three-step'. If you do want to use one-step switching, please use 'lambda' instead of 'lambda_lj_on', 'lambda_deep_on', and 'lambda_spring_off' in your json file. Check 'dpti hti gen -h' for more information."
+                )
+            elif jdata.get("lambda_lj_on", None) is None:
+                raise RuntimeError(
+                    "It seems that you are using a json file for the two-step hti calculation. If that is the case, please set the correct switch option by using '-s two-step'. If you do want to use one-step switching, please use 'lambda' instead of 'lambda_deep_on' and 'lambda_spring_off' in your json file. Check 'dpti hti gen -h' for more information."
+                )
         all_lambda = parse_seq(jdata["lambda"])
     elif switch == "two-step" or switch == "three-step":
         if step == "deep_on":
