@@ -68,7 +68,7 @@ def _ff_lj_on(lamb, model, sparam):
     return ret
 
 
-def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None):
+def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None, append=None):
     nn = sparam["n"]
     alpha_lj = sparam["alpha_lj"]
     rcut = sparam["rcut"]
@@ -88,9 +88,11 @@ def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None):
         ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
     else:
-        ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
+        if append:
+            ret += f"pair_style      hybrid/overlay deepmd {model:s} {append:s} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
+        else:
+            ret += f"pair_style      hybrid/overlay deepmd {model:s} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
-
     element_num = sparam.get("element_num", 1)
     sigma_key_index = filter(
         lambda t: t[0] <= t[1],
@@ -155,7 +157,7 @@ def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None):
 #     return ret
 
 
-def _ff_lj_off(lamb, model, sparam, if_meam=False, meam_model=None):
+def _ff_lj_off(lamb, model, sparam, if_meam=False, meam_model=None, append=None):
     nn = sparam["n"]
     alpha_lj = sparam["alpha_lj"]
     rcut = sparam["rcut"]
@@ -176,7 +178,10 @@ def _ff_lj_off(lamb, model, sparam, if_meam=False, meam_model=None):
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
-        ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
+        if append:
+            ret += f"pair_style      hybrid/overlay deepmd {model:s} {append:s} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
+        else:
+            ret += f"pair_style      hybrid/overlay deepmd {model:s} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
 
     element_num = sparam.get("element_num", 1)
@@ -252,7 +257,9 @@ def _ff_spring(lamb, m_spring_k, var_spring):
     return ret
 
 
-def _ff_soft_lj(lamb, model, m_spring_k, step, sparam, if_meam=False, meam_model=None):
+def _ff_soft_lj(
+    lamb, model, m_spring_k, step, sparam, if_meam=False, meam_model=None, append=None
+):
     ret = ""
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
     if step == "lj_on":
@@ -260,11 +267,15 @@ def _ff_soft_lj(lamb, model, m_spring_k, step, sparam, if_meam=False, meam_model
         var_spring = False
     elif step == "deep_on":
         # ret += _ff_meam_on(lamb, model, sparam)
-        ret += _ff_deep_on(lamb, model, sparam, if_meam=if_meam, meam_model=meam_model)
+        ret += _ff_deep_on(
+            lamb, model, sparam, if_meam=if_meam, meam_model=meam_model, append=append
+        )
         var_spring = False
     elif step == "spring_off":
         # ret += _ff_meam_lj_off(lamb, model, sparam)
-        ret += _ff_lj_off(lamb, model, sparam, if_meam=if_meam, meam_model=meam_model)
+        ret += _ff_lj_off(
+            lamb, model, sparam, if_meam=if_meam, meam_model=meam_model, append=append
+        )
         var_spring = True
     else:
         raise RuntimeError("unkown step", step)
@@ -274,10 +285,13 @@ def _ff_soft_lj(lamb, model, m_spring_k, step, sparam, if_meam=False, meam_model
     return ret
 
 
-def _ff_two_steps(lamb, model, m_spring_k, step):
+def _ff_two_steps(lamb, model, m_spring_k, step, append=None):
     ret = ""
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
-    ret += f"pair_style      deepmd {model}\n"
+    if append:
+        ret += f"pair_style      deepmd {model:s} {append:s}\n"
+    else:
+        ret += f"pair_style      deepmd {model:s}\n"
     ret += "pair_coeff * *\n"
 
     if step == "both" or step == "spring_off":
@@ -323,6 +337,8 @@ def _gen_lammps_input(
     step="both",
     if_meam=False,
     meam_model=None,
+    custom_variables=None,
+    append=None,
 ):
     ret = ""
     ret += "clear\n"
@@ -336,6 +352,9 @@ def _gen_lammps_input(
     ret += f"variable        TAU_P           equal {tau_p:f}\n"
     ret += f"variable        LAMBDA          equal {lamb:.10e}\n"
     ret += "variable        INV_LAMBDA      equal %.10e\n" % (1 - lamb)
+    if custom_variables is not None:
+        for key, value in custom_variables.items():
+            ret += f"variable {key} equal {value}\n"
     ret += "# ---------------------- INITIALIZAITION ------------------\n"
     ret += "units           metal\n"
     ret += "boundary        p p p\n"
@@ -351,7 +370,7 @@ def _gen_lammps_input(
 
     # force field setting
     if switch == "one-step" or switch == "two-step":
-        ret += _ff_two_steps(lamb, model, m_spring_k, step)
+        ret += _ff_two_steps(lamb, model, m_spring_k, step, append)
     elif switch == "three-step":
         ret += _ff_soft_lj(
             lamb,
@@ -361,6 +380,7 @@ def _gen_lammps_input(
             sparam,
             if_meam=if_meam,
             meam_model=meam_model,
+            append=append,
         )
     else:
         raise RuntimeError("unknow switch", switch)
@@ -628,6 +648,18 @@ def _make_tasks(
     protect_eps = jdata["protect_eps"]
 
     if switch == "one-step":
+        if (
+            jdata.get("lambda", None) is None
+            and jdata.get("lambda_deep_on", None) is not None
+        ):
+            if jdata.get("lambda_lj_on", None) is not None:
+                raise RuntimeError(
+                    "It seems that you are using a json file for the three-step hti calculation. If that is the case, please set the correct switch option by using '-s three-step'. If you do want to use one-step switching, please use 'lambda' instead of 'lambda_lj_on', 'lambda_deep_on', and 'lambda_spring_off' in your json file. Check 'dpti hti gen -h' for more information."
+                )
+            elif jdata.get("lambda_lj_on", None) is None:
+                raise RuntimeError(
+                    "It seems that you are using a json file for the two-step hti calculation. If that is the case, please set the correct switch option by using '-s two-step'. If you do want to use one-step switching, please use 'lambda' instead of 'lambda_deep_on' and 'lambda_spring_off' in your json file. Check 'dpti hti gen -h' for more information."
+                )
         all_lambda = parse_seq(jdata["lambda"])
     elif switch == "two-step" or switch == "three-step":
         if step == "deep_on":
@@ -654,6 +686,8 @@ def _make_tasks(
     # timestep = jdata['timestep']
     timestep = get_first_matched_key_from_dict(jdata, ["timestep", "dt"])
     spring_k = jdata["spring_k"]
+    custom_variables = jdata.get("custom_variables", None)
+    append = jdata.get("append", None)
 
     sparam = jdata.get("soft_param", {})
     if sparam:
@@ -771,6 +805,8 @@ def _make_tasks(
                 crystal=crystal,
                 if_meam=if_meam,
                 meam_model=meam_model,
+                custom_variables=custom_variables,
+                append=append,
             )
         elif ref == "ideal":
             raise RuntimeError("choose hti_liq.py")
@@ -1257,6 +1293,7 @@ def compute_task(
     scheme="simpson",
     manual_pv=None,
     manual_pv_err=None,
+    npt=None,
 ):
     # print('hti.compute_task', job, jdata, method, scheme, free_energy_type)
     # assert 'reference' in jdata
@@ -1293,14 +1330,24 @@ def compute_task(
         print("# Helmholtz free ener per atom (stat_err inte_err) [eV]:")
         print(print_format % (e1, de_err[0], de_err[1]))
     elif free_energy_type == "gibbs":
-        if manual_pv is None:
+        if npt is not None:
+            npt_in = json.load(open(os.path.join(npt, "jdata.json")))
+            npt_info = json.load(open(os.path.join(npt, "result.json")))
+            p = npt_in["pres"]
+            v = npt_info["v"]
+            v_err = npt_info["v_err"]
+            unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
+            pv = p * v * unit_cvt
+            pv_err = p * v_err * unit_cvt * np.sqrt(3)
+            print(f"# use pv from npt task: pv = {pv:.6e} pv_err = {pv_err:.6e}")
+        elif npt is None and manual_pv is None:
             pv = thermo_info["pv"]
-        else:
+        elif npt is None and manual_pv is not None:
             print(f"# use manual_pv={manual_pv}")
             pv = manual_pv
-        if manual_pv_err is None:
+        if npt is None and manual_pv_err is None:
             pv_err = thermo_info["pv_err"]
-        else:
+        elif npt is None and manual_pv_err is not None:
             print(f"# use manual_pv_err={manual_pv_err}")
             pv_err = manual_pv_err
         e1 = e0 + de + pv
@@ -1363,9 +1410,12 @@ def hti_phase_trans_analyze(job, jdata=None):
 
 
 def run_task(task_dir, machine_file, task_name, no_dp=False):
-    job_work_dir_ = glob.glob(os.path.join(task_dir, task_name + "*"))
-    assert len(job_work_dir_) == 1
-    job_work_dir = job_work_dir_[0]
+    if task_name == "00" or task_name == "01" or task_name == "02":
+        job_work_dir_ = glob.glob(os.path.join(task_dir, task_name + "*"))
+        assert len(job_work_dir_) == 1
+        job_work_dir = job_work_dir_[0]
+    elif task_name == "one-step":
+        job_work_dir = task_dir
     task_dir_list = glob.glob(os.path.join(job_work_dir, "task*"))
     task_dir_list = sorted(task_dir_list)
     work_base_dir = os.getcwd()
@@ -1476,6 +1526,12 @@ def add_module_subparsers(main_subparsers):
     parser_compute.add_argument(
         "-G", "--pv-err", type=float, default=None, help="press*vol error"
     )
+    parser_compute.add_argument(
+        "--npt",
+        type=str,
+        default=None,
+        help="directory of the npt task; will use PV from npt result, where P is the control variable and V varies.",
+    )
     parser_compute.set_defaults(func=handle_compute)
 
     parser_run = module_subparsers.add_parser("run", help="run the job")
@@ -1510,6 +1566,7 @@ def handle_compute(args):
         scheme=args.scheme,
         manual_pv=args.pv,
         manual_pv_err=args.pv_err,
+        npt=args.npt,
     )
     # if 'reference' not in jdata :
     #     jdata['reference'] = 'einstein'

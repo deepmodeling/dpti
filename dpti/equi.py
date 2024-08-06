@@ -35,7 +35,16 @@ from dpti.lib.water import compute_bonds, posi_diff
 # def gen_equi_header(nsteps, prt_freq, dump_freq, temp, pres, tau_t, tau_p, mass_map, conf_file):
 # def gen_equi_header(nsteps, prt_freq, dump_freq, temp, pres, tau_t, tau_p, mass_map, conf_file):
 def gen_equi_header(
-    nsteps, thermo_freq, dump_freq, mass_map, temp, tau_t, tau_p, equi_conf, pres=None
+    nsteps,
+    thermo_freq,
+    dump_freq,
+    mass_map,
+    temp,
+    tau_t,
+    tau_p,
+    equi_conf,
+    pres=None,
+    custom_variables=None,
 ):
     ret = ""
     ret += "clear\n"
@@ -45,6 +54,9 @@ def gen_equi_header(
     ret += "variable        DUMP_FREQ       equal %d\n" % dump_freq
     ret += "variable        NREPEAT         equal ${NSTEPS}/${DUMP_FREQ}\n"
     ret += f"variable        TEMP            equal {temp:.6f}\n"
+    if custom_variables is not None:
+        for key, value in custom_variables.items():
+            ret += f"variable        {key}            equal {value}\n"
     # if equi_settings['pres'] is not None :
     if pres is not None:
         ret += f"variable        PRES            equal {pres:.6f}\n"
@@ -64,7 +76,7 @@ def gen_equi_header(
 
 
 # def gen_equi_force_field(model, if_meam=None):
-def gen_equi_force_field(model, if_meam=False, meam_model=None):
+def gen_equi_force_field(model, if_meam=False, meam_model=None, append=None):
     # equi_settings =
     # model = equi_settings['model']
     # assert type(model) is dict, f"equi_settings['model] must be a dict. model:{model}"
@@ -82,7 +94,10 @@ def gen_equi_force_field(model, if_meam=False, meam_model=None):
     ret = ""
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
     if not if_meam:
-        ret += f"pair_style      deepmd {model}\n"
+        ret += f"pair_style      deepmd {model}"
+        if append is not None:
+            ret += " " + append
+        ret += "\n"
         ret += "pair_coeff * *\n"
     else:
         meam_library = meam_model["library"]
@@ -161,6 +176,8 @@ def gen_equi_lammps_input(
     pres=None,
     if_meam=False,
     meam_model=None,
+    custom_variables=None,
+    append=None,
 ):
     if dump_freq is None:
         dump_freq = thermo_freq
@@ -174,9 +191,10 @@ def gen_equi_lammps_input(
         tau_p=tau_p,
         equi_conf=equi_conf,
         pres=pres,
+        custom_variables=custom_variables,
     )
     equi_force_field = gen_equi_force_field(
-        model, if_meam=if_meam, meam_model=meam_model
+        model, if_meam=if_meam, meam_model=meam_model, append=append
     )
     equi_thermo_settings = gen_equi_thermo_settings(timestep=timestep)
     equi_dump_settings = gen_equi_dump_settings(if_dump_avg_posi=if_dump_avg_posi)
@@ -422,6 +440,8 @@ def make_task(
         pres=equi_settings["pres"],
         if_meam=equi_settings["if_meam"],
         meam_model=equi_settings["meam_model"],
+        custom_variables=equi_settings.get("custom_variables", None),
+        append=equi_settings.get("append", None),
     )
 
     with open(os.path.join(task_abs_dir, "in.lammps"), "w") as fp:

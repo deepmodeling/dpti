@@ -477,6 +477,7 @@ def compute_task(
     scheme="simpson",
     manual_pv=None,
     manual_pv_err=None,
+    npt=None,
 ):
     jdata = json.load(open(os.path.join(job, "in.json")))
     fp_conf = open(os.path.join(job, "conf.lmp"))
@@ -500,14 +501,31 @@ def compute_task(
         e1_err = fe_err[0]
         print("# Helmholtz free ener per atom (err) [eV]:")
         print(print_format % (fe, fe_err[0], fe_err[1]))
-    if free_energy_type == "gibbs":
-        if manual_pv is None:
+    if free_energy_type == "helmholtz":
+        e1 = fe  # e0 + de
+        e1_err = fe_err[0]
+        print("# Helmholtz free ener per atom (err) [eV]:")
+        print(print_format % (fe, fe_err[0], fe_err[1]))
+    elif free_energy_type == "gibbs":
+        if npt is not None:
+            npt_in = json.load(open(os.path.join(npt, "jdata.json")))
+            npt_info = json.load(open(os.path.join(npt, "result.json")))
+            p = npt_in["pres"]
+            v = npt_info["v"]
+            v_err = npt_info["v_err"]
+            unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
+            pv = p * v * unit_cvt
+            pv_err = p * v_err * unit_cvt * np.sqrt(3)
+            print(f"# use pv from npt task: pv = {pv:.6e} pv_err = {pv_err:.6e}")
+        elif npt is None and manual_pv is None:
             pv = thermo_info["pv"]
-        else:
+        elif npt is None and manual_pv is not None:
+            print(f"# use manual_pv={manual_pv}")
             pv = manual_pv
-        if manual_pv_err is None:
+        if npt is None and manual_pv_err is None:
             pv_err = thermo_info["pv_err"]
-        else:
+        elif npt is None and manual_pv_err is not None:
+            print(f"# use manual_pv_err={manual_pv_err}")
             pv_err = manual_pv_err
         e1 = fe + pv
         e1_err = np.sqrt(fe_err[0] ** 2 + pv_err**2)
@@ -574,6 +592,12 @@ def add_module_subparsers(main_subparsers):
     parser_compute.add_argument(
         "-G", "--pv-err", type=float, default=None, help="press*vol error"
     )
+    parser_compute.add_argument(
+        "--npt",
+        type=str,
+        default=None,
+        help="directory of the npt task; will use PV from npt result, where P is the control variable and V varies.",
+    )
     parser_compute.set_defaults(func=handle_compute)
 
     parser_run = module_subparsers.add_parser("run", help="run the job")
@@ -631,4 +655,5 @@ def handle_compute(args):
         free_energy_type=args.type,
         manual_pv=args.pv,
         manual_pv_err=args.pv_err,
+        npt=args.npt,
     )
