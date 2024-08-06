@@ -68,7 +68,7 @@ def _ff_lj_on(lamb, model, sparam):
     return ret
 
 
-def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None, append=None):
+def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None):
     nn = sparam["n"]
     alpha_lj = sparam["alpha_lj"]
     rcut = sparam["rcut"]
@@ -88,11 +88,9 @@ def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None, append=None
         ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
     else:
-        if append:
-            ret += f"pair_style      hybrid/overlay deepmd {model:s} {append:s} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
-        else:
-            ret += f"pair_style      hybrid/overlay deepmd {model:s} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
+        ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
+
     element_num = sparam.get("element_num", 1)
     sigma_key_index = filter(
         lambda t: t[0] <= t[1],
@@ -157,7 +155,7 @@ def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None, append=None
 #     return ret
 
 
-def _ff_lj_off(lamb, model, sparam, if_meam=False, meam_model=None, append=None):
+def _ff_lj_off(lamb, model, sparam, if_meam=False, meam_model=None):
     nn = sparam["n"]
     alpha_lj = sparam["alpha_lj"]
     rcut = sparam["rcut"]
@@ -178,10 +176,7 @@ def _ff_lj_off(lamb, model, sparam, if_meam=False, meam_model=None, append=None)
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
-        if append:
-            ret += f"pair_style      hybrid/overlay deepmd {model:s} {append:s} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
-        else:
-            ret += f"pair_style      hybrid/overlay deepmd {model:s} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
+        ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
 
     element_num = sparam.get("element_num", 1)
@@ -257,9 +252,7 @@ def _ff_spring(lamb, m_spring_k, var_spring):
     return ret
 
 
-def _ff_soft_lj(
-    lamb, model, m_spring_k, step, sparam, if_meam=False, meam_model=None, append=None
-):
+def _ff_soft_lj(lamb, model, m_spring_k, step, sparam, if_meam=False, meam_model=None):
     ret = ""
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
     if step == "lj_on":
@@ -267,15 +260,11 @@ def _ff_soft_lj(
         var_spring = False
     elif step == "deep_on":
         # ret += _ff_meam_on(lamb, model, sparam)
-        ret += _ff_deep_on(
-            lamb, model, sparam, if_meam=if_meam, meam_model=meam_model, append=append
-        )
+        ret += _ff_deep_on(lamb, model, sparam, if_meam=if_meam, meam_model=meam_model)
         var_spring = False
     elif step == "spring_off":
         # ret += _ff_meam_lj_off(lamb, model, sparam)
-        ret += _ff_lj_off(
-            lamb, model, sparam, if_meam=if_meam, meam_model=meam_model, append=append
-        )
+        ret += _ff_lj_off(lamb, model, sparam, if_meam=if_meam, meam_model=meam_model)
         var_spring = True
     else:
         raise RuntimeError("unkown step", step)
@@ -285,13 +274,10 @@ def _ff_soft_lj(
     return ret
 
 
-def _ff_two_steps(lamb, model, m_spring_k, step, append=None):
+def _ff_two_steps(lamb, model, m_spring_k, step):
     ret = ""
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
-    if append:
-        ret += f"pair_style      deepmd {model:s} {append:s}\n"
-    else:
-        ret += f"pair_style      deepmd {model:s}\n"
+    ret += f"pair_style      deepmd {model}\n"
     ret += "pair_coeff * *\n"
 
     if step == "both" or step == "spring_off":
@@ -337,8 +323,6 @@ def _gen_lammps_input(
     step="both",
     if_meam=False,
     meam_model=None,
-    custom_variables=None,
-    append=None,
 ):
     ret = ""
     ret += "clear\n"
@@ -352,9 +336,6 @@ def _gen_lammps_input(
     ret += f"variable        TAU_P           equal {tau_p:f}\n"
     ret += f"variable        LAMBDA          equal {lamb:.10e}\n"
     ret += "variable        INV_LAMBDA      equal %.10e\n" % (1 - lamb)
-    if custom_variables is not None:
-        for key, value in custom_variables.items():
-            ret += f"variable {key} equal {value}\n"
     ret += "# ---------------------- INITIALIZAITION ------------------\n"
     ret += "units           metal\n"
     ret += "boundary        p p p\n"
@@ -370,7 +351,7 @@ def _gen_lammps_input(
 
     # force field setting
     if switch == "one-step" or switch == "two-step":
-        ret += _ff_two_steps(lamb, model, m_spring_k, step, append)
+        ret += _ff_two_steps(lamb, model, m_spring_k, step)
     elif switch == "three-step":
         ret += _ff_soft_lj(
             lamb,
@@ -380,7 +361,6 @@ def _gen_lammps_input(
             sparam,
             if_meam=if_meam,
             meam_model=meam_model,
-            append=append,
         )
     else:
         raise RuntimeError("unknow switch", switch)
@@ -686,8 +666,6 @@ def _make_tasks(
     # timestep = jdata['timestep']
     timestep = get_first_matched_key_from_dict(jdata, ["timestep", "dt"])
     spring_k = jdata["spring_k"]
-    custom_variables = jdata.get("custom_variables", None)
-    append = jdata.get("append", None)
 
     sparam = jdata.get("soft_param", {})
     if sparam:
@@ -805,8 +783,6 @@ def _make_tasks(
                 crystal=crystal,
                 if_meam=if_meam,
                 meam_model=meam_model,
-                custom_variables=custom_variables,
-                append=append,
             )
         elif ref == "ideal":
             raise RuntimeError("choose hti_liq.py")
@@ -1399,12 +1375,9 @@ def hti_phase_trans_analyze(job, jdata=None):
 
 
 def run_task(task_dir, machine_file, task_name, no_dp=False):
-    if task_name == "00" or task_name == "01" or task_name == "02":
-        job_work_dir_ = glob.glob(os.path.join(task_dir, task_name + "*"))
-        assert len(job_work_dir_) == 1
-        job_work_dir = job_work_dir_[0]
-    elif task_name == "one-step":
-        job_work_dir = task_dir
+    job_work_dir_ = glob.glob(os.path.join(task_dir, task_name + "*"))
+    assert len(job_work_dir_) == 1
+    job_work_dir = job_work_dir_[0]
     task_dir_list = glob.glob(os.path.join(job_work_dir, "task*"))
     task_dir_list = sorted(task_dir_list)
     work_base_dir = os.getcwd()

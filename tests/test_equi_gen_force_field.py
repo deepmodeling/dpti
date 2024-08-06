@@ -22,24 +22,6 @@ class TestEquiForceField(unittest.TestCase):
         ret2 = dpti.equi.gen_equi_force_field(**input)
         self.assertEqual(ret1, ret2)
 
-    def test_deepmd_append(self):
-        input = {
-            "model": "graph.pb",
-            "if_meam": False,
-            "meam_model": None,
-            "append": "fparam ${TeV}",
-        }
-
-        ret1 = textwrap.dedent(
-            """\
-        # --------------------- FORCE FIELDS ---------------------
-        pair_style      deepmd graph.pb fparam ${TeV}
-        pair_coeff * *
-        """
-        )
-        ret2 = dpti.equi.gen_equi_force_field(**input)
-        self.assertEqual(ret1, ret2)
-
     def test_meam(self):
         input = {"model": None, "if_meam": True, "meam_model": meam_model}
         ret1 = textwrap.dedent(
