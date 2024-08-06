@@ -59,6 +59,8 @@ def _gen_lammps_input(
     copies=None,
     if_meam=False,
     meam_model=None,
+    custom_variables=None,
+    append=None,
 ):
     ret = ""
     ret += "clear\n"
@@ -70,6 +72,9 @@ def _gen_lammps_input(
     ret += f"variable        PRES            equal {pres:f}\n"
     ret += f"variable        TAU_T           equal {tau_t:f}\n"
     ret += f"variable        TAU_P           equal {tau_p:f}\n"
+    if custom_variables is not None:
+        for key, value in custom_variables.items():
+            ret += f"variable {key} equal {value}\n"
     ret += "# ---------------------- INITIALIZAITION ------------------\n"
     ret += "units           metal\n"
     ret += "boundary        p p p\n"
@@ -90,8 +95,12 @@ def _gen_lammps_input(
         ret += "pair_style      meam\n"
         ret += f'pair_coeff      * * {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
     else:
-        ret += f"pair_style      deepmd {model}\n"
-        ret += "pair_coeff * *\n"
+        if append:
+            ret += f"pair_style      deepmd {model:s} {append:s}\n"
+            ret += "pair_coeff * *\n"
+        else:
+            ret += f"pair_style      deepmd {model:s}\n"
+            ret += "pair_coeff * *\n"
     ret += "# --------------------- MD SETTINGS ----------------------\n"
     ret += "neighbor        1.0 bin\n"
     ret += f"timestep        {timestep}\n"
@@ -143,6 +152,8 @@ def make_tasks(iter_name, jdata, if_meam=None):
     if "copies" in jdata:
         copies = jdata["copies"]
     model = jdata["model"]
+    custom_variables = jdata.get("custom_variables", None)
+    append = jdata.get("append", None)
     meam_model = jdata.get("meam_model", None)
     # model = os.path.abspath(model)
     # mass_map = jdata['mass_map']
@@ -266,6 +277,8 @@ def make_tasks(iter_name, jdata, if_meam=None):
                 copies=copies,
                 if_meam=if_meam,
                 meam_model=meam_model,
+                custom_variables=custom_variables,
+                append=append,
             )
             thermo_out = temp_list[ii]
             # with open('thermo.out', 'w') as fp :
@@ -287,6 +300,8 @@ def make_tasks(iter_name, jdata, if_meam=None):
                 copies=copies,
                 if_meam=if_meam,
                 meam_model=meam_model,
+                custom_variables=custom_variables,
+                append=append,
             )
             thermo_out = temp_list[ii]
             # with open('thermo.out', 'w') as fp :
@@ -308,6 +323,8 @@ def make_tasks(iter_name, jdata, if_meam=None):
                 copies=copies,
                 if_meam=if_meam,
                 meam_model=meam_model,
+                custom_variables=custom_variables,
+                append=append,
             )
             thermo_out = pres_list[ii]
         else:
@@ -953,13 +970,13 @@ def add_module_subparsers(main_subparsers):
         help="the method of thermodynamic integration",
     )
     parser_compute.add_argument(
-        "-e", "--Eo", type=float, default=0, help="free energy of starting point"
+        "-e", "--Eo", type=float, default=None, help="free energy of starting point"
     )
     parser_compute.add_argument(
         "-E",
         "--Eo-err",
         type=float,
-        default=0,
+        default=None,
         help="The statistical error of the starting free energy",
     )
     parser_compute.add_argument(
@@ -1011,7 +1028,7 @@ def handle_compute(args):
     hti_dir = args.hti
     jdata_hti = json.load(open(os.path.join(hti_dir, "result.json")))
     if args.Eo is not None and args.hti is not None:
-        raise Warning(
+        raise ValueError(
             "Both Eo and hti are provided. Eo will be overrided by the e1 value in hti's result.json file. Make sure this is what you want."
         )
     if args.Eo is None:
