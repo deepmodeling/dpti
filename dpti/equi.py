@@ -35,7 +35,16 @@ from dpti.lib.water import compute_bonds, posi_diff
 # def gen_equi_header(nsteps, prt_freq, dump_freq, temp, pres, tau_t, tau_p, mass_map, conf_file):
 # def gen_equi_header(nsteps, prt_freq, dump_freq, temp, pres, tau_t, tau_p, mass_map, conf_file):
 def gen_equi_header(
-    nsteps, thermo_freq, dump_freq, mass_map, temp, tau_t, tau_p, equi_conf, pres=None
+    nsteps,
+    thermo_freq,
+    dump_freq,
+    mass_map,
+    temp,
+    tau_t,
+    tau_p,
+    equi_conf,
+    pres=None,
+    custom_variables=None,
 ):
     ret = ""
     ret += "clear\n"
@@ -44,19 +53,22 @@ def gen_equi_header(
     ret += "variable        THERMO_FREQ     equal %d\n" % thermo_freq
     ret += "variable        DUMP_FREQ       equal %d\n" % dump_freq
     ret += "variable        NREPEAT         equal ${NSTEPS}/${DUMP_FREQ}\n"
-    ret += "variable        TEMP            equal %.6f\n" % temp
+    ret += f"variable        TEMP            equal {temp:.6f}\n"
+    if custom_variables is not None:
+        for key, value in custom_variables.items():
+            ret += f"variable        {key}            equal {value}\n"
     # if equi_settings['pres'] is not None :
     if pres is not None:
-        ret += "variable        PRES            equal %.6f\n" % pres
-    ret += "variable        TAU_T           equal %.6f\n" % tau_t
-    ret += "variable        TAU_P           equal %.6f\n" % tau_p
+        ret += f"variable        PRES            equal {pres:.6f}\n"
+    ret += f"variable        TAU_T           equal {tau_t:.6f}\n"
+    ret += f"variable        TAU_P           equal {tau_p:.6f}\n"
     ret += "# ---------------------- INITIALIZAITION ------------------\n"
     ret += "units           metal\n"
     ret += "boundary        p p p\n"
     ret += "atom_style      atomic\n"
     ret += "# --------------------- ATOM DEFINITION ------------------\n"
     ret += "box             tilt large\n"
-    ret += "read_data       %s\n" % equi_conf
+    ret += f"read_data       {equi_conf}\n"
     ret += "change_box      all triclinic\n"
     for jj in range(len(mass_map)):
         ret += "mass            %d %.6f\n" % (jj + 1, mass_map[jj])
@@ -64,7 +76,7 @@ def gen_equi_header(
 
 
 # def gen_equi_force_field(model, if_meam=None):
-def gen_equi_force_field(model, if_meam=False, meam_model=None):
+def gen_equi_force_field(model, if_meam=False, meam_model=None, append=None):
     # equi_settings =
     # model = equi_settings['model']
     # assert type(model) is dict, f"equi_settings['model] must be a dict. model:{model}"
@@ -82,7 +94,10 @@ def gen_equi_force_field(model, if_meam=False, meam_model=None):
     ret = ""
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
     if not if_meam:
-        ret += "pair_style      deepmd %s\n" % model
+        ret += f"pair_style      deepmd {model}"
+        if append is not None:
+            ret += " " + append
+        ret += "\n"
         ret += "pair_coeff * *\n"
     else:
         meam_library = meam_model["library"]
@@ -97,7 +112,7 @@ def gen_equi_thermo_settings(timestep):
     ret = ""
     ret += "# --------------------- MD SETTINGS ----------------------\n"
     ret += "neighbor        1.0 bin\n"
-    ret += "timestep        %.6f\n" % timestep
+    ret += f"timestep        {timestep:.6f}\n"
     ret += "thermo          ${THERMO_FREQ}\n"
     ret += "compute         allmsd all msd\n"
     ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol lx ly lz xy xz yz pxx pyy pzz pxy pxz pyz c_allmsd[*]\n"
@@ -132,7 +147,7 @@ def gen_equi_ensemble_settings(ens):
     elif ens == "nve":
         ret += "fix             1 all nve\n"
     else:
-        raise RuntimeError("unknow ensemble %s\n" % ens)
+        raise RuntimeError(f"unknow ensemble {ens}\n")
     ret += "fix             mzero all momentum 10 linear 1 1 1\n"
     ret += "# --------------------- INITIALIZE -----------------------\n"
     ret += "velocity        all create ${TEMP} %d\n" % (
@@ -161,6 +176,8 @@ def gen_equi_lammps_input(
     pres=None,
     if_meam=False,
     meam_model=None,
+    custom_variables=None,
+    append=None,
 ):
     if dump_freq is None:
         dump_freq = thermo_freq
@@ -174,9 +191,10 @@ def gen_equi_lammps_input(
         tau_p=tau_p,
         equi_conf=equi_conf,
         pres=pres,
+        custom_variables=custom_variables,
     )
     equi_force_field = gen_equi_force_field(
-        model, if_meam=if_meam, meam_model=meam_model
+        model, if_meam=if_meam, meam_model=meam_model, append=append
     )
     equi_thermo_settings = gen_equi_thermo_settings(timestep=timestep)
     equi_dump_settings = gen_equi_dump_settings(if_dump_avg_posi=if_dump_avg_posi)
@@ -422,6 +440,8 @@ def make_task(
         pres=equi_settings["pres"],
         if_meam=equi_settings["if_meam"],
         meam_model=equi_settings["meam_model"],
+        custom_variables=equi_settings.get("custom_variables", None),
+        append=equi_settings.get("append", None),
     )
 
     with open(os.path.join(task_abs_dir, "in.lammps"), "w") as fp:
@@ -499,16 +519,16 @@ def _compute_thermo(lmplog, natoms, stat_skip, stat_bsize):
     thermo_info["p"] = pa
     thermo_info["p_err"] = pe
     thermo_info["v"] = va / natoms
-    thermo_info["v_err"] = ve / np.sqrt(natoms)
+    thermo_info["v_err"] = ve / natoms
     thermo_info["e"] = ea / natoms
-    thermo_info["e_err"] = ee / np.sqrt(natoms)
+    thermo_info["e_err"] = ee / natoms
     thermo_info["t"] = ta
     thermo_info["t_err"] = te
     thermo_info["h"] = ha / natoms
-    thermo_info["h_err"] = he / np.sqrt(natoms)
+    thermo_info["h_err"] = he / natoms
     unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
     thermo_info["pv"] = pa * va * unit_cvt / natoms
-    thermo_info["pv_err"] = pe * va * unit_cvt / np.sqrt(natoms)
+    thermo_info["pv_err"] = pe * va * unit_cvt / natoms
     thermo_info["lxx"] = lxx
     thermo_info["lxx_err"] = lxxe
     thermo_info["lyy"] = lyy
@@ -620,7 +640,7 @@ def run_task(task_name, machine_file):
 
     task_list = [
         Task(
-            command="lmp -in in.lammps",
+            command=f"{mdata['command']} -in in.lammps",
             task_work_path=ii,
             forward_files=["in.lammps", "*.lmp", "graph.pb"],
             backward_files=["log*", "dump.equi", "out.lmp"],

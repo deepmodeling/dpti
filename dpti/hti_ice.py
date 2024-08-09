@@ -223,14 +223,14 @@ def handle_compute(args):
     print_format = "%20.12f  %10.3e  %10.3e"
     hti.print_thermo_info(thermo_info)
     if crystal == "vega":
-        print("# free ener of Einstein Mole: %20.8f" % (e0))
+        print(f"# free ener of Einstein Mole: {e0:20.8f}")
     else:
-        print("# free ener of Einstein Crys: %20.8f" % (e0))
+        print(f"# free ener of Einstein Crys: {e0:20.8f}")
     print(f"# Pauling corr {note_pauling}:        {pauling_corr:20.8f}")
     print(
         ("# fe integration              " + print_format) % (de, de_err[0], de_err[1])
     )
-    print("# fe const shift              %20.12f" % args.shift)
+    print(f"# fe const shift              {args.shift:20.12f}")
     # if args.type == 'helmholtz' :
     print("# Helmholtz free ener per mol (stat_err inte_err) [eV]:")
     print(print_format % (e0 + de - args.shift, de_err[0], de_err[1]))

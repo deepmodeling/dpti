@@ -1,0 +1,33 @@
+{
+    "machine":{
+        "batch_type": "DpCloudServer",
+        "context_type": "DpCloudServerContext",
+        "local_root" : "./",
+        "remote_profile":{
+            "email": "example@gmail.com",
+            "password": "<password>",
+            "program_id": 12345,
+              "input_data":{
+                  "api_version":2,
+                  "job_type": "indicate",
+                  "log_file": "*/log.lammps",
+                  "grouped":true,
+                  "checkpoint_time":5,
+                  "job_name": "dpti_test",
+                  "disk_size": 100,
+                  "scass_type":"c8_m32_1 * NVIDIA V100",
+                  "platform": "ali",
+                  "image_name":"LBG_DeePMD-kit_2.1.0_v1",
+                  "on_demand":0
+              }
+          }
+    },
+    "resources": {
+        "number_node": 1,
+        "local_root":"./",
+        "cpu_per_node": 8,
+        "gpu_per_node": 1,
+        "queue_name": "GPU",
+        "group_size": 4
+      }
+}

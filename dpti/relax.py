@@ -14,19 +14,19 @@ def _gen_lammps_relax(conf_file, mass_map, model, pres, thermo_freq=100, dump_fr
     ret += "# --------------------- VARIABLES-------------------------\n"
     ret += "variable        THERMO_FREQ     equal %d\n" % thermo_freq
     ret += "variable        DUMP_FREQ       equal %d\n" % dump_freq
-    ret += "variable        PRES            equal %f\n" % pres
+    ret += f"variable        PRES            equal {pres:f}\n"
     ret += "# ---------------------- INITIALIZAITION ------------------\n"
     ret += "units           metal\n"
     ret += "boundary        p p p\n"
     ret += "atom_style      atomic\n"
     ret += "# --------------------- ATOM DEFINITION ------------------\n"
     ret += "box             tilt large\n"
-    ret += "read_data       %s\n" % conf_file
+    ret += f"read_data       {conf_file}\n"
     ret += "change_box      all triclinic\n"
     for jj in range(len(mass_map)):
         ret += "mass            %d %f\n" % (jj + 1, mass_map[jj])
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
-    ret += "pair_style      deepmd %s\n" % model
+    ret += f"pair_style      deepmd {model}\n"
     ret += "pair_coeff * *\n"
     ret += "# --------------------- MD SETTINGS ----------------------\n"
     ret += "neighbor        1.0 bin\n"
@@ -51,7 +51,7 @@ def make_task(iter_name, jdata, pres):
     if pres is None:
         pres = jdata["pres"]
     elif "pres" in jdata:
-        print("P = %f overrides the pres in json data" % pres)
+        print(f"P = {pres:f} overrides the pres in json data")
     jdata["pres"] = pres
 
     create_path(iter_name)

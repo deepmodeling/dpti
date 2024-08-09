@@ -17,9 +17,5 @@
     "stat_bsize": 10,
     "if_meam": false,
     "if_dump_avg_posi": false,
-    "meam_model": {
-        "library": "library_18Metals.meam",
-        "potential": "Sn_18Metals.meam",
-        "element": "Sn"
-    }
+    "meam_model": {}
 }

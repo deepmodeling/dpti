@@ -114,7 +114,7 @@ class RemoteJob:
 
     def block_checkcall(self, cmd):
         stdin, stdout, stderr = self.ssh.exec_command(
-            ("cd %s ;" % self.remote_root) + cmd
+            (f"cd {self.remote_root} ;") + cmd
         )
         exit_status = stdout.channel.recv_exit_status()
         if exit_status != 0:
@@ -126,7 +126,7 @@ class RemoteJob:
 
     def block_call(self, cmd):
         stdin, stdout, stderr = self.ssh.exec_command(
-            ("cd %s ;" % self.remote_root) + cmd
+            (f"cd {self.remote_root} ;") + cmd
         )
         exit_status = stdout.channel.recv_exit_status()
         return exit_status, stdin, stdout, stderr
@@ -167,7 +167,7 @@ class RemoteJob:
         sftp = self.ssh.open_sftp()
         sftp.put(from_f, to_f)
         # remote extract
-        self.block_checkcall("tar xf %s" % of)
+        self.block_checkcall(f"tar xf {of}")
         # clean up
         os.remove(from_f)
         sftp.remove(to_f)
@@ -250,21 +250,21 @@ class CloudMachineJob(RemoteJob):
                 fp.write("\n")
             if module_unload_list is not None:
                 for ii in module_unload_list:
-                    fp.write("module unload %s\n" % ii)
+                    fp.write(f"module unload {ii}\n")
                 fp.write("\n")
             if module_list is not None:
                 for ii in module_list:
-                    fp.write("module load %s\n" % ii)
+                    fp.write(f"module load {ii}\n")
                 fp.write("\n")
             for ii, jj in zip(job_dirs, args):
-                fp.write("cd %s\n" % ii)
+                fp.write(f"cd {ii}\n")
                 fp.write("test $? -ne 0 && exit\n")
                 if resources["with_mpi"] is True:
                     fp.write("mpirun -n %d %s %s\n" % (task_per_node, cmd, jj))
                 else:
                     fp.write(f"{cmd} {jj}\n")
                 fp.write("test $? -ne 0 && exit\n")
-                fp.write("cd %s\n" % self.remote_root)
+                fp.write(f"cd {self.remote_root}\n")
                 fp.write("test $? -ne 0 && exit\n")
             fp.write("\ntouch tag_finished\n")
         sftp.close()
@@ -287,7 +287,7 @@ class SlurmJob(RemoteJob):
     def check_status(self):
         job_id = self._get_job_id()
         if job_id == "":
-            raise RuntimeError("job %s is has not been submitted" % self.remote_root)
+            raise RuntimeError(f"job {self.remote_root} is has not been submitted")
         ret, stdin, stdout, stderr = self.block_call("squeue --job " + job_id)
         err_str = stderr.read().decode("utf-8")
         if ret != 0:
@@ -351,32 +351,32 @@ class SlurmJob(RemoteJob):
         ret += "#!/bin/bash -l\n"
         ret += "#SBATCH -N %d\n" % res["numb_node"]
         ret += "#SBATCH --ntasks-per-node %d\n" % res["task_per_node"]
-        ret += "#SBATCH -t %s\n" % res["time_limit"]
+        ret += "#SBATCH -t {}\n".format(res["time_limit"])
         if res["mem_limit"] > 0:
             ret += "#SBATCH --mem %dG \n" % res["mem_limit"]
         if len(res["account"]) > 0:
-            ret += "#SBATCH --account %s \n" % res["account"]
+            ret += "#SBATCH --account {} \n".format(res["account"])
         if len(res["partition"]) > 0:
-            ret += "#SBATCH --partition %s \n" % res["partition"]
+            ret += "#SBATCH --partition {} \n".format(res["partition"])
         if len(res["qos"]) > 0:
-            ret += "#SBATCH --qos %s \n" % res["qos"]
+            ret += "#SBATCH --qos {} \n".format(res["qos"])
         if res["numb_gpu"] > 0:
             ret += "#SBATCH --gres=gpu:%d\n" % res["numb_gpu"]
         for ii in res["constraint_list"]:
-            ret += "#SBATCH -C %s \n" % ii
+            ret += f"#SBATCH -C {ii} \n"
         for ii in res["license_list"]:
-            ret += "#SBATCH -L %s \n" % ii
+            ret += f"#SBATCH -L {ii} \n"
         for ii in res["exclude_list"]:
-            ret += "#SBATCH --exclude %s \n" % ii
+            ret += f"#SBATCH --exclude {ii} \n"
         ret += "\n"
         # ret += 'set -euo pipefail\n\n'
         for ii in res["module_unload_list"]:
-            ret += "module unload %s\n" % ii
+            ret += f"module unload {ii}\n"
         for ii in res["module_list"]:
-            ret += "module load %s\n" % ii
+            ret += f"module load {ii}\n"
         ret += "\n"
         for ii in res["source_list"]:
-            ret += "source %s\n" % ii
+            ret += f"source {ii}\n"
         ret += "\n"
         envs = res["envs"]
         if envs is not None:
@@ -389,14 +389,14 @@ class SlurmJob(RemoteJob):
             for ii in job_dirs:
                 args.append("")
         for ii, jj in zip(job_dirs, args):
-            ret += "cd %s\n" % ii
+            ret += f"cd {ii}\n"
             ret += "test $? -ne 0 && exit\n"
             if res["with_mpi"]:
                 ret += f"srun {cmd} {jj}\n"
             else:
                 ret += f"{cmd} {jj}\n"
             ret += "test $? -ne 0 && exit\n"
-            ret += "cd %s\n" % self.remote_root
+            ret += f"cd {self.remote_root}\n"
             ret += "test $? -ne 0 && exit\n"
         ret += "\ntouch tag_finished\n"
 
@@ -426,7 +426,7 @@ class PBSJob(RemoteJob):
     def check_status(self):
         job_id = self._get_job_id()
         if job_id == "":
-            raise RuntimeError("job %s is has not been submitted" % self.remote_root)
+            raise RuntimeError(f"job {self.remote_root} is has not been submitted")
         ret, stdin, stdout, stderr = self.block_call("qstat -x " + job_id)
         err_str = stderr.read().decode("utf-8")
         if ret != 0:
@@ -477,7 +477,7 @@ class PBSJob(RemoteJob):
         ret = ""
         ret += "#!/bin/bash -l\n"
         if res.get("hpc_job_name", None):
-            ret += "#PBS -N %s\n" % res["hpc_job_name"]
+            ret += "#PBS -N {}\n".format(res["hpc_job_name"])
         if res["numb_gpu"] == 0:
             ret += "#PBS -l select=%d:ncpus=%d\n" % (
                 res["numb_node"],
@@ -489,20 +489,20 @@ class PBSJob(RemoteJob):
                 res["task_per_node"],
                 res["numb_gpu"],
             )
-        ret += "#PBS -l walltime=%s\n" % (res["time_limit"])
+        ret += "#PBS -l walltime={}\n".format(res["time_limit"])
         # if res['mem_limit'] > 0 :
         #     ret += "#PBS -l mem=%dG \n" % res['mem_limit']
         ret += "#PBS -j oe\n"
         if len(res["partition"]) > 0:
-            ret += "#PBS -q %s\n" % res["partition"]
+            ret += "#PBS -q {}\n".format(res["partition"])
         ret += "\n"
         for ii in res["module_unload_list"]:
-            ret += "module unload %s\n" % ii
+            ret += f"module unload {ii}\n"
         for ii in res["module_list"]:
-            ret += "module load %s\n" % ii
+            ret += f"module load {ii}\n"
         ret += "\n"
         for ii in res["source_list"]:
-            ret += "source %s\n" % ii
+            ret += f"source {ii}\n"
         ret += "\n"
         envs = res["envs"]
         if envs is not None:
@@ -516,7 +516,7 @@ class PBSJob(RemoteJob):
             for ii in job_dirs:
                 args.append("")
         for ii, jj in zip(job_dirs, args):
-            ret += "cd %s\n" % ii
+            ret += f"cd {ii}\n"
             ret += "test $? -ne 0 && exit\n"
             if res["with_mpi"]:
                 ret += "mpirun -machinefile $PBS_NODEFILE -n %d %s %s\n" % (
@@ -527,7 +527,7 @@ class PBSJob(RemoteJob):
             else:
                 ret += f"{cmd} {jj}\n"
             ret += "test $? -ne 0 && exit\n"
-            ret += "cd %s\n" % self.remote_root
+            ret += f"cd {self.remote_root}\n"
             ret += "test $? -ne 0 && exit\n"
         ret += "\ntouch tag_finished\n"
 

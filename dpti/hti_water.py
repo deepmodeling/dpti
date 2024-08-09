@@ -40,16 +40,16 @@ def _ff_angle_on(lamb, model, bparam, sparam):
     sigma_hh = sparam["sigma_hh"]
     activation = sparam["activation"]
     ret = ""
-    ret += "variable        EPSILON equal %f\n" % epsilon
+    ret += f"variable        EPSILON equal {epsilon:f}\n"
     ret += f"pair_style      lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}  \n"
     ret += f"pair_coeff      1 1 ${{EPSILON}} {sigma_oo:f} {activation:f}\n"
     ret += f"pair_coeff      1 2 ${{EPSILON}} {sigma_oh:f} {activation:f}\n"
     ret += f"pair_coeff      2 2 ${{EPSILON}} {sigma_hh:f} {activation:f}\n"
     ret += "bond_style      harmonic\n"
     ret += f"bond_coeff      1 {bond_k:f} {bond_l:f}\n"
-    ret += "variable        ANGLE_K equal ${LAMBDA}*%.16e\n" % angle_k
+    ret += f"variable        ANGLE_K equal ${{LAMBDA}}*{angle_k:.16e}\n"
     ret += "angle_style     harmonic\n"
-    ret += "angle_coeff     1 ${ANGLE_K} %f\n" % (angle_t)
+    ret += f"angle_coeff     1 ${{ANGLE_K}} {angle_t:f}\n"
     ret += "fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_LAMBDA scale yes\n"
     ret += "compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_EPSILON\n"
     return ret
@@ -69,14 +69,9 @@ def _ff_deep_on(lamb, model, bparam, sparam):
     sigma_hh = sparam["sigma_hh"]
     activation = sparam["activation"]
     ret = ""
-    ret += "variable        EPSILON equal %f\n" % epsilon
+    ret += f"variable        EPSILON equal {epsilon:f}\n"
     ret += "variable        ONE equal 1\n"
-    ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}  \n".format(
-        model,
-        nn,
-        alpha_lj,
-        rcut,
-    )
+    ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}  \n"
     ret += "pair_coeff      * * deepmd\n"
     ret += f"pair_coeff      1 1 lj/cut/soft ${{EPSILON}} {sigma_oo:f} {activation:f}\n"
     ret += f"pair_coeff      1 2 lj/cut/soft ${{EPSILON}} {sigma_oh:f} {activation:f}\n"
@@ -105,24 +100,19 @@ def _ff_bond_angle_off(lamb, model, bparam, sparam):
     activation = sparam["activation"]
     ret = ""
     ret += "variable        INV_LAMBDA equal 1-${LAMBDA}\n"
-    ret += "variable        EPSILON equal %f\n" % epsilon
+    ret += f"variable        EPSILON equal {epsilon:f}\n"
     ret += "variable        INV_EPSILON equal -${EPSILON}\n"
-    ret += "pair_style      hybrid/overlay deepmd {} lj/cut/soft {:f} {:f} {:f}  \n".format(
-        model,
-        nn,
-        alpha_lj,
-        rcut,
-    )
+    ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}  \n"
     ret += "pair_coeff      * * deepmd\n"
     ret += f"pair_coeff      1 1 lj/cut/soft ${{EPSILON}} {sigma_oo:f} {activation:f}\n"
     ret += f"pair_coeff      1 2 lj/cut/soft ${{EPSILON}} {sigma_oh:f} {activation:f}\n"
     ret += f"pair_coeff      2 2 lj/cut/soft ${{EPSILON}} {sigma_hh:f} {activation:f}\n"
     ret += "variable        BOND_K equal %.16e\n" % (bond_k * (1 - lamb))
     ret += "bond_style      harmonic\n"
-    ret += "bond_coeff      1 ${BOND_K} %f\n" % (bond_l)
+    ret += f"bond_coeff      1 ${{BOND_K}} {bond_l:f}\n"
     ret += "variable        ANGLE_K equal %.16e\n" % (angle_k * (1 - lamb))
     ret += "angle_style     harmonic\n"
-    ret += "angle_coeff     1 ${ANGLE_K} %f\n" % (angle_t)
+    ret += f"angle_coeff     1 ${{ANGLE_K}} {angle_t:f}\n"
     ret += "fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_INV_LAMBDA scale yes\n"
     ret += "compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_INV_EPSILON\n"
     return ret
@@ -153,18 +143,18 @@ def _gen_lammps_input(
     ret += "variable        NSTEPS          equal %d\n" % nsteps
     ret += "variable        THERMO_FREQ     equal %d\n" % prt_freq
     ret += "variable        DUMP_FREQ       equal %d\n" % dump_freq
-    ret += "variable        TEMP            equal %f\n" % temp
-    ret += "variable        PRES            equal %f\n" % pres
-    ret += "variable        TAU_T           equal %f\n" % tau_t
-    ret += "variable        TAU_P           equal %f\n" % tau_p
-    ret += "variable        LAMBDA          equal %.10e\n" % lamb
+    ret += f"variable        TEMP            equal {temp:f}\n"
+    ret += f"variable        PRES            equal {pres:f}\n"
+    ret += f"variable        TAU_T           equal {tau_t:f}\n"
+    ret += f"variable        TAU_P           equal {tau_p:f}\n"
+    ret += f"variable        LAMBDA          equal {lamb:.10e}\n"
     ret += "# ---------------------- INITIALIZAITION ------------------\n"
     ret += "units           metal\n"
     ret += "boundary        p p p\n"
     ret += "atom_style      angle\n"
     ret += "# --------------------- ATOM DEFINITION ------------------\n"
     ret += "box             tilt large\n"
-    ret += "read_data       %s\n" % conf_file
+    ret += f"read_data       {conf_file}\n"
     if copies is not None:
         ret += "replicate       %d %d %d\n" % (copies[0], copies[1], copies[2])
     ret += "change_box      all triclinic\n"
@@ -180,7 +170,7 @@ def _gen_lammps_input(
     ret += "special_bonds   lj/coul 1 1 1 angle no\n"
     ret += "# --------------------- MD SETTINGS ----------------------\n"
     ret += "neighbor        1.0 bin\n"
-    ret += "timestep        %s\n" % dt
+    ret += f"timestep        {dt}\n"
     ret += "thermo          ${THERMO_FREQ}\n"
     ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol ebond eangle c_e_diff[1]\n"
     ret += "thermo_modify   format 9 %.16e\n"
@@ -194,7 +184,7 @@ def _gen_lammps_input(
     elif ens == "nve":
         ret += "fix             1 all nve\n"
     else:
-        raise RuntimeError("unknow ensemble %s\n" % ens)
+        raise RuntimeError(f"unknow ensemble {ens}\n")
     ret += "fix             mzero all momentum 10 linear 1 1 1\n"
     ret += "# --------------------- INITIALIZE -----------------------\n"
     ret += "velocity        all create ${TEMP} %d\n" % (
@@ -301,7 +291,7 @@ def _refine_tasks(from_task, to_task, err, step):
     from_ti = os.path.join(from_task, "hti.out")
     if not os.path.isfile(from_ti):
         raise RuntimeError(
-            "cannot find file %s, task should be computed befor refined" % from_ti
+            f"cannot find file {from_ti}, task should be computed befor refined"
         )
     tmp_array = np.loadtxt(from_ti)
     all_t = tmp_array[:, 0]
@@ -431,16 +421,16 @@ def _compute_thermo(fname, natoms, stat_skip, stat_bsize):
     thermo_info["p"] = pa
     thermo_info["p_err"] = pe
     thermo_info["v"] = va / natoms
-    thermo_info["v_err"] = ve / np.sqrt(natoms)
+    thermo_info["v_err"] = ve / natoms
     thermo_info["e"] = ea / natoms
-    thermo_info["e_err"] = ee / np.sqrt(natoms)
+    thermo_info["e_err"] = ee / natoms
     thermo_info["h"] = ha / natoms
-    thermo_info["h_err"] = he / np.sqrt(natoms)
+    thermo_info["h_err"] = he / natoms
     thermo_info["t"] = ta
     thermo_info["t_err"] = te
     unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
     thermo_info["pv"] = pa * va * unit_cvt / natoms
-    thermo_info["pv_err"] = pe * va * unit_cvt / np.sqrt(natoms)
+    thermo_info["pv_err"] = pe * va * unit_cvt / natoms
     return thermo_info
 
 
@@ -470,9 +460,9 @@ def _post_tasks(iter_name, step, natoms, scheme="s"):
         bd_a /= natoms
         ag_a /= natoms
         dp_a /= natoms
-        bd_e /= np.sqrt(natoms)
-        ag_e /= np.sqrt(natoms)
-        dp_e /= np.sqrt(natoms)
+        bd_e /= natoms
+        ag_e /= natoms
+        dp_e /= natoms
         lmda_name = os.path.join(ii, "lambda.out")
         ll = float(open(lmda_name).read())
         all_lambda.append(ll)
@@ -595,7 +585,7 @@ def _post_tasks_mbar(iter_name, step, natoms):
     mbar = pymbar.MBAR(ukn, nk)
     Deltaf_ij, dDeltaf_ij, Theta_ij = mbar.getFreeEnergyDifferences()
     Deltaf_ij = Deltaf_ij / natoms
-    dDeltaf_ij = dDeltaf_ij / np.sqrt(natoms)
+    dDeltaf_ij = dDeltaf_ij / natoms
 
     diff_e = Deltaf_ij[0, -1] * kt_in_ev
     err = dDeltaf_ij[0, -1] * kt_in_ev
@@ -677,7 +667,7 @@ def compute_ideal_mol(iter_name):
 def post_tasks(iter_name, natoms, method="inte", scheme="s"):
     subtask_name = os.path.join(iter_name, "00.angle_on")
     fe = compute_ideal_mol(subtask_name)
-    print("# fe of ideal mol: %20.12f" % fe)
+    print(f"# fe of ideal mol: {fe:20.12f}")
     #    print('# fe of ideal gas: %20.12f' % (einstein.ideal_gas_fe(subtask_name) * 3))
     if method == "inte":
         e0, err0, tinfo0 = _post_tasks(subtask_name, "angle_on", natoms, scheme=scheme)
