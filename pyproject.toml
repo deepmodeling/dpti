@@ -47,7 +47,7 @@ docs = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["dpti*"]
+include = ["dpti*", "examples/*", "jsons/*"]
 
 [tool.setuptools_scm]
 write_to = "dpti/_version.py"
