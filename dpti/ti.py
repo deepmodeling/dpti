@@ -1043,8 +1043,9 @@ def handle_compute(args):
       if path == "t" or path == "t-ginv":
         args.To = jdata_hti_in["temp"]
       elif path == "p":
-        args.To = jdata_hti_in["pres"]
-        print(args.To, args.To.type)
+        args.To = get_first_matched_key_from_dict(jdata_hti_in, ["pres", "press"])
+        if args.To is None:
+          raise ValueError("Cannot find pressure in hti's input json file")
     compute_task(
         args.JOB,
         inte_method=args.inte_method,
