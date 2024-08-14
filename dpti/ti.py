@@ -457,7 +457,10 @@ def post_tasks(
     stat_skip = jdata["stat_skip"]
     stat_bsize = jdata["stat_bsize"]
     ens = jdata["ens"]
-    press = jdata["press"]
+    try:
+        press = get_first_matched_key_from_dict(jdata, ["pres", "press"])
+    except KeyError:
+        press = None
     path = jdata["path"]
 
     all_tasks = glob.glob(os.path.join(iter_name, "task.[0-9]*"))
@@ -1025,8 +1028,12 @@ def handle_gen(args):
 
 
 def handle_compute(args):
+    job = args.JOB
+    jdata = json.load(open(os.path.join(job, "ti_settings.json")))
+    path = jdata["path"]
     hti_dir = args.hti
     jdata_hti = json.load(open(os.path.join(hti_dir, "result.json")))
+    jdata_hti_in = json.load(open(os.path.join(hti_dir, "in.json")))
     if args.Eo is not None and args.hti is not None:
         raise ValueError(
             "Both Eo and hti are provided. Eo will be overrided by the e1 value in hti's result.json file. Make sure this is what you want."
@@ -1035,6 +1042,20 @@ def handle_compute(args):
         args.Eo = jdata_hti["e1"]
     if args.Eo_err is None:
         args.Eo_err = jdata_hti["e1_err"]
+    if args.To is None:
+        if path == "t" or path == "t-ginv":
+            args.To = jdata_hti_in["temp"]
+            if args.To is None:
+                raise ValueError("Cannot find temperature in hti's input json file")
+        elif path == "p":
+            try:
+                args.To = get_first_matched_key_from_dict(
+                    jdata_hti_in, ["pres", "press"]
+                )
+            except KeyError:
+                args.To = None
+            if args.To is None:
+                raise ValueError("Cannot find pressure in hti's input json file")
     compute_task(
         args.JOB,
         inte_method=args.inte_method,
