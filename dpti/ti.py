@@ -1042,6 +1042,7 @@ def handle_compute(args):
       if path == "t" or path == "t-ginv":
         args.To = jdata_hti["temp"]
       elif path == "p":
+        print(jdata_hti)
         args.To = jdata_hti["pres"]
     compute_task(
         args.JOB,
