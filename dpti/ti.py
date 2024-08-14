@@ -1042,6 +1042,8 @@ def handle_compute(args):
     if args.To is None:
       if path == "t" or path == "t-ginv":
         args.To = jdata_hti_in["temp"]
+        if args.To is None:
+          raise ValueError("Cannot find temperature in hti's input json file")
       elif path == "p":
         args.To = get_first_matched_key_from_dict(jdata_hti_in, ["pres", "press"])
         if args.To is None:
