@@ -1043,17 +1043,19 @@ def handle_compute(args):
     if args.Eo_err is None:
         args.Eo_err = jdata_hti["e1_err"]
     if args.To is None:
-      if path == "t" or path == "t-ginv":
-        args.To = jdata_hti_in["temp"]
-        if args.To is None:
-          raise ValueError("Cannot find temperature in hti's input json file")
-      elif path == "p":
-        try:
-            args.To = get_first_matched_key_from_dict(jdata_hti_in, ["pres", "press"])
-        except KeyError:
-            args.To = None
-        if args.To is None:
-          raise ValueError("Cannot find pressure in hti's input json file")
+        if path == "t" or path == "t-ginv":
+            args.To = jdata_hti_in["temp"]
+            if args.To is None:
+                raise ValueError("Cannot find temperature in hti's input json file")
+        elif path == "p":
+            try:
+                args.To = get_first_matched_key_from_dict(
+                    jdata_hti_in, ["pres", "press"]
+                )
+            except KeyError:
+                args.To = None
+            if args.To is None:
+                raise ValueError("Cannot find pressure in hti's input json file")
     compute_task(
         args.JOB,
         inte_method=args.inte_method,

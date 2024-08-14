@@ -155,10 +155,10 @@ def handle_compute(args):
     if args.Eo_err is None:
         args.Eo_err = jdata_hti["e1_err"]
     if args.To is None:
-      if path == "t" or path == "t-ginv":
-        args.To = jdata_hti_in["temp"]
-      elif path == "p":
-        args.To = jdata_hti_in["pres"]
+        if path == "t" or path == "t-ginv":
+            args.To = jdata_hti_in["temp"]
+        elif path == "p":
+            args.To = jdata_hti_in["pres"]
     if args.inte_method == "inte":
         ti.post_tasks(
             job,
