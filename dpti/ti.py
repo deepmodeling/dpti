@@ -457,7 +457,10 @@ def post_tasks(
     stat_skip = jdata["stat_skip"]
     stat_bsize = jdata["stat_bsize"]
     ens = jdata["ens"]
-    press = get_first_matched_key_from_dict(jdata, ["pres", "press"])
+    try:
+        press = get_first_matched_key_from_dict(jdata, ["pres", "press"])
+    except KeyError:
+        press = None
     path = jdata["path"]
 
     all_tasks = glob.glob(os.path.join(iter_name, "task.[0-9]*"))
