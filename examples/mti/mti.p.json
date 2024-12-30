@@ -1,0 +1,56 @@
+{
+    "equi_conf": "conf.lmp",
+    "copies": [
+        1,
+        1,
+        1
+    ],
+    "model": "graph.pb",
+    "job_type": "mass_ti",
+    "model_mass_map": [
+        16,
+        1
+    ],
+    "mass_scale_y": [
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.6,
+        1.0
+    ],
+    "nbead": [
+        8,
+        16,
+        32,
+        64,
+        64,
+        64
+    ],
+    "nnode": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+    ],
+    "nsteps": 1000000,
+    "dt": 0.0005,
+    "ens": "npt",
+    "path": "p",
+    "temp": 300,
+    "press": [
+        1.0,
+        2.0,
+        3.0,
+        4.0
+    ],
+    "tau_t": 0.1,
+    "tau_p": 0.5,
+    "stat_freq": 10,
+    "dump_freq": 10000,
+    "stat_skip": 10000,
+    "stat_bsize": 2000,
+    "_comment": "that's all"
+}
