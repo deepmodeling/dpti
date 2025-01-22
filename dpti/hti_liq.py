@@ -263,8 +263,9 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None):
             sparam["sigma_0_1"] = sparam["sigma_oh"]
             sparam["sigma_1_1"] = sparam["sigma_hh"]
 
-        # element_num=sparam.get('element_num', 1)
         element_num = len(mass_map)
+        sparam["element_num"] = element_num
+
         sigma_key_index = filter(
             lambda t: t[0] <= t[1],
             ((i, j) for i in range(element_num) for j in range(element_num)),
