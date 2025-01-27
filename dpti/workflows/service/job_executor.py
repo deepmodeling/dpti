@@ -7,8 +7,10 @@ from dpdispatcher import Task as DPDispatcherTask
 from dpdispatcher import Resources as DPDispatcherResources
 from dpdispatcher import Submission as DPDispatcherSubmission
 
+
+from ..configs.dpdispatcher_configs import default_config
 class JobExecutor(Protocol):
-    def submit(self, job_dir: str) -> Any:
+    def submit(self, job_dir: str, command:str = "") -> Any:
         raise NotImplementedError
     
     def group_submit(self, job_dir: str, subtasks_template:str = "", command:str = "") -> Any:
@@ -17,41 +19,20 @@ class JobExecutor(Protocol):
 class DpdispatcherExecutor: # implements JobExecutor
     job_dir: str
     submission: DPDispatcherSubmission
-
-    default_config = {
-    "machine": {
-        "batch_type": "Slurm",
-        "local_root": "./",
-        "remote_root": "/home/yuanf/4_workfplace/",
-        "context_type": "SSHContext",
-        "remote_profile": {
-            "hostname": "cheaha.rc.uab.edu",
-            "username": "yuanf",
-            "port": 22,
-
-        }
-    },
-    "resources": {
-        "number_node": 1,
-        "cpu_per_node": 8,
-        "gpu_per_node": 1,
-        "queue_name": "amperenodes",
-        "group_size": 20,
-        "prepend_script": ["source ~/deepmd-kit-3.0.1/bin/activate ~/deepmd-kit-3.0.1/"]
-      }
-}
+    default_config = default_config
 
     def __init__(self):
 
         self.machine = DPDispatcherMachine.load_from_dict(self.default_config['machine'])
         self.resources = DPDispatcherResources.load_from_dict(self.default_config['resources'])
-
         pass
 
-    # def provide_ex
-
-    # def
     def group_submit(self, job_dir:str, subtasks_template:str="./*/task*", command="lmp -i in.lammps") -> str:
+        if job_dir is None or job_dir == "":
+            raise ValueError("job_dir cannot be None or empty")
+        if not os.path.exists(job_dir):
+            raise FileNotFoundError(f"Directory does not exist: {job_dir=}")
+
         task_abs_dir_list = glob.glob(os.path.join(job_dir, subtasks_template))
 
         task_dir_list = [
@@ -85,11 +66,15 @@ class DpdispatcherExecutor: # implements JobExecutor
         submission_hash = str(self.submission.submission_hash)
         return submission_hash
 
-    def submit(self, job_dir) -> str:
+    def submit(self, job_dir, command="lmp -i in.lammps") -> str:
+        if job_dir is None or job_dir == "":
+            raise ValueError("job_dir cannot be None or empty")
+        if not os.path.exists(job_dir):
+            raise FileNotFoundError(f"Directory does not exist: {job_dir=}")
 
         dpdispatcher_task = DPDispatcherTask(
             # command="lmp -pk gpu 1 -sf gpu -i in.lammps",
-            command="lmp -i in.lammps",
+            command=command,
             task_work_path="./",
             forward_files=["in.lammps", "*lmp", "graph.pb"],
             backward_files=["log.lammps", "dump.equi", "out.lmp"],
