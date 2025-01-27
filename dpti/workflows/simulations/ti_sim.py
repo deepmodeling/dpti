@@ -50,9 +50,9 @@ class TISimulationNodeData(
     free_energy_value_point: FreeEnergyValuePoint
 
 class TISimulation(
-    SimulationBase[TISimulationNodeData,  # nodedata_T, 
-                   TISimulationSettings|Dict[str, Any],  # init_T
-                   Dict] # return_T
+    SimulationBase[TISimulationNodeData,  # NodeDataType, 
+                   TISimulationSettings|Dict[str, Any],  # InitializationType
+                   Dict] # ReturnType
                    ):
 
     # DEFAULT_NODEDATA_JSON = "ti.t.json"
