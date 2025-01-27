@@ -2,6 +2,9 @@ import os
 from .base import SimulationBase, CreateFromTemplateMixin
 from typing import Type, Union, Dict, Any, NamedTuple, Optional
 from pydantic import BaseModel, Field
+
+from ..service.di import InjectionContext, context_inject, injection_context
+from ..service.file_handler import IOHandler
 from ... import equi
 
 
@@ -55,9 +58,9 @@ class NPTEquiSimulationData(EquiLammpsInput,
     pass
 
 class NPTEquiSimulation(
-    SimulationBase[NPTEquiSimulationData,  # nodedata_T,
-                   Union[BaseModel, Dict[str, Any], NamedTuple],  # init_T
-                   Dict] # return_T
+    SimulationBase[NPTEquiSimulationData,  # NodedataType,
+                   Union[BaseModel, Dict[str, Any], NamedTuple],  # InitializationType
+                   Dict] # ReturnType
                    ):
     # DEFAULT_NODEDATA_JSON = "npt.json"
     JOB_DIRNAME = "NPT_sim/new_job/"
@@ -179,9 +182,9 @@ class NVTEquiSimulationData(EquiLammpsInput,
 
 
 class NVTEquiSimulation(
-    SimulationBase[NVTEquiSimulationData,  # nodedata_T,
-                   EquiLammpsSettings|Dict[str, Any],  # init_T
-                   Dict] # return_T
+    SimulationBase[NVTEquiSimulationData,  # NodeDataType,
+                   EquiLammpsSettings|Dict[str, Any],  # InitializationType
+                   Dict] # ReturnType
                    ):
     JOB_DIRNAME = "NVT_sim/new_job/"
     UPLOAD_LOCAL_FILES = []
@@ -226,3 +229,41 @@ class NVTEquiSimulation(
         )
 
         return {"current_produced_paths": self.io_handler.current_produced_paths}
+
+
+#%%
+
+
+class NPTResultToNVTConfLmp(object):
+    def __init__(self, header_print_num: int = 100):
+        self.header_print_num = header_print_num
+        # self.io_handler.use_job_info(job_dirname=NVTEquiSimulation.JOB_DIRNAME)
+        # npt_avg_conf_lmp = equi.npt_equi_conf(
+        #     npt_dir=os.path.join(self.io_handler.flow_running_dir,
+        #                          NPTEquiSimulation.JOB_DIRNAME))
+        # print(f"header for: npt_avg.lmp:{npt_avg_conf_lmp[0:header_print_num]}")
+        # return r_lmp
+    
+    @context_inject
+    def __call__(self, io_handler:IOHandler) -> str:
+        self.io_handler = io_handler
+        self.io_handler.use_job_info(job_dirname=NVTEquiSimulation.JOB_DIRNAME)
+        npt_avg_conf_lmp = equi.npt_equi_conf(
+            npt_dir=os.path.join(self.io_handler.flow_running_dir,
+                                 NPTEquiSimulation.JOB_DIRNAME))
+        r_lmp = self.io_handler.write_pure_file(file_path="npt_avg.lmp", file_content=npt_avg_conf_lmp)
+        return r_lmp
+    
+class ExtractNVTToHTIConfLmp(object):
+    def __init__(self):
+        pass
+
+    @context_inject
+    def __call__(self, io_handler:IOHandler) -> str:
+        self.io_handler = io_handler
+        self.io_handler.use_job_info(job_dirname="HTI_sim/new_job/")
+        conf_lmp = os.path.join(NVTEquiSimulation.JOB_DIRNAME, "out.lmp")
+        r = self.io_handler.upload_files(file_paths = [conf_lmp],
+                                     base_dir=self.io_handler.flow_running_dir)
+        return r[0]
+    

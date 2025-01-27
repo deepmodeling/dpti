@@ -381,9 +381,9 @@ path_spring_off = HTIIntegraionPath(
 
 
 class HTISimulation(
-    SimulationBase[HTISimulationNodedata,  # nodedata_T,
-                   Union[BaseModel, Dict[str, Any], NamedTuple],  #  init_T
-                   HTIResultData] # return_T
+    SimulationBase[HTISimulationNodedata,  # NodedataType,
+                   Union[BaseModel, Dict[str, Any], NamedTuple],  #  InitializationType
+                   HTIResultData] # ReturnType
                    ):
 
     # DEFAULT_NODEDATA_JSON = "hti.json"

@@ -98,12 +98,12 @@ DEFAULT_EXAMPLE_DIR = os.path.join(os.path.dirname(__file__), '../../../examples
 
 entity_T = TypeVar('entity_T', bound=BaseModel)
 # partial_entity_T = entity_T.model_as_partial()
-init_T = TypeVar('init_T', bound=BaseModel)
+InitializationType = TypeVar('InitializationType', bound=BaseModel)
 # call_T = TypeVar('call_T', bound=BaseModel)
 # call_T = TypeVar('call_T')
 call_T = TypeVar('call_T', bound=Union[BaseModel, Dict[str, Any]])
 # call_T = TypeVar('call_T', bound=Union[BaseModel, Dict[str, Any]])
-return_T = TypeVar('return_T')
+ReturnType = TypeVar('ReturnType')
 
 BaseModel_T = TypeVar('BaseModel_T', bound=BaseModel)
 
@@ -187,20 +187,20 @@ class SimulationBaseMeta(type):
 
 entity_T = TypeVar('entity_T', bound=BaseModel)
 # partial_entity_T = entity_T.model_as_partial()
-# init_T = TypeVar('init_T', bound=BaseModel)
-init_T = TypeVar('init_T', bound=Union[BaseModel, Dict[str, Any], NamedTuple])
+# InitializationType = TypeVar('InitializationType', bound=BaseModel)
+InitializationType = TypeVar('InitializationType', bound=Union[BaseModel, Dict[str, Any], NamedTuple])
 # call_T = TypeVar('call_T', bound=BaseModel)
 # call_T = TypeVar('call_T')
 # call_T = TypeVar('call_T', bound=Union[BaseModel, Dict[str, Any]])
 # call_T = TypeVar('call_T', bound=Union[BaseModel, Dict[str, Any]])
 
-# nodedata_T = TypeVar('nodedata_T', bound=Union[BaseModel, Dict[str, Any]])
-nodedata_T = TypeVar('nodedata_T', bound=BaseModel)
+# NodeDataType = TypeVar('NodeDataType', bound=Union[BaseModel, Dict[str, Any]])
+NodeDataType = TypeVar('NodeDataType', bound=BaseModel)
 # call_T = TypeVar('call_T', bound=Union[BaseModel, Dict[str, Any]])
-return_T = TypeVar('return_T')
+ReturnType = TypeVar('ReturnType')
 
 #%%
-class SimulationBase(Generic[nodedata_T, init_T, return_T],
+class SimulationBase(Generic[NodeDataType, InitializationType, ReturnType],
                     #  BaseModel):
                      metaclass=SimulationBaseMeta):
                     # BaseModel,
@@ -221,27 +221,27 @@ class SimulationBase(Generic[nodedata_T, init_T, return_T],
     flow_running_dir: str
     job_dir: str
 
-    # init_entity: Optional[init_T]
+    # init_entity: Optional[InitializationType]
     # call_entity: Optional[call_T]
     workflow_service: WorkflowService
     # io_handler:
     
     # default_entity: entity_T
-    default_nodedata: nodedata_T
-    updated_nodedata: nodedata_T
+    default_nodedata: NodeDataType
+    updated_nodedata: NodeDataType
     # startup_entity: entity_T
     # runtime_entity: entity_T
-    runtime_nodedata: nodedata_T
+    runtime_nodedata: NodeDataType
     all_prepared_paths: List[str] = []
 
-    nodedata_type: Type[nodedata_T]
-    # nodedata_type: Type[nodedata_T]
-    # init_type: Type[init_T]
+    nodedata_type: Type[NodeDataType]
+    # nodedata_type: Type[NodeDataType]
+    # init_type: Type[InitializationType]
     # call_type: Type[call_T]
-    # return_type: Type[return_T]
-    init_type: Type[init_T]
-    return_type: Type[return_T]
-    # return_DataClass: return_T
+    # return_type: Type[ReturnType]
+    init_type: Type[InitializationType]
+    return_type: Type[ReturnType]
+    # return_DataClass: ReturnType
 
     # pyright: ignore[reportInvalidTypeArguments]
     
@@ -256,7 +256,7 @@ class SimulationBase(Generic[nodedata_T, init_T, return_T],
     #     raise NotImplementedError
 
 
-    # def default_init(self, init_entity: Optional[init_T] = None) -> None:
+    # def default_init(self, init_entity: Optional[InitializationType] = None) -> None:
     #     self.init_entity = init_entity
     #     print("note: init_entity", init_entity)
     #     self.default_entity = self.load_default_entity()
@@ -267,7 +267,7 @@ class SimulationBase(Generic[nodedata_T, init_T, return_T],
     #     self.job_dir = os.path.join(self.flow_running_dir, self.meta_config.JOB_DIRNAME)
 
 
-    # def __init__(self, init_entity: Optional[init_T] = None) -> None: 
+    # def __init__(self, init_entity: Optional[InitializationType] = None) -> None: 
     #     self.default_init(init_entity=init_entity)
 
     # @overload
@@ -278,10 +278,10 @@ class SimulationBase(Generic[nodedata_T, init_T, return_T],
 
     # @inject
 
-    # def __init__(self, init_data:init_T, setting_update:Dict={}, setting_template=None):
+    # def __init__(self, init_data:InitializationType, setting_update:Dict={}, setting_template=None):
     #     pass
 
-    # def __init__(self, init_param:init_T):
+    # def __init__(self, init_param:InitializationType):
     #     self.init_param = init_param
         
     #     if isinstance(init_param, BaseModel):
@@ -305,10 +305,10 @@ class SimulationBase(Generic[nodedata_T, init_T, return_T],
     # def __call__(self) -> NoReturn: ...
 
     # @overload
-    # def __call__(self, workflow_service: WorkflowService) -> return_T:...
+    # def __call__(self, workflow_service: WorkflowService) -> ReturnType:...
 
     @context_inject
-    def __call__(self, workflow_service: WorkflowService, skip_steps:Optional[List[str]]=None) -> return_T:
+    def __call__(self, workflow_service: WorkflowService, skip_steps:Optional[List[str]]=None) -> ReturnType:
         if workflow_service is None:
             raise ValueError("workflow_service must be provided and cannot be None."
                             + "Possible due to Dependency Injection failed"
@@ -323,7 +323,7 @@ class SimulationBase(Generic[nodedata_T, init_T, return_T],
         
         self.skip_steps = skip_steps
 
-        execute_return: return_T = self.execute(skip_steps=self.skip_steps)  # pyright: ignore[reportCallIssue]  due to Prefect flow decorator
+        execute_return: ReturnType = self.execute(skip_steps=self.skip_steps)  # pyright: ignore[reportCallIssue]  due to Prefect flow decorator
         return execute_return
 
         
@@ -352,7 +352,7 @@ class SimulationBase(Generic[nodedata_T, init_T, return_T],
     #     self.job_dir = os.path.join(self.flow_running_dir, self.JOB_DIRNAME)
 
 
-    # def __call__(self, call_entity: call_T) -> return_T:
+    # def __call__(self, call_entity: call_T) -> ReturnType:
     #     if isinstance(call_entity, BaseModel):
     #         update: Dict = call_entity.model_dump()
     #     elif isinstance(call_entity, dict):
@@ -365,12 +365,12 @@ class SimulationBase(Generic[nodedata_T, init_T, return_T],
     #     print("note: prepared to validate: updated_nodedata", self.updated_nodedata)
     #     r_valid = self.updated_nodedata.model_validate(self.updated_nodedata)
     #     print(f"note: valid field pass: updated_nodedata as model {self.updated_nodedata}")
-    #     r_execute: return_T = self.execute() # pyright: ignore[reportCallIssue]  due to Prefect flow decorator
+    #     r_execute: ReturnType = self.execute() # pyright: ignore[reportCallIssue]  due to Prefect flow decorator
     #     return r_execute
 
     # @flow(persist_result=True)
     @flow
-    def execute(self, skip_steps:Optional[List[str]]=None) -> Union[return_T, None]:
+    def execute(self, skip_steps:Optional[List[str]]=None) -> Union[ReturnType, None]:
         print(f"note: is going to execute job:{self=}")
         # pyright checker ignore reason: Prefect framework provides @task decorator
         # if skip_steps is not None and 'prepare' not in skip_steps:
@@ -378,7 +378,7 @@ class SimulationBase(Generic[nodedata_T, init_T, return_T],
         print(f"note: execute:{self.prepare_return=}")
         self.run_return = self.run() if 'run' not in (skip_steps or [])  else None # pyright: ignore[reportCallIssue]
         print(f"note: submission hash:{self.run_return=} finished")
-        self.extract_return: Union[return_T, None] = self.extract() if 'extract' not in (skip_steps or []) else None # pyright: ignore[reportCallIssue]
+        self.extract_return: Union[ReturnType, None] = self.extract() if 'extract' not in (skip_steps or []) else None # pyright: ignore[reportCallIssue]
         print(f"note: extract data:{self.extract_return=} finished")
         return self.extract_return
     
@@ -440,12 +440,12 @@ class SimulationBase(Generic[nodedata_T, init_T, return_T],
 
     # @task
     @task(cache_key_fn=task_input_json_hash, persist_result=True, refresh_cache=REFRESH_CACHE)
-    def extract(self) -> return_T:
-        extract_return:return_T = self._extract()
+    def extract(self) -> ReturnType:
+        extract_return:ReturnType = self._extract()
         return extract_return
     
     @abstractmethod
-    def _extract(self) -> return_T:
+    def _extract(self) -> ReturnType:
         raise NotImplementedError("Must be override by subclass")
 
 #%%

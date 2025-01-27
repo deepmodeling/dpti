@@ -24,10 +24,6 @@ class IOHandler(Protocol):
     all_produced_paths: defaultdict
     current_produced_paths: List[str] = []
 
-    # def use_job_dir(self, flow_running_dir: str, job_dirname: str) -> str:
-    #     raise NotImplementedError
-    # def upload_files(self, files_to_upload: FilesToUploadEntity) -> List[str]:
-    #     pass
     def use_job_info(self, job_dirname:str) -> Any:
         pass
     def write_pure_file(self, file_path: str, file_content: str) -> str:
@@ -104,7 +100,7 @@ class LocalFileHandler: # implement IOHandler
         produced_symlinks = []
         for file_path in link_files:
             # abs_file_path = os.path.join(self.flow_trigger_dir, file_path)
-            target_linkfile_path = create_relative_symlink_file(
+            target_linkfile_path = self.create_relative_symlink_file(
                 file_path=file_path,
                 target_dir=self.job_dir,
                 work_base_dir=base_dir
@@ -139,19 +135,17 @@ class LocalFileHandler: # implement IOHandler
     #     # 在这里可以进行清理操作，比如关闭文件、释放资源等
     #     if exc_type is not None:
     #         print(f"An exception occurred: {exc_val}")
-
-
 #%%
+    @staticmethod
+    def create_relative_symlink_file(file_path, target_dir, work_base_dir):
+        abs_file_path = os.path.join(work_base_dir, file_path)
+        if not os.path.isfile(abs_file_path):
+            raise RuntimeError(f"{os.getcwd()=} {abs_file_path=} must be a file.{file_path=}. {target_dir=} {work_base_dir=}")
+        # file_abs_path = os.path.abspath(file_path)
+        file_basename = os.path.basename(file_path)
 
-def create_relative_symlink_file(file_path, target_dir, work_base_dir):
-    abs_file_path = os.path.join(work_base_dir, file_path)
-    if not os.path.isfile(abs_file_path):
-        raise RuntimeError(f"{os.getcwd()=} {abs_file_path=} must be a file.{file_path=}. {target_dir=} {work_base_dir=}")
-    # file_abs_path = os.path.abspath(file_path)
-    file_basename = os.path.basename(file_path)
-
-    abs_target_dir = os.path.join(work_base_dir, target_dir)
-    relative_path = os.path.relpath(abs_file_path, start=abs_target_dir)
-    target_linkfile_path = os.path.join(abs_target_dir, file_basename)
-    os.symlink(src=relative_path, dst=target_linkfile_path)
-    return target_linkfile_path
+        abs_target_dir = os.path.join(work_base_dir, target_dir)
+        relative_path = os.path.relpath(abs_file_path, start=abs_target_dir)
+        target_linkfile_path = os.path.join(abs_target_dir, file_basename)
+        os.symlink(src=relative_path, dst=target_linkfile_path)
+        return target_linkfile_path
