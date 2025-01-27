@@ -17,10 +17,10 @@ from typing import NamedTuple, Tuple
 from unittest import skip
 from attr import dataclass
 from click import Option
-from flask.scaffold import F
+# from flask.scaffold import F
 import injector
 import numpy as np
-from regex import D
+# from regex import D
 from typing_extensions import Type, TypedDict
 from collections import defaultdict
 
@@ -29,6 +29,8 @@ from collections import defaultdict
 # from airflow.operators.python import get_current_context
 
 # from dpdispatcher.lazy_local_context import LazyLocalContext
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../', '../')))
+print(sys.path)
 from dpti import equi, hti, hti_liq, ti
 
 from prefect.artifacts import create_link_artifact, create_markdown_artifact
@@ -38,7 +40,7 @@ import functools
 # from pathlib import Path
 from dpti.lib.utils import create_path, parse_seq
 from abc import ABC, abstractmethod
-from pydantic_partial import create_partial_model
+# from pydantic_partial import create_partial_model
 # from fs.osfs import OSFS
 # from fs import open_fs
 from contextlib import contextmanager
@@ -56,6 +58,7 @@ from prefect import Task
 # from dpti.workflows import workflow_service
 from prefect_task_hash import task_input_json_hash
 DEFAULT_EXAMPLE_DIR = os.path.join(os.path.dirname(__file__), '../../examples/')
+# REFRESH_CACHE = True
 REFRESH_CACHE = False
 
 #%%
@@ -143,7 +146,7 @@ def FreeEnergyLineWorkflowStart():
     # free_energy_line_dict = {}
 
     # pwd = os.getcwd()
-    # main_flow_dir = os.path.realpath(flow_trigger_dir)
+    # flow_running_dir = os.path.realpath(flow_trigger_dir)
 
     thermo_input = ThermoInputData(
         equi_conf="beta.lmp",
@@ -163,7 +166,7 @@ EnsembleType = Literal['npt-xy', 'nvt', 'npt-iso']
 ensemble_field = Field(..., description="Must be one of 'npt-xy', 'nvt', 'npt-iso'")
 
 # class ThermoConditionInitEntity(BaseModel, extra='allow'):
-#     # main_flow_dir: str
+#     # flow_running_dir: str
 #     equi_conf: str
 #     temp: float
 #     pres: float
@@ -220,7 +223,7 @@ class ThermoConditionCallEntity(BaseModel):
 
 # class CreateFromTemplateMixinMeta(type):
 #     def __new__(mcs, name, bases, attrs, **kwargs):
-#         # template_mixin = next((b for b in bases if isinstance(b, CreateFromTemplateMixinMeta)), None)
+#         # template_mixin = next((b for b in bases if isinstance(b, D)), None)
 #         TEMPLATE_DEFAULT_JSON = kwargs['TEMPLATE_DEFAULT_JSON']
 #         TEMPLATE_ADDITIONAL_REQUIRED_FIELDS = kwargs['TEMPLATE_ADDITIONAL_REQUIRED_FIELDS']
 #         # if template_mixin:
@@ -369,13 +372,13 @@ class FilesToUploadEntity(BaseModel):
 
 class IOHandler(Protocol):
     flow_trigger_dir: str
-    main_flow_dir: str
+    flow_running_dir: str
     job_dirname: str
     job_dir: str
     all_produced_paths: defaultdict
     current_produced_paths: List[str] = []
 
-    # def use_job_dir(self, main_flow_dir: str, job_dirname: str) -> str:
+    # def use_job_dir(self, flow_running_dir: str, job_dirname: str) -> str:
     #     raise NotImplementedError
     # def upload_files(self, files_to_upload: FilesToUploadEntity) -> List[str]:
     #     pass
@@ -396,26 +399,26 @@ class IOHandler(Protocol):
 
 class LocalFileHandler: # implement IOHandler
     
-    def __init__(self, flow_trigger_dir: str = "./", main_flow_dir: str = "./") -> None:
+    def __init__(self, flow_trigger_dir: str = "./", flow_running_dir: str = "./") -> None:
         self.flow_trigger_dir = flow_trigger_dir
-        self.main_flow_dir = main_flow_dir
+        self.flow_running_dir = flow_running_dir
 
         # self.related_workflow = realated_workflow
         # self._job_dir_created: bool = False
         self.all_produced_paths = defaultdict(list)
         self.current_produced_paths: List[str] = []
         self.job_dirname = "default_job/"
-        self.job_dir = self.main_flow_dir
+        self.job_dir = self.flow_running_dir
 
     @staticmethod
     def ensure_create_job_dir(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
-            # if not getattr(self, '_job_dir_created', False):
+            # if not getattr(self, '_job_dir_created', False):q
             # if self.job_dir not in self.all_produced_paths:
             if not os.path.isdir(self.job_dir):
                 # print(f"creating job_dir:{self.job_dir=} {self.all_produced_paths=}")
-                print(f"creating job_dir:{self.job_dir=}")
+                print(f"^^^^^^^^^^^^^^^^^^^^^^^^^creating job_dir:{self.job_dir=}^^^^^^^^^^^^^^^^^^^^^^^^^")
                 self.create_job_dir()
             else:
                 # print(f"skip create job_dir {self.job_dir=} {self.all_produced_paths=}")
@@ -425,9 +428,9 @@ class LocalFileHandler: # implement IOHandler
      
     # @classmethod
     def use_job_info(self, job_dirname: str) -> None:
-        # self.main_flow_dir = main_flow_dir
+        # self.flow_running_dir = flow_running_dir
         self.job_dirname = job_dirname
-        self.job_dir = os.path.join(self.main_flow_dir, self.job_dirname)
+        self.job_dir = os.path.join(self.flow_running_dir, self.job_dirname)
 
     def create_job_dir(self) -> str:
         self.job_dir = create_path(self.job_dir)
@@ -480,13 +483,13 @@ class LocalFileHandler: # implement IOHandler
     
     # def __enter__(self) -> 'LocalFileHandler':
     #     # self.job_dirname = job_dirname
-    #     # self.job_dir = os.path.join(self.main_flow_dir, self.job_dirname)
+    #     # self.job_dir = os.path.join(self.flow_running_dir, self.job_dirname)
 
-    #     print(f"Entering context for {self.main_flow_dir} {self.job_dir}")
+    #     print(f"Entering context for {self.flow_running_dir} {self.job_dir}")
     #     return self
 
     # def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-    #     print(f"Exiting context for {self.main_flow_dir} {self.job_dir}")
+    #     print(f"Exiting context for {self.flow_running_dir} {self.job_dir}")
     #     # 在这里可以进行清理操作，比如关闭文件、释放资源等
     #     if exc_type is not None:
     #         print(f"An exception occurred: {exc_val}")
@@ -540,7 +543,7 @@ class PrefectAnalyzer(): # implement ResultAnalyzer
 
 @dataclass
 class WorkflowService:
-    # main_flow_dir: str
+    # flow_running_dir: str
     io_handler: IOHandler
     job_executor: JobExecutor
     result_analyzer: ResultAnalyzer
@@ -733,7 +736,7 @@ class SimulationBase(Generic[nodedata_T, init_T, return_T],
     # entity_class: ClassVar[Type]
     # _type_arg: Type[entity_T]  # pyright: ignore[reportInvalidTypeArguments]
 
-    main_flow_dir: str
+    flow_running_dir: str
     job_dir: str
 
     # init_entity: Optional[init_T]
@@ -778,8 +781,8 @@ class SimulationBase(Generic[nodedata_T, init_T, return_T],
     #     self.startup_entity = self.default_entity.model_copy(
     #         update=(init_entity.model_dump() if init_entity is not None else {}))
     #     print("note: startup_entity", self.startup_entity)
-    #     self.main_flow_dir = getattr(self.startup_entity, 'main_flow_dir', default_flow_trigger_dir)
-    #     self.job_dir = os.path.join(self.main_flow_dir, self.meta_config.JOB_DIRNAME)
+    #     self.flow_running_dir = getattr(self.startup_entity, 'flow_running_dir', default_flow_trigger_dir)
+    #     self.job_dir = os.path.join(self.flow_running_dir, self.meta_config.JOB_DIRNAME)
 
 
     # def __init__(self, init_entity: Optional[init_T] = None) -> None: 
@@ -830,11 +833,11 @@ class SimulationBase(Generic[nodedata_T, init_T, return_T],
                             + "")
         self.workflow_service = workflow_service
         self.io_handler = self.workflow_service.io_handler
-        self.main_flow_dir = self.io_handler.main_flow_dir
+        self.flow_running_dir = self.io_handler.flow_running_dir
         self.io_handler.use_job_info(job_dirname=self.JOB_DIRNAME)
         self.job_executor = self.workflow_service.job_executor
         self.result_analyzer = self.workflow_service.result_analyzer
-        self.job_dir = os.path.join(self.main_flow_dir, self.JOB_DIRNAME)
+        self.job_dir = os.path.join(self.flow_running_dir, self.JOB_DIRNAME)
         
         self.skip_steps = skip_steps
 
@@ -859,12 +862,12 @@ class SimulationBase(Generic[nodedata_T, init_T, return_T],
     #     self.workflow_service = workflow_service
     #     self.io_handler = self.workflow_service.io_handler
 
-    #     self.main_flow_dir = self.io_handler.main_flow_dir
+    #     self.flow_running_dir = self.io_handler.flow_running_dir
     #     # with io_hander as handler:
     #     self.io_handler.use_job_info(job_dirname=self.JOB_DIRNAME)
     #     self.job_executor = self.workflow_service.job_executor
     #     self.result_analyzer = self.workflow_service.result_analyzer
-    #     self.job_dir = os.path.join(self.main_flow_dir, self.JOB_DIRNAME)
+    #     self.job_dir = os.path.join(self.flow_running_dir, self.JOB_DIRNAME)
 
 
     # def __call__(self, call_entity: call_T) -> return_T:
@@ -1788,7 +1791,7 @@ class HTISimulation(
             print(f"working for {integration_path!r}")
             subtasks_dirname = integration_path.subtasks_dirname
             with self.io_handler.subdir_context(subdirname=subtasks_dirname) as io:
-                io.upload_files(file_paths=["out.lmp"], base_dir=os.path.join(self.io_handler.main_flow_dir, self.JOB_DIRNAME))
+                io.upload_files(file_paths=["out.lmp"], base_dir=os.path.join(self.io_handler.flow_running_dir, self.JOB_DIRNAME))
             for idx, lamb in enumerate(integration_path.all_lambda):
                 print(f"{lamb=}")
                 lamb_dict = {
@@ -1809,7 +1812,7 @@ class HTISimulation(
             io.write_pure_file(file_path='lambda.out', file_content=str(lamb))
             io.upload_files(
                 file_paths=['graph.pb', 'out.lmp'],
-                base_dir=os.path.join(self.io_handler.main_flow_dir, self.JOB_DIRNAME)
+                base_dir=os.path.join(self.io_handler.flow_running_dir, self.JOB_DIRNAME)
             )
 
 #%%
@@ -1989,7 +1992,7 @@ class TISimulation(
     # DEFAULT_NODEDATA_JSON = "ti.t.json"
     JOB_DIRNAME = "TI_t_sim/new_job/"
     UPLOAD_LOCAL_FILES = []
-    UPLOAD_FIELDS_FILES = ["model"]
+    UPLOAD_FIELDS_FILES = ["model", "equi_conf"]
     NODEDATA_FILENAME = "ti_settings.json"
 
     def __init__(self, updates={}, template_json:Optional[str]=None):
@@ -2063,7 +2066,7 @@ class TISimulation(
                 equi_conf = self.updated_nodedata.equi_conf
                 print(f"{equi_conf=}")
                 io.upload_files(
-                    file_paths=['graph.pb', equi_conf],
+                    file_paths=['graph.pb', equi_conf,],
                     base_dir=io.flow_trigger_dir
                 )
         return {}
@@ -2330,7 +2333,7 @@ class BaseFuncInjectable(metaclass=InjectableMeta):
     #         job_dirname=NVTEquiSimulation.JOB_DIRNAME)
         
     #     npt_avg_conf_lmp = equi.npt_equi_conf(
-    #         npt_dir=os.path.join(self.io_handler.main_flow_dir, 
+    #         npt_dir=os.path.join(self.io_handler.flow_running_dir, 
     #                              NPTEquiSimulation.JOB_DIRNAME))
     #     r_lmp = self.io_handler.write_pure_file(file_path="npt_avg.lmp",
     #                                             file_content=npt_avg_conf_lmp)
@@ -2341,7 +2344,7 @@ class BaseFuncInjectable(metaclass=InjectableMeta):
     # def extract_nvt_to_hti_conf_lmp(self) -> Any:
     #     self.io_handler.use_job_info(job_dirname="HTI_sim/new_job/")
     #     self.io_handler.upload_files(file_paths = [NVTEquiSimulation.JOB_DIRNAME + "/out.lmp"],
-    #                                  base_dir=self.io_handler.main_flow_dir)
+    #                                  base_dir=self.io_handler.flow_running_dir)
 
 # def injectable_function(cls):
 #     @wraps(cls)
@@ -2359,7 +2362,7 @@ class NPTResultToNVTConfLmp(object):
         self.header_print_num = header_print_num
         # self.io_handler.use_job_info(job_dirname=NVTEquiSimulation.JOB_DIRNAME)
         # npt_avg_conf_lmp = equi.npt_equi_conf(
-        #     npt_dir=os.path.join(self.io_handler.main_flow_dir,
+        #     npt_dir=os.path.join(self.io_handler.flow_running_dir,
         #                          NPTEquiSimulation.JOB_DIRNAME))
         # print(f"header for: npt_avg.lmp:{npt_avg_conf_lmp[0:header_print_num]}")
         # return r_lmp
@@ -2369,7 +2372,7 @@ class NPTResultToNVTConfLmp(object):
         self.io_handler = io_handler
         self.io_handler.use_job_info(job_dirname=NVTEquiSimulation.JOB_DIRNAME)
         npt_avg_conf_lmp = equi.npt_equi_conf(
-            npt_dir=os.path.join(self.io_handler.main_flow_dir,
+            npt_dir=os.path.join(self.io_handler.flow_running_dir,
                                  NPTEquiSimulation.JOB_DIRNAME))
         r_lmp = self.io_handler.write_pure_file(file_path="npt_avg.lmp", file_content=npt_avg_conf_lmp)
         return r_lmp
@@ -2387,7 +2390,7 @@ class ExtractNVTToHTIConfLmp(object):
         self.io_handler.use_job_info(job_dirname="HTI_sim/new_job/")
         conf_lmp = os.path.join(NVTEquiSimulation.JOB_DIRNAME, "out.lmp")
         r = self.io_handler.upload_files(file_paths = [conf_lmp],
-                                     base_dir=self.io_handler.main_flow_dir)
+                                     base_dir=self.io_handler.flow_running_dir)
         return r[0]
     
 
@@ -2466,11 +2469,11 @@ def configure_for_testing(binder):
 
 
 class WorkflowServiceModule(Module):
-    def __init__(self, flow_trigger_dir='./', mainflow_dirname="./") -> None:
+    def __init__(self, flow_trigger_dir='./', flow_running_dirname="default_flow_running/") -> None:
         self.flow_trigger_dir = flow_trigger_dir
-        self.mainflow_dirname = mainflow_dirname
-        self.main_flow_dir = os.path.join(self.flow_trigger_dir,
-                                               self.mainflow_dirname)
+        self.flow_running_dirname = flow_running_dirname
+        self.flow_running_dir = os.path.join(self.flow_trigger_dir,
+                                               self.flow_running_dirname)
 
     # def configure(self, binder) -> None:
     #     binder.bind('npt_dir', to=NPTEquiSimulation.JOB_DIRNAME)
@@ -2481,7 +2484,7 @@ class WorkflowServiceModule(Module):
 
         local_file_handler = LocalFileHandler(
             flow_trigger_dir=self.flow_trigger_dir,
-            main_flow_dir=self.main_flow_dir)
+            flow_running_dir=self.flow_running_dir)
         return local_file_handler
     
     @provider
@@ -2496,9 +2499,9 @@ class WorkflowServiceModule(Module):
     
     
     @provider
-    def provide_mainflow_dirname(self) -> Annotated[str, 'mainflow_dirname']:
-        mainflow_dirname = self.mainflow_dirname
-        return mainflow_dirname
+    def provide_flow_running_dirname(self) -> Annotated[str, 'flow_running_dirname']:
+        flow_running_dirname = self.flow_running_dirname
+        return flow_running_dirname
     
     @provider
     @inject
@@ -2548,13 +2551,13 @@ def FreeEnergyLineWorkflow(config_json: str, flow_trigger_dir: str, refresh_cach
     print(f"!!!NOTE by dpti developer: the results with charts and pictures can be view at tab:results .!!!")
     print(f"note: enter Prefect Workflow. {flow_trigger_dir=}, {config_json=}")
 
-    main_flow_dirname = "free_energy_flow/"
-    main_flow_dir = os.path.join(flow_trigger_dir, main_flow_dirname)
+    flow_running_dirname = "free_energy_flow/"
+    # flow_running_dir = os.path.join(flow_trigger_dir, flow_running_dirname)
     
 
     workflow_service_module = WorkflowServiceModule(
         flow_trigger_dir=flow_trigger_dir,
-        mainflow_dirname=main_flow_dirname)
+        flow_running_dirname=flow_running_dirname)
 
     my_io_handler = workflow_service_module.provide_file_handler()
 
@@ -2573,7 +2576,8 @@ def FreeEnergyLineWorkflow(config_json: str, flow_trigger_dir: str, refresh_cach
     #note: pylance cannot recognize injectior
     with injection_context(my_injector):
         npt = NPTEquiSimulation( thermo_input._asdict() | {"nsteps": 40000, "stat_skip":500, "stat_bsize": 100})
-        npt_r = npt(skip_steps=['prepare', 'run']) # want to inject my_injector.get(WorkflowService)
+        # npt_r = npt(skip_steps=['prepare', 'run']) # want to inject my_injector.get(WorkflowService)
+        npt_r = npt()
 
         # npt.io_handler = my_io_handler
 
@@ -2586,18 +2590,17 @@ def FreeEnergyLineWorkflow(config_json: str, flow_trigger_dir: str, refresh_cach
             ' accurate_pv_err_value_from_npt': accurate_pv_err_value_from_npt
         }
 
+        r1 = NPTResultToNVTConfLmp(header_print_num=100)()
 
-        # r = NPTResultToNVTConfLmp(header_print_num=100)()
-
-
-        # nvt = NVTEquiSimulation(updates=( thermo_input._asdict() | {"equi_conf":"npt_avg.lmp", "nsteps": 20000, "stat_bsize": 100}))
-        # r = nvt()
-        # r = ExtractNVTToHTIConfLmp()()
+        nvt = NVTEquiSimulation(updates=( thermo_input._asdict() | {"equi_conf":"npt_avg.lmp", "nsteps": 20000, "stat_bsize": 100}))
+        nvt_r = nvt()
+        # nvt_r = nvt(skip_steps=['prepare', 'run'])
+        r2 = ExtractNVTToHTIConfLmp()()
         hti_sim = HTISimulation(thermo_input._asdict() 
                                 | {"nsteps": 5000, "equi_conf": "out.lmp", "ref": "einstein", "switch":"three-step"}
                                 | pv_dict)
-        # hti_r:HTIResultData = hti_sim()
-        hti_r:HTIResultData = hti_sim(skip_steps=['prepare', 'run'])
+        hti_r:HTIResultData = hti_sim()
+        # hti_r:HTIResultData = hti_sim(skip_steps=['prepare', 'run'])
 
         print(f"hti_r {hti_r=} ")
         free_energy_value_point = hti_r['free_energy_value_point']
@@ -2608,8 +2611,6 @@ def FreeEnergyLineWorkflow(config_json: str, flow_trigger_dir: str, refresh_cach
                           |{'free_energy_value_point': free_energy_value_point})
         
         r = ti_sim()
-
-
 
         # hti = HTISimulation(
         #     {'free_energy_value_point':free_energy_value_point,

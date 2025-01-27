@@ -19,36 +19,25 @@ class DpdispatcherExecutor: # implements JobExecutor
     submission: DPDispatcherSubmission
 
     default_config = {
-    "machine":{
-        "batch_type": "DpCloudServer",
-        "context_type": "DpCloudServerContext",
-        "local_root" : "./",
-        "remote_profile":{
-            "email": "1109111326@qq.com",
-            "password": "pengqiong@123",
-            "program_id": 12816,
-            "keep_backup": False,
-              "input_data":{
-                  "api_version":2,
-                  "job_type": "container",
-                  "log_file": "*/log.lammps",
-                  "grouped": True,
-                #   "checkpoint_time":5,
-                  "job_name": "dpti_test_V100",
-                #   "disk_size": 100,
-                  "scass_type":"1 * NVIDIA GPU_16g",
-                  "platform": "ali",
-                  "image_name":"registry.dp.tech/dptech/deepmd-kit:2.1.5-cuda11.6",
-                  "on_demand":0
-              }
-          }
+    "machine": {
+        "batch_type": "Slurm",
+        "local_root": "./",
+        "remote_root": "/home/yuanf/4_workfplace/",
+        "context_type": "SSHContext",
+        "remote_profile": {
+            "hostname": "cheaha.rc.uab.edu",
+            "username": "yuanf",
+            "port": 22,
+
+        }
     },
     "resources": {
         "number_node": 1,
-        "cpu_per_node": 4,
+        "cpu_per_node": 8,
         "gpu_per_node": 1,
-        "queue_name": "GPU V100",
-        "group_size": 40
+        "queue_name": "amperenodes",
+        "group_size": 20,
+        "prepend_script": ["source ~/deepmd-kit-3.0.1/bin/activate ~/deepmd-kit-3.0.1/"]
       }
 }
 
