@@ -27,7 +27,7 @@ from dpti.lib.utils import (
 def make_iter_name(iter_index):
     return "task_hti." + ("%04d" % iter_index)
 
-def parse_lj_sigma_epsilon(ret, sparam):
+def parse_lj_sigma_epsilon(ret, sparam, hybrid=False):
     element_num = sparam.get("element_num", 1)
     sigma_key_index = filter(
         lambda t: t[0] <= t[1],
@@ -36,22 +36,28 @@ def parse_lj_sigma_epsilon(ret, sparam):
     activation = sparam["activation"]
     epsilon = sparam.get("epsilon", None)
     epsilon_0_0 = sparam.get("epsilon_0_0", None)
+    if hybrid:
+        pair_coeff_str = "lj/cut/soft "
+    else:
+        pair_coeff_str = ""
     if epsilon is not None:
         assert epsilon_0_0 is None, "epsilon and epsilon_0_0 cannot be set at the same time"
         ret += f"variable        EPSILON equal {epsilon:f}\n"
         for i, j in sigma_key_index:
-            ret += "pair_coeff      {} {} ${{EPSILON}} {:f} {:f}\n".format(
+            ret += "pair_coeff      {} {} {p:s}${{EPSILON}} {:f} {:f}\n".format(
                 i + 1,
                 j + 1,
+                pair_coeff_str,
                 sparam["sigma_" + str(i) + "_" + str(j)],
                 activation,
             )
     else:
         assert epsilon_0_0 is not None, "epsilon or epsilon_0_0 must be set"
         for i, j in sigma_key_index:
-            ret += "pair_coeff      {} {} {:f} {:f} {:f}\n".format(
+            ret += "pair_coeff      {} {} {:s}{:f} {:f} {:f}\n".format(
                 i + 1,
                 j + 1,
+                pair_coeff_str,
                 sparam["epsilon_" + str(i) + "_" + str(j)],
                 sparam["sigma_" + str(i) + "_" + str(j)],
                 activation,
@@ -64,7 +70,7 @@ def _ff_soft_on(lamb, sparam):
     rcut = sparam["rcut"]
     ret = ""
     ret += f"pair_style      lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
-    ret = parse_lj_sigma_epsilon(ret, sparam)
+    ret = parse_lj_sigma_epsilon(ret, sparam, hybrid=False)
 
     ret += "fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_LAMBDA scale yes\n"
     ret += "compute         lj_pe all pair lj/cut/soft\n"
@@ -86,7 +92,7 @@ def _ff_deep_on(lamb, sparam, model, if_meam=False, meam_model=None):
         ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
 
-    ret = parse_lj_sigma_epsilon(ret, sparam)
+    ret = parse_lj_sigma_epsilon(ret, sparam, hybrid=True)
 
     if if_meam:
         ret += "fix             tot_pot all adapt/fep 0 pair meam scale * * v_LAMBDA\n"
@@ -114,7 +120,7 @@ def _ff_soft_off(lamb, sparam, model, if_meam=False, meam_model=None):
         ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
 
-    ret = parse_lj_sigma_epsilon(ret, sparam)
+    ret = parse_lj_sigma_epsilon(ret, sparam, hybrid=True)
 
     ret += "fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_INV_LAMBDA scale yes\n"
     ret += "compute         lj_pe all pair lj/cut/soft\n"
