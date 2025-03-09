@@ -27,6 +27,7 @@ from dpti.lib.utils import (
 def make_iter_name(iter_index):
     return "task_hti." + ("%04d" % iter_index)
 
+
 def parse_lj_sigma_epsilon(ret, sparam, hybrid=False):
     element_num = sparam.get("element_num", 1)
     sigma_key_index = filter(
@@ -51,7 +52,6 @@ def parse_lj_sigma_epsilon(ret, sparam, hybrid=False):
                 j + 1,
                 pair_coeff_str,
                 sparam["sigma_" + str(i) + "_" + str(j)],
-                activation,
             )
     else:
         assert epsilon_0_0 is not None, "epsilon or epsilon_0_0 must be set"
