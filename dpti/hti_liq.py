@@ -41,7 +41,9 @@ def parse_lj_sigma_epsilon(ret, sparam, hybrid=False):
     else:
         pair_coeff_str = ""
     if epsilon is not None:
-        assert epsilon_0_0 is None, "epsilon and epsilon_0_0 cannot be set at the same time"
+        assert (
+            epsilon_0_0 is None
+        ), "epsilon and epsilon_0_0 cannot be set at the same time"
         ret += f"variable        EPSILON equal {epsilon:f}\n"
         for i, j in sigma_key_index:
             ret += "pair_coeff      {} {} {p:s}${{EPSILON}} {:f} {:f}\n".format(
@@ -63,6 +65,7 @@ def parse_lj_sigma_epsilon(ret, sparam, hybrid=False):
                 activation,
             )
     return ret
+
 
 def _ff_soft_on(lamb, sparam):
     nn = sparam["n"]
