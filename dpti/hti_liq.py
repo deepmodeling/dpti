@@ -29,41 +29,72 @@ def make_iter_name(iter_index):
 
 def parse_lj_sigma_epsilon(ret, sparam, hybrid=False):
     element_num = sparam.get("element_num", 1)
-    sigma_key_index = filter(
+    sigma_key_index_ = filter(
         lambda t: t[0] <= t[1],
         ((i, j) for i in range(element_num) for j in range(element_num)),
     )
-    activation = sparam["activation"]
+    sigma_key_index = list(sigma_key_index_)
+
     epsilon = sparam.get("epsilon", None)
     epsilon_0_0 = sparam.get("epsilon_0_0", None)
-    if hybrid:
-        pair_coeff_str = "lj/cut/soft "
-    else:
-        pair_coeff_str = ""
+    sigma = sparam.get("sigma", None)
+    sigma_0_0 = sparam.get("sigma_0_0", None)
+    activation = sparam.get("activation", None)
+    activation_0_0 = sparam.get("activation_0_0", None)
+
+    epsilon_ij = np.zeros((element_num, element_num))
+    sigma_ij = np.zeros((element_num, element_num))
+    activation_ij = np.zeros((element_num, element_num))
+
     if epsilon is not None:
         assert (
             epsilon_0_0 is None
         ), "epsilon and epsilon_0_0 cannot be set at the same time"
-        ret += f"variable        EPSILON equal {epsilon:f}\n"
         for i, j in sigma_key_index:
-            ret += "pair_coeff      {} {} {p:s}${{EPSILON}} {:f} {:f}\n".format(
-                i + 1,
-                j + 1,
-                pair_coeff_str,
-                sparam["sigma_" + str(i) + "_" + str(j)],
-                activation,
-            )
+            epsilon_ij[i, j] = epsilon
     else:
-        assert epsilon_0_0 is not None, "epsilon or epsilon_0_0 must be set"
+        assert (
+            epsilon_0_0 is not None
+        ), "epsilon or epsilon_0_0 must be set"
         for i, j in sigma_key_index:
-            ret += "pair_coeff      {} {} {:s}{:f} {:f} {:f}\n".format(
-                i + 1,
-                j + 1,
-                pair_coeff_str,
-                sparam["epsilon_" + str(i) + "_" + str(j)],
-                sparam["sigma_" + str(i) + "_" + str(j)],
-                activation,
-            )
+            epsilon_ij[i, j] = sparam["epsilon_" + str(i) + "_" + str(j)]
+
+    if sigma is not None:
+        assert sigma_0_0 is None, "sigma and sigma_0_0 cannot be set at the same time"
+        for i, j in sigma_key_index:
+            sigma_ij[i, j] = sigma
+    else:
+        assert sigma_0_0 is not None, "sigma or sigma_0_0 must be set"
+        for i, j in sigma_key_index:
+            sigma_ij[i, j] = sparam["sigma_" + str(i) + "_" + str(j)]
+
+    if activation is not None:
+        assert (
+            activation_0_0 is None
+        ), "activation and activation_0_0 cannot be set at the same time"
+        for i, j in sigma_key_index:
+            activation_ij[i, j] = activation
+    else:
+        assert (
+            activation_0_0 is not None
+        ), "activation or activation_0_0 must be set"
+        for i, j in sigma_key_index:
+            activation_ij[i, j] = sparam["activation_" + str(i) + "_" + str(j)]
+    
+    if hybrid:
+        pair_coeff_str = "lj/cut/soft "
+    else:
+        pair_coeff_str = ""
+
+    for i, j in sigma_key_index:
+        ret += "pair_coeff      {} {} {:s}{:f} {:f} {:f}\n".format(
+            i + 1,
+            j + 1,
+            pair_coeff_str,
+            epsilon_ij[i, j],
+            sigma_ij[i, j],
+            activation_ij[i, j],
+        )
     return ret
 
 
