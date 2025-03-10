@@ -54,9 +54,7 @@ def parse_lj_sigma_epsilon(ret, sparam, hybrid=False):
         for i, j in sigma_key_index:
             epsilon_ij[i, j] = epsilon
     else:
-        assert (
-            epsilon_0_0 is not None
-        ), "epsilon or epsilon_0_0 must be set"
+        assert epsilon_0_0 is not None, "epsilon or epsilon_0_0 must be set"
         for i, j in sigma_key_index:
             epsilon_ij[i, j] = sparam["epsilon_" + str(i) + "_" + str(j)]
 
@@ -76,26 +74,17 @@ def parse_lj_sigma_epsilon(ret, sparam, hybrid=False):
         for i, j in sigma_key_index:
             activation_ij[i, j] = activation
     else:
-        assert (
-            activation_0_0 is not None
-        ), "activation or activation_0_0 must be set"
+        assert activation_0_0 is not None, "activation or activation_0_0 must be set"
         for i, j in sigma_key_index:
             activation_ij[i, j] = sparam["activation_" + str(i) + "_" + str(j)]
-    
+
     if hybrid:
         pair_coeff_str = "lj/cut/soft "
     else:
         pair_coeff_str = ""
 
     for i, j in sigma_key_index:
-        ret += "pair_coeff      {} {} {:s}{:f} {:f} {:f}\n".format(
-            i + 1,
-            j + 1,
-            pair_coeff_str,
-            epsilon_ij[i, j],
-            sigma_ij[i, j],
-            activation_ij[i, j],
-        )
+        ret += f"pair_coeff      {i + 1} {j + 1} {pair_coeff_str:s}{epsilon_ij[i, j]:f} {sigma_ij[i, j]:f} {activation_ij[i, j]:f}\n"
     return ret
 
 
