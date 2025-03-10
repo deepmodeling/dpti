@@ -290,17 +290,19 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None):
         element_num = len(mass_map)
         sparam["element_num"] = element_num
 
-        sigma_key_index = filter(
-            lambda t: t[0] <= t[1],
-            ((i, j) for i in range(element_num) for j in range(element_num)),
-        )
-        sigma_key_name_list = [
-            "sigma_" + str(t[0]) + "_" + str(t[1]) for t in sigma_key_index
-        ]
-        for sigma_key_name in sigma_key_name_list:
-            assert sparam.get(
-                sigma_key_name, None
-            ), f"there must be key-value for {sigma_key_name} in soft_param"
+        sigma = sparam.get("sigma", None)
+        if sigma is None:
+            sigma_key_index = filter(
+                lambda t: t[0] <= t[1],
+                ((i, j) for i in range(element_num) for j in range(element_num)),
+            )
+            sigma_key_name_list = [
+                "sigma_" + str(t[0]) + "_" + str(t[1]) for t in sigma_key_index
+            ]
+            for sigma_key_name in sigma_key_name_list:
+                assert sparam.get(
+                    sigma_key_name, None
+                ), f"there must be key-value for sigma or {sigma_key_name} in soft_param"
 
     job_abs_dir = create_path(iter_name)
 
