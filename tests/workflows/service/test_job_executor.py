@@ -1,17 +1,26 @@
-import unittest
-from unittest.mock import Mock, patch
 import os
+import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from dpti.workflows.service.job_executor import DpdispatcherExecutor
+
 
 class TestDpdispatcherExecutor(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures before each test method."""
-        self.patcher_machine = patch('dpti.workflows.service.job_executor.DPDispatcherMachine')
-        self.patcher_resources = patch('dpti.workflows.service.job_executor.DPDispatcherResources')
-        self.patcher_task = patch('dpti.workflows.service.job_executor.DPDispatcherTask')
-        self.patcher_submission = patch('dpti.workflows.service.job_executor.DPDispatcherSubmission')
+        self.patcher_machine = patch(
+            "dpti.workflows.service.job_executor.DPDispatcherMachine"
+        )
+        self.patcher_resources = patch(
+            "dpti.workflows.service.job_executor.DPDispatcherResources"
+        )
+        self.patcher_task = patch(
+            "dpti.workflows.service.job_executor.DPDispatcherTask"
+        )
+        self.patcher_submission = patch(
+            "dpti.workflows.service.job_executor.DPDispatcherSubmission"
+        )
 
         self.mock_machine = self.patcher_machine.start()
         self.mock_resources = self.patcher_resources.start()
@@ -38,15 +47,20 @@ class TestDpdispatcherExecutor(unittest.TestCase):
         # Clean up test directory
         if os.path.exists(self.test_dir):
             import shutil
+
             shutil.rmtree(self.test_dir)
 
     def test_init(self):
         """Test DpdispatcherExecutor initialization."""
         executor = DpdispatcherExecutor()
-        
-        self.assertEqual(executor.machine, self.mock_machine.load_from_dict.return_value)
-        self.assertEqual(executor.resources, self.mock_resources.load_from_dict.return_value)
-        
+
+        self.assertEqual(
+            executor.machine, self.mock_machine.load_from_dict.return_value
+        )
+        self.assertEqual(
+            executor.resources, self.mock_resources.load_from_dict.return_value
+        )
+
         self.mock_machine.load_from_dict.assert_called_once()
         self.mock_resources.load_from_dict.assert_called_once()
 
@@ -71,7 +85,7 @@ class TestDpdispatcherExecutor(unittest.TestCase):
             command="lmp -i in.lammps",
             task_work_path="./",
             forward_files=["in.lammps", "*lmp", "graph.pb"],
-            backward_files=["log.lammps", "dump.equi", "out.lmp"]
+            backward_files=["log.lammps", "dump.equi", "out.lmp"],
         )
 
     def test_group_submit(self):
@@ -79,25 +93,23 @@ class TestDpdispatcherExecutor(unittest.TestCase):
         # Setup
         executor = DpdispatcherExecutor()
         job_dir = os.path.join(self.test_dir, "test_group_job")
-        
+
         # Create test directory structure
         task_dirs = ["task1", "task2", "task3"]
         for task in task_dirs:
             task_path = Path(job_dir) / task
             os.makedirs(task_path, exist_ok=True)
             Path(task_path, "in.lammps").touch()
-        
+
         Path(job_dir, "graph.pb").touch()
 
         # Mock glob
-        with patch('glob.glob') as mock_glob:
+        with patch("glob.glob") as mock_glob:
             mock_glob.return_value = [str(Path(job_dir) / task) for task in task_dirs]
-            
+
             # Execute
             submission_hash = executor.group_submit(
-                job_dir,
-                subtasks_template="./task*",
-                command="lmp -i in.lammps"
+                job_dir, subtasks_template="./task*", command="lmp -i in.lammps"
             )
 
             # Verify
@@ -113,7 +125,7 @@ class TestDpdispatcherExecutor(unittest.TestCase):
         os.makedirs(job_dir, exist_ok=True)
 
         # Execute with empty directory
-        with patch('glob.glob') as mock_glob:
+        with patch("glob.glob") as mock_glob:
             mock_glob.return_value = []
             submission_hash = executor.group_submit(job_dir)
 
@@ -125,17 +137,15 @@ class TestDpdispatcherExecutor(unittest.TestCase):
     def test_submit_invalid_path(self):
         """Test submit method with invalid path."""
         executor = DpdispatcherExecutor()
-        invalid_paths = [
-            "/non/existent/path",
-            "",
-            None
-        ]
-        
+        invalid_paths = ["/non/existent/path", "", None]
+
         for path in invalid_paths:
             with self.subTest(path=path):
-                with self.assertRaises(Exception):  # You might want to be more specific about the exception
+                with self.assertRaises(
+                    Exception
+                ):  # You might want to be more specific about the exception
                     executor.submit(path)
-        
+
     def test_submit_with_custom_command(self):
         """Test submit method with custom command."""
         executor = DpdispatcherExecutor()
@@ -153,9 +163,9 @@ class TestDpdispatcherExecutor(unittest.TestCase):
             command=custom_command,
             task_work_path="./",
             forward_files=["in.lammps", "*lmp", "graph.pb"],
-            backward_files=["log.lammps", "dump.equi", "out.lmp"]
+            backward_files=["log.lammps", "dump.equi", "out.lmp"],
         )
-    
+
     def test_submit_with_custom_command(self):
         """Test submit method with custom command."""
         executor = DpdispatcherExecutor()
@@ -173,9 +183,9 @@ class TestDpdispatcherExecutor(unittest.TestCase):
             command=custom_command,
             task_work_path="./",
             forward_files=["in.lammps", "*lmp", "graph.pb"],
-            backward_files=["log.lammps", "dump.equi", "out.lmp"]
+            backward_files=["log.lammps", "dump.equi", "out.lmp"],
         )
-    
+
     def test_submit_with_custom_command(self):
         """Test submit method with custom command."""
         executor = DpdispatcherExecutor()
@@ -193,11 +203,9 @@ class TestDpdispatcherExecutor(unittest.TestCase):
             command=custom_command,
             task_work_path="./",
             forward_files=["in.lammps", "*lmp", "graph.pb"],
-            backward_files=["log.lammps", "dump.equi", "out.lmp"]
+            backward_files=["log.lammps", "dump.equi", "out.lmp"],
         )
-    
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
