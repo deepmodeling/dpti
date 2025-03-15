@@ -14,7 +14,7 @@ from typing import TypeVar, Protocol, Generic, Any, Optional, List, Union, Abstr
 # from dependency_injector import containers, providers
 # from dependency_injector.wiring import Provide, inject
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../' '../', '../')))
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../' '../', '../')))
 # from dpti.workflows.service.service_container import WorkflowContainer, WorkflowServices
 from dpti.workflows.service.workflow_decorator import workflow_task_decorator
 from dpti.workflows.service.workflow_service_module import WorkflowServiceModule

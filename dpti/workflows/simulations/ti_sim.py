@@ -16,11 +16,11 @@ import base64
 
 #%%
 
-from .base import SimulationBase, transfer_matching_fields, FreeEnergyValuePoint, SettingsBase, FlowRunInfo
-from ...lib.utils import parse_seq
-from ... import ti, ti_water
-from ..service.file_handler import get_current_io
-from .result_base import ResultDataBase, ArtifactInfo
+from dpti.workflows.simulations.base import SimulationBase, transfer_matching_fields, FreeEnergyValuePoint, SettingsBase, FlowRunInfo
+from dpti.lib.utils import parse_seq
+from dpti import ti, ti_water
+from dpti.workflows.service.file_handler import get_current_io
+from dpti.workflows.simulations.result_base import ResultDataBase, ArtifactInfo
 from dpti.lib.lammps import get_natoms
 from dpti.workflows.service.workflow_service_module import BasicWorkflowServices
 # from 
