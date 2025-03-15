@@ -5,14 +5,8 @@ import os
 from abc import ABC, abstractmethod
 from io import BytesIO
 from types import SimpleNamespace
-#%%
-from dpti.workflows.simulations.result_base import ResultDataBase
-from dpti.workflows.simulations.base import SimulationBase, FreeEnergyValuePoint, transfer_matching_fields
-from dpti.lib.utils import parse_seq
-from dpti import hti, hti_liq, hti_water,hti_liq, hti_ice
-from dpti.workflows.service.workflow_service_module import BasicWorkflowServices
 
-#%%
+# %%
 from typing import (
     Any,
     Dict,
@@ -28,12 +22,16 @@ import numpy as np
 from prefect.artifacts import create_markdown_artifact
 from pydantic import AliasChoices, BaseModel, Field
 
-from dpti.hti import integrate_range_hti
-from dpti.workflows.service.workflow_service_module import BasicWorkflowServices
-
+from dpti import hti, hti_ice, hti_liq, hti_water
 from dpti.hti import integrate_range_hti
 from dpti.lib.utils import parse_seq
+from dpti.workflows.service.workflow_service_module import BasicWorkflowServices
+from dpti.workflows.simulations.base import (
+    FreeEnergyValuePoint,
+    SimulationBase,
+)
 
+# %%
 # %%
 from .base import (
     FreeEnergyValuePoint,
@@ -735,7 +733,6 @@ class HTISimulation(
                     self.io_handler.flow_running_dir, self.JOB_DIRNAME, subtasks_dirname
                 ),
             )
-
 
 
 # %%

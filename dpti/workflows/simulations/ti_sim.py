@@ -20,17 +20,18 @@ import numpy as np
 from prefect.artifacts import create_markdown_artifact
 from pydantic import AliasChoices, BaseModel, Field
 
-from dpti.workflows.simulations.base import SimulationBase, transfer_matching_fields, FreeEnergyValuePoint, SettingsBase, FlowRunInfo
-from dpti.lib.utils import parse_seq
-from dpti import ti, ti_water
-from dpti.workflows.service.file_handler import get_current_io
-from dpti.workflows.simulations.result_base import ResultDataBase, ArtifactInfo
-from dpti.lib.lammps import get_natoms
-from dpti.workflows.service.workflow_service_module import BasicWorkflowServices
-
 from dpti import ti
+from dpti.lib.lammps import get_natoms
 from dpti.lib.utils import parse_seq
 from dpti.workflows.service.file_handler import get_current_io
+from dpti.workflows.service.workflow_service_module import BasicWorkflowServices
+from dpti.workflows.simulations.base import (
+    FreeEnergyValuePoint,
+    SettingsBase,
+    SimulationBase,
+    transfer_matching_fields,
+)
+from dpti.workflows.simulations.result_base import ArtifactInfo, ResultDataBase
 
 # %%
 from .base import (

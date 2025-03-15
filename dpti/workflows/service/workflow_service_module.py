@@ -1,16 +1,17 @@
+# %%
 
-#%%
-from injector import Module, provider, inject
-import os
-from typing import Protocol, Annotated, Any
-from dpti.workflows.service.file_handler import IOHandler, LocalFileHandler
-from dpti.workflows.service.job_executor import JobExecutor, DpdispatcherExecutor
-from dpti.workflows.service.report_generator import ReportGenerator, PrefectReportGenerator
 # %%
 from dataclasses import dataclass
 from typing import Any, Protocol
 
 from injector import Module, inject, provider
+
+from dpti.workflows.service.file_handler import IOHandler, LocalFileHandler
+from dpti.workflows.service.job_executor import DpdispatcherExecutor, JobExecutor
+from dpti.workflows.service.report_generator import (
+    PrefectReportGenerator,
+    ReportGenerator,
+)
 
 from .file_handler import IOHandler, LocalFileHandler
 from .job_executor import DpdispatcherExecutor, JobExecutor
