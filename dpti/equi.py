@@ -157,7 +157,10 @@ def gen_equi_ensemble_settings(ens, if_dump_avg_posi):
     ret += "# --------------------- RUN ------------------------------\n"
     ret += "run             ${NSTEPS}\n"
     if if_dump_avg_posi:
-        ret += "read_dump     dump.avgposi ${NSTEPS} x y z\n"
+        ret += "undump     fp\n"
+        ret += "undump     1\n"
+        ret += "unfix      ap\n"
+        ret += "read_dump     dump.avgposi ${NSTEPS} x y z label x f_ap[1] label y f_ap[2] label z f_ap[3]\n"
     ret += "write_data      out.lmp\n"
     return ret
 
