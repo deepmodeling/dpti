@@ -83,27 +83,5 @@ def context_inject(func: Callable[..., T]) -> Callable[..., T]:
 
 class InjectableMeta(type):
     pass
-#     def __call__(cls, *args, **kwargs):
-#         injection_context = InjectionContext.get_current()
-#         if injection_context and injection_context.di_container:
-#             return injection_context.di_container.get(cls)
-#         return super().__call__(*args, **kwargs)
+#%%
 
-
-# class BaseFuncInjectable(metaclass=InjectableMeta):
-#     @overload
-#     def __init__(self) -> NoReturn: ...
-
-#     @overload
-#     def __init__(self, io_handler: IOHandler) -> None:...
-
-#     @inject
-#     def __init__(self, io_handler: IOHandler | None = None ) -> None:
-#                 #  npt_dir: Annotated[str, 'npt_dir'],
-#                 #  nvt_dir: Annotated[str, 'nvt_dir']
-#         if io_handler is None:
-#             raise ValueError("io_handler must be provided and cannot be None."
-#                              + "Possible due to Dependency Injection failed"
-#                              + "")
-#         self.io_handler = io_handler
-        # return self()

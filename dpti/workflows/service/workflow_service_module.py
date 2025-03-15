@@ -1,36 +1,68 @@
-from injector import Module, provider, inject, Annotated
+
+#%%
+from injector import Module, provider, inject
 import os
+from typing import Protocol, Annotated, Any
 from .file_handler import IOHandler, LocalFileHandler
 from .job_executor import JobExecutor, DpdispatcherExecutor
-from .result_analyzer import ResultAnalyzer, PrefectAnalyzer
+from .report_generator import ReportGenerator, PrefectReportGenerator
 from dataclasses import dataclass
+#%%
 
+class WorkflowServices(Protocol):
+    io_handler: IOHandler
 
 
 @dataclass
-class WorkflowService:
-    # flow_running_dir: str
+class IOWorkflowServices(WorkflowServices):
+    io_handler: IOHandler
+
+@dataclass
+class BasicWorkflowServices(WorkflowServices):
     io_handler: IOHandler
     job_executor: JobExecutor
-    result_analyzer: ResultAnalyzer
+    report_generator: ReportGenerator
+
+
+class RayExecutor(Protocol):
+    def train(self, job_dir: str, command:str = "") -> Any:
+        raise NotImplementedError
+
+@dataclass
+class RaytrainerWorkflowServices(WorkflowServices):
+    io_handler: IOHandler
+    job_executor: JobExecutor
+    report_generator: ReportGenerator
+    rayjob_trainer: RayExecutor
+
 
 class WorkflowServiceModule(Module):
-    def __init__(self, flow_trigger_dir='./', flow_running_dirname="default_flow_running/") -> None:
-        self.flow_trigger_dir = flow_trigger_dir
-        self.flow_running_dirname = flow_running_dirname
-        self.flow_running_dir = os.path.join(self.flow_trigger_dir,
-                                               self.flow_running_dirname)
+    # def __init__(self, flow_trigger_dir='./', 
+    #              flow_running_dirname="default_flow_running/",
+    #              skip_steps:list[str]=[]) -> None:
+    #     self.flow_trigger_dir = flow_trigger_dir
+    #     self.flow_running_dirname = flow_running_dirname
+    #     self.flow_running_dir = os.path.join(self.flow_trigger_dir,
+    #                                            self.flow_running_dirname)
+    #     self.skip_steps = skip_steps
 
     # def configure(self, binder) -> None:
     #     binder.bind('npt_dir', to=NPTEquiSimulation.JOB_DIRNAME)
     #     binder.bind('nvt_dir', to=NVTEquiSimulation.JOB_DIRNAME)
     # @singleton
+
+    def __init__(self, flow_trigger_dir:str, flow_running_dirname:str):
+        self.flow_trigger_dir = flow_trigger_dir
+        self.flow_running_dirname = flow_running_dirname
+
     @provider
     def provide_file_handler(self) -> IOHandler:
 
         local_file_handler = LocalFileHandler(
             flow_trigger_dir=self.flow_trigger_dir,
-            flow_running_dir=self.flow_running_dir)
+            flow_running_dirname=self.flow_running_dirname,
+
+            )
         return local_file_handler
     
     @provider
@@ -39,27 +71,48 @@ class WorkflowServiceModule(Module):
         return job_executor
     
     @provider
-    def provide_result_analyzer(self) -> ResultAnalyzer:
-        result_analyzer = PrefectAnalyzer()
-        return result_analyzer
+    def provide_report_generator(self) -> ReportGenerator:
+        report_generator = PrefectReportGenerator()
+        return report_generator
     
     
-    @provider
-    def provide_flow_running_dirname(self) -> Annotated[str, 'flow_running_dirname']:
-        flow_running_dirname = self.flow_running_dirname
-        return flow_running_dirname
+    # @provider
+    # def provide_flow_running_dirname(self) -> Annotated[str, 'flow_running_dirname']:
+    #     flow_running_dirname = self.flow_running_dirname
+    #     return flow_running_dirname
     
     @provider
     @inject
-    def provide_workflow_service(
+    def provide_basic_workflow_services(
         self,
         io_handler: IOHandler,
         job_executor: JobExecutor,
-        result_analyzer: ResultAnalyzer
-    ) -> WorkflowService:
-        return WorkflowService(io_handler=io_handler, 
-                                       job_executor=job_executor,
-                                       result_analyzer=result_analyzer)
+        report_generator: ReportGenerator
+    ) -> BasicWorkflowServices:
+
+        basic_workflow_services = BasicWorkflowServices(
+            io_handler=io_handler, 
+            job_executor=job_executor,
+            report_generator=report_generator)
+
+        return basic_workflow_services
+
+    @provider
+    @inject
+    def provide_io_workflow_services(
+        self,
+        io_handler: IOHandler
+    ) -> IOWorkflowServices:
+        io_workflow_services = IOWorkflowServices(io_handler=io_handler)
+        return io_workflow_services
+
+    # @provider
+    # def provide_flow_runtime_context(self) -> FlowRuntimeContext:
+    #     flow_runtime_context = FlowRuntimeContext(
+    #         flow_running_dir=self.flow_running_dirname,
+    #         flow_trigger_dir=self.flow_trigger_dir,
+    #     )
+    #     return flow_runtime_context
 
 # NPT_DIR_S = NewType('NPT_DIR_S', str)
 # NPT_DIR_S = NewType('NPT_DIR_S', str)

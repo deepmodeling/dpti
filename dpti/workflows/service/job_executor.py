@@ -1,19 +1,19 @@
 from typing import Protocol, Any, Optional
 import os
 import glob
-
+import asyncio
 from dpdispatcher import Job, Machine as DPDispatcherMachine
 from dpdispatcher import Task as DPDispatcherTask
 from dpdispatcher import Resources as DPDispatcherResources
 from dpdispatcher import Submission as DPDispatcherSubmission
-
+import shutil
 
 from ..configs.dpdispatcher_configs import default_config
 class JobExecutor(Protocol):
     def submit(self, job_dir: str, command:str = "") -> Any:
         raise NotImplementedError
     
-    def group_submit(self, job_dir: str, subtasks_template:str = "", command:str = "") -> Any:
+    async def group_submit(self, job_dir: str, subtasks_template:str = "", command:str = "") -> Any:
         raise NotImplementedError
 
 class DpdispatcherExecutor: # implements JobExecutor
@@ -27,7 +27,7 @@ class DpdispatcherExecutor: # implements JobExecutor
         self.resources = DPDispatcherResources.load_from_dict(self.default_config['resources'])
         pass
 
-    def group_submit(self, job_dir:str, subtasks_template:str="./*/task*", command="lmp -i in.lammps") -> str:
+    async def group_submit(self, job_dir:str, subtasks_template:str="./*/task*", command="lmp -i in.lammps") -> Any:
         if job_dir is None or job_dir == "":
             raise ValueError("job_dir cannot be None or empty")
         if not os.path.exists(job_dir):
@@ -48,7 +48,7 @@ class DpdispatcherExecutor: # implements JobExecutor
             task_work_path=subdir,
             # forward_files=["in.lammps", "*lmp", "graph.pb"],
             forward_files=["in.lammps", "*lmp"],
-            backward_files=["log.lammps"],
+            backward_files=["log.lammps", "*lmp"],
         ) for subdir in task_dir_list
         ]
 
@@ -62,8 +62,12 @@ class DpdispatcherExecutor: # implements JobExecutor
 
         self.submission.generate_jobs()
         print(f"note: submission {self.submission.submission_hash} to be submit")
-        submission_r = self.submission.run_submission(check_interval=15)
-        submission_hash = str(self.submission.submission_hash)
+        # submission_r = self.submission.run_submission(check_interval=15)
+        # submission_hash = str(self.submission.submission_hash)
+
+        # loop = asyncio.get_event_loop()
+        submission_hash = await self.submission.async_run_submission(check_interval=60, clean=False)
+
         return submission_hash
 
     def submit(self, job_dir, command="lmp -i in.lammps") -> str:
@@ -77,7 +81,7 @@ class DpdispatcherExecutor: # implements JobExecutor
             command=command,
             task_work_path="./",
             forward_files=["in.lammps", "*lmp", "graph.pb"],
-            backward_files=["log.lammps", "dump.equi", "out.lmp"],
+            backward_files=["log.lammps", "dump.*", "out.lmp"],
         )
 
         # dpdispatcher_task_list = 
@@ -90,8 +94,10 @@ class DpdispatcherExecutor: # implements JobExecutor
         )
         # self.submission = submission
         self.submission.generate_jobs()
-        print(f"note: submission {self.submission.submission_hash} to be submit")
+        print(f"note: DpdispatcherExecutor.submit: submission {self.submission.submission_hash} to be submit")
         submission_r = self.submission.run_submission(check_interval=15)
+        print(f"note: DpdispatcherExecutor.submit: submission {submission_r} finished")
         submission_hash = str(self.submission.submission_hash)
         return submission_hash
         # print(f"Submitting job: {job_dir}")
+#%%
