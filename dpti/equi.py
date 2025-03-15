@@ -131,7 +131,7 @@ def gen_equi_dump_settings(if_dump_avg_posi):
     return ret
 
 
-def gen_equi_ensemble_settings(ens):
+def gen_equi_ensemble_settings(ens, if_dump_avg_posi):
     # ens = equi_settings['ens']
     ret = ""
     if ens == "nvt":
@@ -156,6 +156,11 @@ def gen_equi_ensemble_settings(ens):
     ret += "velocity        all zero linear\n"
     ret += "# --------------------- RUN ------------------------------\n"
     ret += "run             ${NSTEPS}\n"
+    if if_dump_avg_posi:
+        ret += "undump           fp\n"
+        ret += "undump           1\n"
+        ret += "unfix            ap\n"
+        ret += "read_dump        dump.avgposi ${NSTEPS} x y z label x f_ap[1] label y f_ap[2] label z f_ap[3]\n"
     ret += "write_data      out.lmp\n"
     return ret
 
@@ -198,7 +203,9 @@ def gen_equi_lammps_input(
     )
     equi_thermo_settings = gen_equi_thermo_settings(timestep=timestep)
     equi_dump_settings = gen_equi_dump_settings(if_dump_avg_posi=if_dump_avg_posi)
-    equi_ensemble_settings = gen_equi_ensemble_settings(ens=ens)
+    equi_ensemble_settings = gen_equi_ensemble_settings(
+        ens=ens, if_dump_avg_posi=if_dump_avg_posi
+    )
 
     equi_lammps_input = (
         equi_header
@@ -355,7 +362,6 @@ def make_task(
     ens=None,
     temp=None,
     pres=None,
-    if_dump_avg_posi=None,
     npt_dir=None,
 ):
     equi_args = [
@@ -385,7 +391,6 @@ def make_task(
         ens=ens,
         temp=temp,
         pres=pres,
-        if_dump_avg_posi=if_dump_avg_posi,
         npt_dir=npt_dir,
     )
 
@@ -674,12 +679,6 @@ def add_subparsers(module_subparsers):
         "-p", "--pressure", type=float, help="the pressure of the system"
     )
     parser_gen.add_argument(
-        "-a",
-        "--avg-posi",
-        action="store_true",
-        help="dump the average position of atoms",
-    )
-    parser_gen.add_argument(
         "-c", "--conf-npt", type=str, help="use conf computed from NPT simulation"
     )
     parser_gen.add_argument(
@@ -728,7 +727,6 @@ def handle_gen(args):
         args.ensemble,
         args.temperature,
         args.pressure,
-        args.avg_posi,
         args.conf_npt,
     )
 

@@ -1,10 +1,9 @@
 import os
 import tempfile
 import unittest
-from pathlib import Path
-from typing import List
 
 from dpti.workflows.service.file_handler import LocalFileHandler
+
 
 class TestLocalFileHandler(unittest.TestCase):
     def setUp(self):
@@ -13,7 +12,9 @@ class TestLocalFileHandler(unittest.TestCase):
         self.flow_running_dir = os.path.join(self.test_dir.name, "flow_running")
         os.makedirs(self.flow_trigger_dir, exist_ok=True)
         os.makedirs(self.flow_running_dir, exist_ok=True)
-        self.file_handler = LocalFileHandler(self.flow_trigger_dir, self.flow_running_dir)
+        self.file_handler = LocalFileHandler(
+            self.flow_trigger_dir, self.flow_running_dir
+        )
 
     def tearDown(self):
         self.test_dir.cleanup()
@@ -28,7 +29,9 @@ class TestLocalFileHandler(unittest.TestCase):
         job_dirname = "test_job"
         self.file_handler.use_job_info(job_dirname)
         self.assertEqual(self.file_handler.job_dirname, job_dirname)
-        self.assertEqual(self.file_handler.job_dir, os.path.join(self.flow_running_dir, job_dirname))
+        self.assertEqual(
+            self.file_handler.job_dir, os.path.join(self.flow_running_dir, job_dirname)
+        )
 
     def test_create_job_dir(self):
         job_dirname = "test_job"
@@ -46,7 +49,7 @@ class TestLocalFileHandler(unittest.TestCase):
         # 构建完整路径用于验证文件内容
         abs_file_path = os.path.join(self.flow_running_dir, rel_file_path)
         self.assertTrue(os.path.isfile(abs_file_path))
-        with open(abs_file_path, 'r') as f:
+        with open(abs_file_path) as f:
             self.assertEqual(f.read(), file_content)
         self.assertIn(rel_file_path, self.file_handler.current_produced_paths)
 
@@ -56,16 +59,25 @@ class TestLocalFileHandler(unittest.TestCase):
         self.file_handler.create_job_dir()
 
         test_file_path = os.path.join(self.flow_trigger_dir, "test_file.txt")
-        with open(test_file_path, 'w') as f:
+        with open(test_file_path, "w") as f:
             f.write("Test content")
 
         file_paths = ["test_file.txt"]
+<<<<<<< HEAD
         rel_symlinks = self.file_handler.upload_files(file_paths, self.flow_trigger_dir)
         self.assertEqual(len(rel_symlinks), 1)
         # 构建完整路径用于验证符号链接
         abs_symlink_path = os.path.join(self.flow_running_dir, rel_symlinks[0])
         self.assertTrue(os.path.islink(abs_symlink_path))
         self.assertIn(rel_symlinks[0], self.file_handler.current_produced_paths)
+=======
+        produced_symlinks = self.file_handler.upload_files(
+            file_paths, self.flow_trigger_dir
+        )
+        self.assertEqual(len(produced_symlinks), 1)
+        self.assertTrue(os.path.islink(produced_symlinks[0]))
+        self.assertIn(produced_symlinks[0], self.file_handler.current_produced_paths)
+>>>>>>> b644dedbcc6d0cb76d7cb250440013f6122c4228
 
     def test_subdir_context(self):
         job_dirname = "test_job"
@@ -74,8 +86,13 @@ class TestLocalFileHandler(unittest.TestCase):
 
         subdirname = "subdir"
         with self.file_handler.subdir_context(subdirname):
-            self.assertEqual(self.file_handler.job_dir, os.path.join(self.flow_running_dir, job_dirname, subdirname))
-        self.assertEqual(self.file_handler.job_dir, os.path.join(self.flow_running_dir, job_dirname))
+            self.assertEqual(
+                self.file_handler.job_dir,
+                os.path.join(self.flow_running_dir, job_dirname, subdirname),
+            )
+        self.assertEqual(
+            self.file_handler.job_dir, os.path.join(self.flow_running_dir, job_dirname)
+        )
 
     def test_create_relative_symlink_file(self):
         job_dirname = "test_job"
@@ -84,13 +101,13 @@ class TestLocalFileHandler(unittest.TestCase):
 
         # create a test file
         test_file_path = os.path.join(self.flow_trigger_dir, "test_file.txt")
-        with open(test_file_path, 'w') as f:
+        with open(test_file_path, "w") as f:
             f.write("Test content")
 
         rel_linkfile_path = self.file_handler.create_relative_symlink_file(
             file_path="test_file.txt",
             target_dir=self.file_handler.job_dir,
-            work_base_dir=self.flow_trigger_dir
+            work_base_dir=self.flow_trigger_dir,
         )
         # 构建完整路径用于验证符号链接
         abs_linkfile_path = os.path.join(self.flow_running_dir, rel_linkfile_path)
@@ -100,11 +117,11 @@ class TestLocalFileHandler(unittest.TestCase):
     def test_ensure_create_job_dir(self):
         job_dirname = "test_job"
         self.file_handler.use_job_info(job_dirname)
-        
+
         self.assertFalse(os.path.isdir(self.file_handler.job_dir))
         self.file_handler.write_pure_file("test_file.txt", "Hello, World!")
         self.assertTrue(os.path.isdir(self.file_handler.job_dir))
-        
+
         self.file_handler.current_produced_paths = []  # 重置当前产生的路径
         self.file_handler.write_pure_file("test_file2.txt", "Hello again!")
         self.assertEqual(len(self.file_handler.current_produced_paths), 1)  #
@@ -115,9 +132,10 @@ class TestLocalFileHandler(unittest.TestCase):
         self.file_handler.create_job_dir()
 
         test_file_path = os.path.join(self.flow_trigger_dir, "test_file.txt")
-        with open(test_file_path, 'w') as f:
+        with open(test_file_path, "w") as f:
             f.write("Test content")
 
+<<<<<<< HEAD
         rel_symlinks = self.file_handler.link_files(["test_file.txt"], self.flow_trigger_dir)
         self.assertEqual(len(rel_symlinks), 1)
         # 构建完整路径用于验证符号链接
@@ -131,6 +149,25 @@ class TestLocalFileHandler(unittest.TestCase):
 
         with self.assertRaises(RuntimeError):
             self.file_handler.link_files(["non_existent_file.txt"], self.flow_trigger_dir)
+=======
+        produced_symlinks = self.file_handler.link_files(
+            ["test_file.txt"], self.flow_trigger_dir
+        )
+        self.assertEqual(len(produced_symlinks), 1)
+        self.assertTrue(os.path.islink(produced_symlinks[0]))
+        self.assertEqual(os.path.basename(produced_symlinks[0]), "test_file.txt")
+
+        link_target = os.readlink(produced_symlinks[0])
+        self.assertEqual(
+            link_target,
+            os.path.relpath(test_file_path, start=self.file_handler.job_dir),
+        )
+
+        with self.assertRaises(RuntimeError):
+            self.file_handler.link_files(
+                ["non_existent_file.txt"], self.flow_trigger_dir
+            )
+>>>>>>> b644dedbcc6d0cb76d7cb250440013f6122c4228
 
     def test_subdir_context_with_exception(self):
         job_dirname = "test_job"
@@ -142,9 +179,12 @@ class TestLocalFileHandler(unittest.TestCase):
 
         with self.assertRaises(Exception):
             with self.file_handler.subdir_context(subdirname):
-                self.assertEqual(self.file_handler.job_dir, os.path.join(original_job_dir, subdirname))
+                self.assertEqual(
+                    self.file_handler.job_dir,
+                    os.path.join(original_job_dir, subdirname),
+                )
                 raise Exception("Test exception")
-        
+
         self.assertEqual(self.file_handler.job_dir, original_job_dir)
     
     # def test_subdir_context_normal(self):
@@ -165,6 +205,7 @@ class TestLocalFileHandler(unittest.TestCase):
 
     #     #verify the job_dir is restored to its original value after exiting the context
     #     self.assertEqual(self.file_handler.job_dir, original_job_dir)
+
 
 if __name__ == "__main__":
     unittest.main()
