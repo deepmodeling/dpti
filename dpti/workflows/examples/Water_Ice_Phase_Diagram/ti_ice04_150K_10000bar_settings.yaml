@@ -1,0 +1,97 @@
+thermo_input:
+  target_temp: 150
+  target_pres: 10000
+  ti_path: 't'
+  conf_lmp: 'ice04.lmp'
+  ens: 'npt-tri'
+  model: 'graph.pb'
+  mass_map: [16, 2]
+  if_meam: false
+  if_liquid: false
+  if_water: true
+  meam_model: {}
+
+npt_simulation_settings:
+  nsteps: 1000000 # 1000000
+  timestep: 0.0005
+  temp: null
+  pres: null
+  tau_t: 0.1
+  tau_p: 0.5
+  thermo_freq: 10
+  dump_freq: 10000
+  if_meam: null
+  if_dump_avg_posi: false
+  meam_model: null
+  stat_skip: 30000 # 30000
+  stat_bsize: 10000 # 10000
+
+nvt_simulation_settings:
+  equi_conf: 'npt_avg.lmp'
+  nsteps: 200000
+  timestep: 0.0005
+  ens: 'nvt'  # constant, unchangeable for NVT simulation
+  temp: null
+  pres: null
+  tau_t: 0.1
+  tau_p: 0.5
+  thermo_freq: 10
+  dump_freq: 1000
+  if_meam: null
+  if_dump_avg_posi: true # Use average position to generate HTI initial configuration
+  meam_model: null
+  stat_skip: 10000
+  stat_bsize: 2000
+
+hti_simulation_settings:
+  equi_conf: 'nvt_last_dump_avgposi.lmp' # recommended, HTI simulation usually use NVT ensemble
+  switch: 'three-step'
+  lambda_lj_on:
+    - "0.000:0.100:0.0125"
+    - "0.100:0.200:0.025"
+    - "0.200:1.000:0.2"
+    - "1"
+  lambda_deep_on:
+    - "0.0:0.1:0.025"
+    - "0.1:1.0:0.1125"
+    - "1"
+  lambda_spring_off:
+    - "0.000:0.750:0.125"
+    - "0.750:0.875:0.0625"
+    - "0.875:1.000:0.03125"
+    - "1"
+  protect_eps: 1.0e-8
+  spring_k: 0.5
+  soft_param:
+    epsilon: 0.02
+    element_num: 2
+    sigma_0_0: 3.15 # Oxygen-Oxygen
+    sigma_0_1: 0.987 # Oxygen-Hydrogen
+    sigma_1_1: 0.987 # Hydrogen-Hydrogen
+    activation: 0.5
+    n: 1.0
+    alpha_lj: 0.5
+    rcut: 6.0
+  crystal: "frenkel"
+  langevin: true
+  nsteps: 200000
+  timestep: 0.0005
+  thermo_freq: 10
+  stat_skip: 10000
+  stat_bsize: 2000
+  disorder_corr: true
+  partial_disorder: null
+
+ti_simulation_settings:
+  equi_conf: null # use thermo_input.conf_lmp
+  path: null
+  ens: null # use thermo_input.ens
+  nsteps: 100000
+  timestep: 0.0005
+  tau_t: 0.1
+  tau_p: 0.5
+  thermo_freq: 10
+  stat_skip: 5000
+  stat_bsize: 1000
+  temp_seq: ["50:400:5", "400"]
+  pres_seq: [] # not used for path T
