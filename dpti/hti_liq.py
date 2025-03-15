@@ -488,6 +488,7 @@ def compute_task(
     if "copies" in jdata:
         natoms *= np.prod(jdata["copies"])
     fe, fe_err, thermo_info = post_tasks(job, natoms)
+    print(f"hti_liq.compute_task: ideal gas fe = {fe:.68}eV, err = {fe_err[0]:.6f}eV, {fe_err[1]:.6f}eV per atom")
     _print_thermo_info(thermo_info)
 
     info = thermo_info.copy()
@@ -540,6 +541,8 @@ def compute_task(
     info["pv_err"] = pv_err
     # info['de'] = de
     # info['de_err'] = de_err
+    info["e0"] = fe
+    info["e0_err"] = fe_err
     info["e1"] = e1
     info["e1_err"] = e1_err
     with open(os.path.join(job, "result.json"), "w") as result:

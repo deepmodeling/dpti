@@ -669,7 +669,8 @@ def post_tasks(
         "all_fe": all_fe.tolist(),
         "all_fe_stat_err": all_fe_err.tolist(),
         "all_fe_inte_err": all_fe_sys_err.tolist(),
-        "all_fe_tot_err": np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist(),
+        # "all_fe_tot_err": np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist(),
+        "all_fe_tot_err": np.linalg.norm([all_fe_err, all_fe_sys_err]).tolist(),
     }
 
     # data = [all_temps.tolist(), all_press.tolist(),
