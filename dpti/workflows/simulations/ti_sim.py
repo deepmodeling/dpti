@@ -235,7 +235,7 @@ class TISimulation(
 
     
     # @task
-    def _extract(self) -> Dict[str, Any]:
+    def _extract(self) -> TISimulationResultData:
         # raise RuntimeError
         # self.io_handler.use_job_info(job_dirname=self.JOB_DIRNAME)
         # Eo = self.updated_nodedata.hti_to_ti_result['']
@@ -307,7 +307,12 @@ class TISimulation(
             markdown=ti_summary_md,
             description="TI Simulation Report",
         )
+
+        # ti_result_data = TISimulationResultData(
+        #     **ti_info['data'],
+        # )
             # result_file_path = os.path.join(io_handler.job_dir, "result.json")
+        # return ti_result_data
         return ti_info
 
 

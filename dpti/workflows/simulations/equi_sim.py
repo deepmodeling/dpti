@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from .base import SimulationBase, CreateFromTemplateMixin, SettingsBase, workflow_task, FlowRunInfo
+from .base import SimulationBase, SettingsBase, workflow_task, FlowRunInfo
 from typing import Type, Union, Dict, Any, NamedTuple, Optional, TypedDict
 from pydantic import BaseModel, Field, AliasChoices
 
@@ -262,7 +262,6 @@ class NVTEquiSimulationNodedata(BaseModel):
 
 class NVTEquiSimulation(
     SimulationBase[NVTEquiSimulationNodedata,  # NodeDataType,
-                #    EquiLammpsSettings|Dict[str, Any],  # SettingsType
                    NVTEquiSimulationSettings,  # SettingsType
                    Dict] # ReturnType
                    ):
@@ -344,18 +343,6 @@ class NVTEquiSimulation(
         )
 
         return info
-    
-    # def extract_last_dump(self, if_dump_avg_posi: bool = False) -> str:
-    #     with self.io_handler.subdir_context(subdirname='./') as io_handler:
-    #         if if_dump_avg_posi:
-    #             dump_file = "dump.avgposi"
-    #             output_file = "nvt_last_dump_avgposi.lmp"
-    #         else:
-    #             dump_file = "dump.equi"
-    #             output_file = "nvt_last_dump.lmp"
-    #         target_output_file = os.path.join(io_handler.job_dir, output_file)
-    #         r = equi_extract(job_dir=io_handler.job_dir, output=target_output_file)
-    #         return r
 
 
 
@@ -365,13 +352,6 @@ class NVTEquiSimulation(
 class NPTResultToNVTConfLmp(object):
     def __init__(self, header_print_num: int = 100):
         self.header_print_num = header_print_num
-        
-        # self.io_handler.use_job_info(job_dirname=NVTEquiSimulation.JOB_DIRNAME)
-        # npt_avg_conf_lmp = equi.npt_equi_conf(
-        #     npt_dir=os.path.join(self.io_handler.flow_running_dir,
-        #                          NPTEquiSimulation.JOB_DIRNAME))
-        # print(f"header for: npt_avg.lmp:{npt_avg_conf_lmp[0:header_print_num]}")
-        # return r_lmp
     
     @context_inject
     def __call__(self, workflow_services:IOWorkflowServices) -> str:

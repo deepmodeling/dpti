@@ -8,7 +8,7 @@ from dpdispatcher import Resources as DPDispatcherResources
 from dpdispatcher import Submission as DPDispatcherSubmission
 import shutil
 
-from ..configs.dpdispatcher_configs import default_config
+from dpti.workflows.service.dpdispatcher_configs import default_config
 class JobExecutor(Protocol):
     def submit(self, job_dir: str, command:str = "") -> Any:
         raise NotImplementedError
