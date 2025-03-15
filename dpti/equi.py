@@ -355,7 +355,6 @@ def make_task(
     ens=None,
     temp=None,
     pres=None,
-    if_dump_avg_posi=None,
     npt_dir=None,
 ):
     equi_args = [
@@ -385,7 +384,6 @@ def make_task(
         ens=ens,
         temp=temp,
         pres=pres,
-        if_dump_avg_posi=if_dump_avg_posi,
         npt_dir=npt_dir,
     )
 
@@ -674,12 +672,6 @@ def add_subparsers(module_subparsers):
         "-p", "--pressure", type=float, help="the pressure of the system"
     )
     parser_gen.add_argument(
-        "-a",
-        "--avg-posi",
-        action="store_true",
-        help="dump the average position of atoms",
-    )
-    parser_gen.add_argument(
         "-c", "--conf-npt", type=str, help="use conf computed from NPT simulation"
     )
     parser_gen.add_argument(
@@ -728,7 +720,6 @@ def handle_gen(args):
         args.ensemble,
         args.temperature,
         args.pressure,
-        args.avg_posi,
         args.conf_npt,
     )
 
