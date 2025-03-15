@@ -78,8 +78,6 @@ class ResultDataBase(BaseModel):
         pass
 
 
-
-
 def example_usage():
     result = ResultDataBase(
         result_name="my_simulation",
