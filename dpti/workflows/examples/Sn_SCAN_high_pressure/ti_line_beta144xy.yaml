@@ -1,0 +1,95 @@
+thermo_input:
+  target_temp: 400
+  target_pres: 50000
+  ti_path: 't'
+  conf_lmp: 'beta144xy.lmp'
+  ens: 'npt-xy'
+  model: 'graph.pb'
+  mass_map: [118.71]
+  if_meam: false
+  if_liquid: false
+  if_water: false
+  meam_model: {}
+
+npt_simulation_settings:
+  nsteps: 1000000
+  timestep: 0.002
+  temp: null
+  pres: null
+  tau_t: 0.2
+  tau_p: 2.0
+  thermo_freq: 10
+  dump_freq: 10000
+  if_meam: null
+  if_dump_avg_posi: false
+  meam_model: null
+  stat_skip: 5000
+  stat_bsize: 1000
+
+nvt_simulation_settings:
+  equi_conf: 'npt_avg.lmp'
+  nsteps: 400000
+  timestep: 0.002
+  ens: 'nvt'  # constant, unchangeable for NVT simulation
+  temp: null
+  pres: null
+  tau_t: 0.2
+  tau_p: 2.0
+  thermo_freq: 10
+  dump_freq: 10000
+  if_meam: null
+  if_dump_avg_posi: false
+  meam_model: null
+  stat_skip: 2000
+  stat_bsize: 1000
+
+hti_simulation_settings:
+  equi_conf: 'nvt_out.lmp'  # recommended, HTI simulation usually use NVT ensemble
+  switch: 'three-step'
+  lambda_lj_on:
+    - "0.000:0.100:0.0125"
+    - "0.100:0.200:0.025"
+    - "0.200:1.000:0.2"
+    - "1"
+  lambda_deep_on:
+    - "0.00:0.05:0.010"
+    - "0.05:0.15:0.020"
+    - "0.15:0.35:0.040"
+    - "0.35:1.00:0.065"
+    - "1"
+  lambda_spring_off:
+    - "0.000:0.750:0.125"
+    - "0.750:0.900:0.050"
+    - "0.900:0.960:0.020"
+    - "0.960:1.000:0.010"
+    - "1"
+  protect_eps: 1.0e-6
+  spring_k: 0.02
+  soft_param:
+    sigma_0_0: 2.7
+    epsilon: 0.030
+    activation: 0.5
+    n: 1.0
+    alpha_lj: 0.5
+    rcut: 6.0
+  crystal: "frenkel"
+  langevin: true
+  nsteps: 300000
+  timestep: 0.002
+  thermo_freq: 10
+  stat_skip: 2000
+  stat_bsize: 1000
+
+ti_simulation_settings:
+  equi_conf: null # use thermo_input.conf_lmp
+  path: null
+  ens: null # use thermo_input.ens
+  nsteps: 400000
+  timestep: 0.002
+  tau_t: 0.2
+  tau_p: 2.0
+  thermo_freq: 10
+  stat_skip: 2000
+  stat_bsize: 1000
+  temp_seq: ["200:1200:20", "1200"]
+  pres_seq: ["0:100000:2000", "100000"]
