@@ -131,7 +131,7 @@ def gen_equi_dump_settings(if_dump_avg_posi):
     return ret
 
 
-def gen_equi_ensemble_settings(ens):
+def gen_equi_ensemble_settings(ens, if_dump_avg_posi):
     # ens = equi_settings['ens']
     ret = ""
     if ens == "nvt":
@@ -156,6 +156,8 @@ def gen_equi_ensemble_settings(ens):
     ret += "velocity        all zero linear\n"
     ret += "# --------------------- RUN ------------------------------\n"
     ret += "run             ${NSTEPS}\n"
+    if if_dump_avg_posi:
+        ret += "read_dump     dump.avgposi ${NSTEPS} x y z\n"
     ret += "write_data      out.lmp\n"
     return ret
 
@@ -198,7 +200,7 @@ def gen_equi_lammps_input(
     )
     equi_thermo_settings = gen_equi_thermo_settings(timestep=timestep)
     equi_dump_settings = gen_equi_dump_settings(if_dump_avg_posi=if_dump_avg_posi)
-    equi_ensemble_settings = gen_equi_ensemble_settings(ens=ens)
+    equi_ensemble_settings = gen_equi_ensemble_settings(ens=ens, if_dump_avg_posi=if_dump_avg_posi)
 
     equi_lammps_input = (
         equi_header
