@@ -1,7 +1,8 @@
 import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
-from dpti.workflows.service.workflow_service_module import WorkflowService
+import dpti
+from dpti.workflows.service.workflow_service_module import WorkflowServiceModule
 from dpti.workflows.service.file_handler import IOHandler
 from dpti.workflows.simulations.equi_sim import NPTEquiSimulationSettings
 from dpti.workflows.simulations.hti_sim import HTISimulationSettings
@@ -14,7 +15,7 @@ def workflow_test_dir(tmp_path):
 @pytest.fixture
 def mock_workflow_service():
     """模拟工作流服务"""
-    service = Mock(spec=WorkflowService)
+    service = Mock(spec=WorkflowServiceModule)
     service.io_handler = Mock(spec=IOHandler)
     service.io_handler.flow_running_dir = "/mock/flow/dir"
     return service
