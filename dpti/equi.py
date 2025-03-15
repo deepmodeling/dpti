@@ -203,7 +203,9 @@ def gen_equi_lammps_input(
     )
     equi_thermo_settings = gen_equi_thermo_settings(timestep=timestep)
     equi_dump_settings = gen_equi_dump_settings(if_dump_avg_posi=if_dump_avg_posi)
-    equi_ensemble_settings = gen_equi_ensemble_settings(ens=ens, if_dump_avg_posi=if_dump_avg_posi)
+    equi_ensemble_settings = gen_equi_ensemble_settings(
+        ens=ens, if_dump_avg_posi=if_dump_avg_posi
+    )
 
     equi_lammps_input = (
         equi_header
