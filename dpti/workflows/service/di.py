@@ -1,11 +1,9 @@
-
 # import injector
-from injector import provider, Injector, inject
-
 import typing
-from typing import TypeVar, Callable, Union, overload, NoReturn, get_origin, get_args
 from contextlib import contextmanager
+from typing import Callable, TypeVar, Union
 
+from injector import Injector
 
 
 class InjectionContext:
@@ -31,13 +29,14 @@ def injection_context(di_container: Injector):
     with InjectionContext(di_container):
         yield
 
-T = TypeVar('T')
+
+T = TypeVar("T")
+
 
 def context_inject(func: Callable[..., T]) -> Callable[..., T]:
     """
-
     Decorator function to inject dependencies based on function parameter type annotations.
-    This decorator function is used to inject dependencies based on function parameter type annotations. 
+    This decorator function is used to inject dependencies based on function parameter type annotations.
     It will try to get the dependency from the dependency injection container and inject it into the function.
     If the dependency is not found, it will raise an exception.
 
@@ -45,16 +44,18 @@ def context_inject(func: Callable[..., T]) -> Callable[..., T]:
         @context_inject
         def my_function(param1: MyClass, param2: int) -> None:
             pass
-    
+
     In this example, `param1` will be injected with an instance of `MyClass` from the dependency injection container,
         and `param2` will be injected with an instance of `int` from the dependency injection container.
 
     Args:
         func (Callable[..., T]): Decorated function.
 
-    Returns:
-        Callable[..., T]:  Wrapper function that injects dependencies based on function parameter type annotations.
+    Returns
+    -------
+    Callable[..., T]:  Wrapper function that injects dependencies based on function parameter type annotations.
     """
+
     def wrapper(*args, **kwargs):
         context = InjectionContext.get_current()
         print(f"context:{context=}")
@@ -65,23 +66,32 @@ def context_inject(func: Callable[..., T]) -> Callable[..., T]:
             print(f"context_inject: {annotations=}")
             for param_name, param_type in annotations.items():
                 print(f"context_inject: {param_name=}, {param_type=}")
-                if param_name not in kwargs and param_name != 'return':
-                    if typing.get_origin(param_type) is Union and type(None) in typing.get_args(param_type):
+                if param_name not in kwargs and param_name != "return":
+                    if typing.get_origin(param_type) is Union and type(
+                        None
+                    ) in typing.get_args(param_type):
                         # means Optional[Any]. for example: Optional[List[str]],  Union[float, None]  both will not trigger inject
                         pass
                     else:
                         try:
-                            # try to get dependency from injector 
+                            # try to get dependency from injector
                             kwargs[param_name] = di_container.get(param_type)
                         except Exception as e:
-                            print(f"{param_type=} {dir(param_type)=} {type(param_type)=} ")
-                            print(f"context inject fail!  {param_name=} {param_type=} {context=} {di_container=} {annotations=}")
+                            print(
+                                f"{param_type=} {dir(param_type)=} {type(param_type)=} "
+                            )
+                            print(
+                                f"context inject fail!  {param_name=} {param_type=} {context=} {di_container=} {annotations=}"
+                            )
                             raise e
                         # pass  # keep original if fail
         return func(*args, **kwargs)
+
     return wrapper
+
 
 class InjectableMeta(type):
     pass
-#%%
 
+
+# %%
