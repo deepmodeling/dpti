@@ -3,9 +3,9 @@
 from injector import Module, provider, inject
 import os
 from typing import Protocol, Annotated, Any
-from .file_handler import IOHandler, LocalFileHandler
-from .job_executor import JobExecutor, DpdispatcherExecutor
-from .report_generator import ReportGenerator, PrefectReportGenerator
+from dpti.workflows.service.file_handler import IOHandler, LocalFileHandler
+from dpti.workflows.service.job_executor import JobExecutor, DpdispatcherExecutor
+from dpti.workflows.service.report_generator import ReportGenerator, PrefectReportGenerator
 from dataclasses import dataclass
 #%%
 

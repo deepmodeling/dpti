@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from .base import SimulationBase, SettingsBase, workflow_task, FlowRunInfo
 from typing import Type, Union, Dict, Any, NamedTuple, Optional, TypedDict
 from pydantic import BaseModel, Field, AliasChoices
 
@@ -11,6 +10,7 @@ from dpti.workflows.service.file_handler import IOHandler
 
 from dpti import equi
 from dpti.equi import extract as equi_extract
+from dpti.workflows.simulations.base import SimulationBase, SettingsBase, workflow_task, FlowRunInfo
 from dpti.workflows.simulations.hti_sim import HTISimulation
 
 from dpti.workflows.service.workflow_service_module import BasicWorkflowServices, IOWorkflowServices

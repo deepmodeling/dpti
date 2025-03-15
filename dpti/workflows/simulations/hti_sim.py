@@ -13,13 +13,12 @@ from dpti.hti import integrate_range_hti
 from prefect.artifacts import create_markdown_artifact
 from types import SimpleNamespace
 #%%
-from .base import SimulationBase, CreateFromTemplateMixin, FreeEnergyValuePoint, transfer_matching_fields
-from ...lib.utils import parse_seq
-from ... import hti, hti_liq, hti_water,hti_liq, hti_ice
+from dpti.workflows.simulations.result_base import ResultDataBase
+from dpti.workflows.simulations.base import SimulationBase, FreeEnergyValuePoint, transfer_matching_fields
+from dpti.lib.utils import parse_seq
+from dpti import hti, hti_liq, hti_water,hti_liq, hti_ice
 from dpti.workflows.service.workflow_service_module import BasicWorkflowServices
 
-
-# from ...hti_liq import 
 #%%
 
 class HTISimulationSettings(BaseModel, extra='allow', ):
@@ -647,9 +646,6 @@ class HTISimulation(
                     )
             )
 
-            # io.upload_file(file_path='conf.lmp',
-            #               base_dir=os.path.join(self.io_handler.flow_running_dir, self.JOB_DIRNAME),
-            #               new_file_name='conf.lmp')
 
 #%% 
 
