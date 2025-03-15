@@ -160,7 +160,7 @@ def handle_compute(args):
         elif path == "p":
             args.To = jdata_hti_in["pres"]
     if args.inte_method == "inte":
-        ti.post_tasks(
+        ti_info = ti.post_tasks(
             job,
             jdata,
             args.Eo,
@@ -170,6 +170,7 @@ def handle_compute(args):
             scheme=args.scheme,
             shift=args.shift,
         )
+        return ti_info
     elif args.inte_method == "mbar":
         ti.post_tasks_mbar(job, jdata, args.Eo, natoms=nmols)
     else:
