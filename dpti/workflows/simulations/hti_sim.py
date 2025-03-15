@@ -415,67 +415,9 @@ class HTILammpsAdapter(ABC):
         pass
 
 
-# class HTISwitch():
-#     pass
-
-#%%
-
-# class HTIIntegraionPath(object):
-#     def __init__(self, field_name, step_name: str, subtasks_dirname: str):
-#         # self.field_name = 'lambda_deep_on'
-#         self.field_name = field_name
-#         # self.sub_dirname = '01.deep_on'
-#         self.step_name =  step_name # 'lj_on' # 'deep_on' 'spring_off'
-#         self.subtasks_dirname = subtasks_dirname
-
-#         self.is_parsed = False
-
-#         self.seq_list = []
-#         self.all_lambda = []
-
-#     def parse_seq_list(self, seq_list, *, protect_eps:float = 1e-6):
-#         self.seq_list = seq_list
-#         self.protect_eps = protect_eps
-#         self.all_lambda = parse_seq(self.seq_list,
-#                                     protect_eps=self.protect_eps)
-#         self.is_parsed = True
-#         return self.all_lambda
-    
-#     # def use_field_value_by_name(self, ):
-#     #     field_name = self.field_name
-#     #     try:
-#     #         seq_list: List[str] = getattr(, field_name)
-#     #     except AttributeError as e:
-#     #         print(f"must provide attribute {field_name=} in {self.updated_nodedata=}")
-#     #         raise e
-#     #     integration_path.parse_seq_list(seq_list=seq_list)
-#     #     return integration_path_list
-
-#     def __repr__(self):
-#         r = (f"working for {self.field_name=}"
-#             f" {self.step_name=}"
-#             f" {self.subtasks_dirname=}"
-#             f" {self.all_lambda=}")
-#         return r
-    
-#     def generate_subtasks(self, io_handler):
-#         pass
-
-
-#%%、
-
-
-
 
 
 #%%
-
-# class HTISimulationInitData(NamedTuple):
-#     free_energy_ref_value_point: FreeEnergyValuePoint
-#     hti_simulation_settings:HTISimulationSettings = HTISimulationSettings.load_default_example()
-#     update_dict: Dict = {}
-#     pass
-
 
 class HTISimulation(
     SimulationBase[HTISimulationNodedata,  # NodedataType,
@@ -497,16 +439,6 @@ class HTISimulation(
     hti_lammps_adapter: HTILammpsAdapter
     workflow_services: BasicWorkflowServices
 
-
-    # def __init__(self, updates={}, template_json:Optional[str]=None):
-    #     self.updates = updates
-    #     self.template_json = template_json
-    #     self.updated_nodedata = self.nodedata_type.from_template(
-    #         updates=updates, template_json=template_json)
-
-
-    # @task
-    # @AfterPrepare(upload=True, settings_filename='hti_settings.json')
 
     def _initialize(self) -> None:
         self.hti_lammps_adapter = HTILammpsAdapter.create(node_settings=self.node_settings)
@@ -538,76 +470,6 @@ class HTISimulation(
         
         return {"current_produced_paths": self.io_handler.current_produced_paths}
 
-
-        if self.node_upstream_data.get('conf_file', None):
-            self.conf_file = self.node_upstream_data['conf_file']
-        else:
-            self.conf_file = self.node_settings.equi_conf
-        # conf_f
-
-        switch = self.node_settings.switch
-        extra_thermo_info_dict = {
-            'equi_conf': 'conf.lmp', # has been linked to the job directory.
-            'pres': self.node_settings.pres,
-            'temp': self.node_settings.temp,
-            'tau_t': getattr(self.node_settings, 'tau_t', 0.1),
-            'tau_p': getattr(self.node_settings, 'tau_p', 0.5),
-            'dump_freq': getattr(self.node_settings, 'dump_freq', 10000)
-        }
-        calculated_info_dict = {
-            'ens': 'nvt-langevin' if self.node_settings.langevin else 'nvt',
-            'm_spring_k': [mass * self.node_settings.spring_k for mass in self.node_settings.mass_map]
-        }
-
-        self.io_handler.upload_file(
-            file_path=self.conf_file,
-            base_dir=self.io_handler.flow_running_dir)
-
-        self.io_handler.upload_file(
-            file_path=os.path.basename(self.conf_file),
-            base_dir=os.path.join(self.io_handler.flow_running_dir, self.JOB_DIRNAME),
-            new_file_name='conf.lmp'
-        )
-
-
-        self.upload_predefined_files(
-            upload_local_files=self.UPLOAD_LOCAL_FILES,
-            upload_local_files_fields=self.UPLOAD_LOCAL_FILES_FIELDS,
-        )
-
-
-
-        # value_dict = transfer_matching_fields(from_obj=self.node_settings,
-        #                                       to_type=HTILammpsInput)
-
-        # print(f"{value_dict=}")
-        self.hti_lammps_adapter = HTILammpsAdapter.create(node_settings=self.node_settings)
-
-        self.integration_path_list = self.hti_lammps_adapter.generate_integration_path_list(
-            input_dict=self.node_settings.model_dump()
-        )
-        for integration_path in self.integration_path_list:
-            field_name = integration_path.field_name
-            seq_list: List[str] = getattr(self.node_settings, field_name)
-            integration_path.parse_seq_list(seq_list=seq_list)
-
-        in_json_dict = ( self.node_settings.model_dump() 
-                        | extra_thermo_info_dict
-                        | calculated_info_dict )
-        
-        
-
-        self.io_handler.write_pure_file(
-            file_path='in.json',
-            file_content=json.dumps(obj=in_json_dict, indent=4)
-        )
-        self._process_integration_path_list(
-            integration_path_list=self.integration_path_list,
-            in_json_dict=in_json_dict)
-
-        return {"current_produced_paths": self.io_handler.current_produced_paths}
-
-    # @task
     def _run(self) -> str:
         print(f"HTISimulation instance to submit {self.job_dir=}")
         loop = asyncio.get_event_loop()
@@ -631,20 +493,13 @@ class HTISimulation(
         accurate_pv_value_from_npt = self.prev_results.get('accurate_pv_value_from_npt', None)
         accurate_pv_err_value_from_npt = self.prev_results.get('accurate_pv_err_value_from_npt', None)
         with self.workflow_services.io_handler.jobdir_context(job_dirname=self.JOB_DIRNAME) as io_handler:
-            # info = hti.post_tasks(io_handler.job_dir)
-            # extract_result = hti.compute_task(
-            #     io_handler.job_dir,
-            #     free_energy_type='gibbs', # always use gibbs free energy for the convenience of .
-            #     manual_pv=accurate_pv_value_from_npt,
-            #     manual_pv_err=accurate_pv_err_value_from_npt
-            #     )
             extract_result = self.hti_lammps_adapter.analyze_task(
                 job_dir=io_handler.job_dir,
                 free_energy_type='gibbs',
                 manual_pv=accurate_pv_value_from_npt,
                 manual_pv_err=accurate_pv_err_value_from_npt
             )
-            # result_file_path = os.path.join(io_handler.job_dir, "result.json")
+
         free_energy_ref_value_point = FreeEnergyValuePoint(
             gibbs_free_energy=extract_result['e1'],
             gibbs_free_energy_err=extract_result['e1_err'],
@@ -723,31 +578,6 @@ class HTISimulation(
 
         return None
     
-        
-    # @staticmethod
-    # def _choose_integration_path_list(switch: str) -> List[HTIIntegraionPath]:
-    #     match switch :
-    #         case 'one-step':
-    #             integration_path_list = [path_deep_on]
-    #         case 'two-step':
-    #             integration_path_list = [path_deep_on, path_spring_off]
-    #         case 'three-step':
-    #             integration_path_list = [path_lj_on, path_deep_on, path_spring_off]
-    #         case _:
-    #             raise ValueError(f"Error option {switch=}")
-    #     return integration_path_list
-    
-    # def _parse_integration_path_list(self, integration_path_list: List[HTIIntegraionPath]):
-    #     for integration_path in integration_path_list:
-    #         field_name = integration_path.field_name
-    #         try:
-    #             seq_list: List[str] = getattr(self.updated_nodedata, field_name)
-    #         except AttributeError as e:
-    #             print(f"must provide attribute {field_name=} in {self.updated_nodedata=}")
-    #             raise e
-    #         integration_path.parse_seq_list(seq_list=seq_list)
-    #     return integration_path_list
-
     def _process_integration_path_list(self, integration_path_list: List[Any], 
                                    in_json_dict: Dict[str, Any]
                                    ):
@@ -780,8 +610,8 @@ class HTISimulation(
                     (in_json_dict 
                     | lamb_dict
                     | {'conf_file': 'conf.lmp','model': 'graph.pb'}))
-                # lmp_str = hti._gen_lammps_input(**hti_lammps_input.model_dump())
-                
+
+
                 lmp_str = self.hti_lammps_adapter.generate_lmp_str(input_dict=hti_lammps_input_dict)
 
                 subtask_name = f"{integration_path.subtasks_dirname}/task.{idx:06d}"

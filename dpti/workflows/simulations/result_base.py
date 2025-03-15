@@ -12,13 +12,6 @@ class ResultCompleteness(str, Enum):
     PRELIMINARY = "preliminary"    # Initial results, may be updated
     FAILED = "failed"             # Calculation failed
 
-# class ExperimentType(str, Enum):
-#     """Type of experiment or analysis"""
-#     SIMULATION = "simulation"      # MD simulation
-#     ANALYSIS = "analysis"         # Data analysis
-#     POST_PROCESS = "post_process" # Post-processing
-#     VISUALIZATION = "visualization" # Visualization task
-
 class ResultMetaBase(BaseModel):
     """
     Essential metadata for any result
@@ -69,12 +62,7 @@ class ArtifactInfo(BaseModel):
 class ResultDataBase(BaseModel):
     """the class for all result data"""
     metadata: Dict[str, Any] = Field(default_factory=dict)
-    # metatype: ResultMetaBase
-    # result_data: Optional[Any] = None
-
     artifacts: List[ArtifactInfo] = Field(default_factory=list)
-    
-    # extra_data: Dict[str, Any] = Field(default_factory=dict)
 
     def __init__(self, result_name: str="default_result_name", **kwargs):
         meta = ResultMetaBase(
@@ -84,39 +72,33 @@ class ResultDataBase(BaseModel):
         super().__init__(meta=meta, **kwargs)
 
     def save_to_json(self, filepath: Optional[Path] = None) -> None:
-        """save the result data to a json file"""
-        if filepath is None:
-            filepath = self.job_running_dir / "result_data.json"
-        filepath.write_text(self.model_dump_json(indent=2))
+        pass
+
+    def add_artifact(self, artifact: ArtifactInfo) -> None:
+        pass
 
 
 
 
-# 使用示例
 def example_usage():
-    # 创建结果实例
     result = ResultDataBase(
         result_name="my_simulation",
-        # result_data={
-        #     "temperatures": [300, 400, 500],
-        #     "pressures": [1.0, 1.0, 1.0]
-        # },
     )
     
-    # 添加图片
     result.add_artifact(
-        name="temperature_plot",
-        description="Temperature variation plot",
-        mime_type="image/png",
-        path=Path("./plots/temp.png")
+        ArtifactInfo(
+            path=Path("./plots/temp.png"),
+            description="Temperature variation plot",
+            mime_type="image/png",
+        )
     )
     
-    # 添加base64编码的图片
     result.add_artifact(
-        name="pressure_plot",
-        description="Pressure variation plot",
-        mime_type="image/png",
-        base64_data="base64_encoded_string_here"
+        ArtifactInfo(
+            path=Path("./plots/press.png"),
+            description="Pressure variation plot",
+            mime_type="image/png",
+        )
     )
     
     return result

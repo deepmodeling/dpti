@@ -1,5 +1,5 @@
 #%%
-
+import os
 from datetime import datetime
 import random
 from functools import cached_property, cache
@@ -8,36 +8,17 @@ from typing import List, Union, AbstractSet, MutableMapping
 from typing import Annotated, Dict
 from pathlib import Path
 from pydantic import BaseModel, Field, AliasChoices, computed_field
-from dataclasses import dataclass
-from abc import ABC, abstractmethod
-import yaml
-
 from injector import Injector
-
-# from dependency_injector import containers, providers
-# from dependency_injector.wiring import Provide, inject
 from prefect import flow
 from typing import TypedDict
 #%%
-import sys
-import os
 
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../'))
-sys.path.insert(0, project_root)
-print(f"project_root: {project_root=}")
-# sys.path.insert(0, project_root)
-# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../' '../', '../')))
-# print(f"sys.path: {sys.path=}")
 import dpti
 from dpti.workflows.service.di import injection_context
 from dpti.workflows.flows.flow_settings import parse_yaml_like_input
-# from dpti.workflows.simulations.base import SettingsBase
 from dpti.workflows.service.workflow_decorator import workflow_task_decorator, DataProcessor
-# from dpti.workflows.service.service_container import WorkflowContainer, BasicWorkflowServices
 from dpti.workflows.service.workflow_service_module import WorkflowServiceModule, BasicWorkflowServices
 from dpti.workflows.flows.base_flow import BaseWorkflow, FlowMetaInfo, FlowTriggerInfo, FlowRuntimeContext, FlowProcedureControl
-
-
 
 #%%
 from dpti.workflows.simulations.equi_sim import NPTEquiSimulationSettings, NVTEquiSimulationSettings, ExtractNVTForHTIConfLmp
@@ -51,24 +32,6 @@ from dpti.workflows.simulations.hti_sim import HTISimulation
 
 
 #%%
-
-
-# 工作流设置类型，可根据需要扩展
-
-
-
-
-class FreeEnergyFlowDomainInputRaw(BaseModel):
-    config_yaml: str = Field(default="ti_line_beta144xy.yaml", description="some template yaml file")
-    target_temp: Optional[float] = Field(default=None, description="None means just use the config file temperature")
-    target_press: Optional[float] = Field(default=None, description="None means just use the config file pressure")
-    ti_path: Optional[str] = Field(default=None, description="None means just use the config file ti_path")
-
-class FreeEnergyFlowTriggerModel(BaseModel):
-    flow_trigger_info: FlowTriggerInfo
-    # workflow_services: WorkflowServices
-    flow_procedure_control: FlowProcedureControl
-    domain_input_raw: FreeEnergyFlowDomainInputRaw
 
 class ThermoInputData(BaseModel, extra='ignore'):
     conf_lmp: str = Field(..., validation_alias=AliasChoices('conf_lmp', 'conf_file', 'equi_conf'))
@@ -84,8 +47,6 @@ class ThermoInputData(BaseModel, extra='ignore'):
     meam_model: Optional[dict] = Field(default=None)
 #%%
 
-
-
 class FreeEnergyLineDomainInput(BaseModel):
     thermo_input:ThermoInputData
     npt_simulation_settings:NPTEquiSimulationSettings
@@ -94,8 +55,6 @@ class FreeEnergyLineDomainInput(BaseModel):
     ti_simulation_settings:TISimulationSettings
 
 #%%
-
-
 
 
 def load_default_yaml_like_asdict() -> Dict[str, Any]:
@@ -109,15 +68,11 @@ def load_default_yaml_like_asdict() -> Dict[str, Any]:
 
 
 print(f"loading default yaml for web browser:{load_default_yaml_like_asdict()=}")
-# print(f"{load_default_yaml_like_asdict()=}")
 
 class FreeEnergyFlowWorkorder(BaseModel): # implements WorkflowSettingsModel
-    # flow_trigger_info: FlowTriggerInfo
     flow_run_number: int = Field(default=random.randint(114514, 1000000))
     flow_trigger_dir_raw: str = Field(default="../../workflows/examples/Sn_beta_quicktest/")
     flow_procedure_control: FlowProcedureControl = Field(default=FlowProcedureControl())
-    # domain_input_raw: Field(default=FreeEnergyLineDomainInput)
-    # domain_input_yaml_like: Union[Dict[str, Any], Path, str] = Field(default_factory=load_default_yaml_like)
     domain_input_yaml_like: Union[Dict[str, Any], Path, str] = Field(default=load_default_yaml_like_asdict())
     
 
@@ -152,10 +107,6 @@ class FlowSettingsBase(object):
     pass
 
 class FreeEnergyLineSettings(FlowSettingsBase):
-    # flow_run_info:FlowRunInfo
-    # flow_meta_info:FlowMetaInfo
-    # flow_trigger_info:FlowTriggerInfo 
-
     flow_trigger_dir: str
     domain_input_raw: FreeEnergyLineDomainInput 
     flow_runtime_context: Optional[FlowRuntimeContext]
@@ -250,20 +201,11 @@ class FreeEnergyLineSettings(FlowSettingsBase):
 #%%
 
 
-
-
-#%%
-
-
-
-
 class FreeEnergyWorkflow(BaseWorkflow):
     flow_settings: FreeEnergyLineSettings
     flow_runtime_context: FlowRuntimeContext
 
-
     def __init__(self, flow_workorder: FreeEnergyFlowWorkorder):
-    # def init_settings_from_workorder(self, flow_workorder: FreeEnergyFlowWorkorder):
         self.flow_workorder = flow_workorder
 
         flow_running_dir = os.path.join(flow_workorder.flow_trigger_dir, flow_workorder.flow_running_dirname)
@@ -291,21 +233,13 @@ class FreeEnergyWorkflow(BaseWorkflow):
 
         self.flow_settings = free_energy_line_settings
 
-    # @inject
-    # def init_workflow_services(self,
-    #         workflow_services:BasicWorkflowServices,
-    #     ):
-    #     self.workflow_services = workflow_services
-
     def init_workflow_services_injector(self, workflow_services_injector: Injector):
         self.workflow_services_injector = workflow_services_injector
         self.workflow_services = workflow_services_injector.get(BasicWorkflowServices)
         self.workflow_services_injector.binder.bind(FlowRuntimeContext, to=self.flow_runtime_context)
-        # self.workflow_services_injector.binder.bind('flow_running_dir', to=self.flow_trigger_dir)
-        # self.workflow_services_injector.binder.bind('flow_runtime_context', to=self.flow_runtime_context)
 
     def init_workflow_context(self):
-        """初始化工作流上下文"""
+        """initialize workflow context"""
         workflow_context = {}
 
     def for_json(self):
@@ -317,12 +251,11 @@ class FreeEnergyWorkflow(BaseWorkflow):
             "domain_input_raw": self.domain_input_raw.model_dump(),
         }
 
-
     def init_ops_input_params(self):
         pass
 
     def _execute_impl(self) -> Any:
-        # 使用注入的服务
+        # use injector services
         injector = self.workflow_services_injector
         with injection_context(injector):
             result = self.flow_settings.domain_input_raw
@@ -357,6 +290,7 @@ class FreeEnergyWorkflow(BaseWorkflow):
         print(f"{nvt_r=}")
         return result
 #%%
+# for python injector dependency injection
 class Configuration:
     def __init__(self, file_handler_string):
         self.file_handler_string = file_handler_string
@@ -364,9 +298,7 @@ class Configuration:
 local_file_config = Configuration(':localfile:')
 def configure_for_localtesting(binder):
     configuration = local_file_config
-    # binder.bind(Configuration, to=configuration, scope=singleton)
     binder.bind(Configuration, to=configuration)
-    # binder.bind
 
 #%%
 @flow(log_prints=True,
@@ -377,9 +309,6 @@ def configure_for_localtesting(binder):
     flow_run_name="free_energy_workflow-{flow_workorder.flow_running_dirname}"
     )
 def free_energy_workflow_flow(flow_workorder: FreeEnergyFlowWorkorder):
-    # container = WorkflowContainer()
-    # container.wire(modules=[__name__,
-    # "dpti.workflows.simulations.equi_sim"])
     flow_running_dirname = flow_workorder.flow_running_dirname
     workflow_service_module = WorkflowServiceModule(
         flow_trigger_dir=flow_workorder.flow_trigger_dir,
@@ -388,27 +317,12 @@ def free_energy_workflow_flow(flow_workorder: FreeEnergyFlowWorkorder):
 
     my_injector = Injector([configure_for_localtesting, workflow_service_module])
 
-
-
-    # basic_workflow_services = workflow_service_module.provide_basic_workflow_services()
-    # basic_workflow_services = my_injector.get(BasicWorkflowServices)
-
     free_energy_workflow = FreeEnergyWorkflow(flow_workorder=flow_workorder)
-    # free_energy_workflow.init_workflow_services(workflow_services=basic_workflow_services)
     free_energy_workflow.init_workflow_services_injector(workflow_services_injector=my_injector)
-    # free_energy_workflow.init_settings_from_workorder(flow_workorder=flow_workorder)
     free_energy_workflow._execute_impl()
 
 
-# 使用示例
 if __name__ == "__main__":
-    # 创建工作流实例
-    
-    # 直接执行
-    # workflow.flow_object()
-    # 部署
-
-    # workflow.
     free_energy_workflow_flow.serve(
         name="dpti-test3-workflow", 
         # parameters={
@@ -418,5 +332,4 @@ if __name__ == "__main__":
         # }
         )
 # %%
-#%%
     
