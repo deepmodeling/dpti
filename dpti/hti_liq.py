@@ -28,33 +28,77 @@ def make_iter_name(iter_index):
     return "task_hti." + ("%04d" % iter_index)
 
 
+def parse_lj_sigma_epsilon(ret, sparam, hybrid=False):
+    element_num = sparam.get("element_num", 1)
+    sigma_key_index_ = filter(
+        lambda t: t[0] <= t[1],
+        ((i, j) for i in range(element_num) for j in range(element_num)),
+    )
+    sigma_key_index = list(sigma_key_index_)
+
+    epsilon = sparam.get("epsilon", None)
+    epsilon_0_0 = sparam.get("epsilon_0_0", None)
+    sigma = sparam.get("sigma", None)
+    sigma_0_0 = sparam.get("sigma_0_0", None)
+    activation = sparam.get("activation", None)
+    activation_0_0 = sparam.get("activation_0_0", None)
+
+    epsilon_ij = np.zeros((element_num, element_num))
+    sigma_ij = np.zeros((element_num, element_num))
+    activation_ij = np.zeros((element_num, element_num))
+
+    if epsilon is not None:
+        assert (
+            epsilon_0_0 is None
+        ), "epsilon and epsilon_0_0 cannot be set at the same time"
+        for i, j in sigma_key_index:
+            epsilon_ij[i, j] = epsilon
+    else:
+        assert epsilon_0_0 is not None, "epsilon or epsilon_0_0 must be set"
+        for i, j in sigma_key_index:
+            epsilon_ij[i, j] = sparam["epsilon_" + str(i) + "_" + str(j)]
+
+    if sigma is not None:
+        assert sigma_0_0 is None, "sigma and sigma_0_0 cannot be set at the same time"
+        for i, j in sigma_key_index:
+            sigma_ij[i, j] = sigma
+    else:
+        assert sigma_0_0 is not None, "sigma or sigma_0_0 must be set"
+        for i, j in sigma_key_index:
+            sigma_ij[i, j] = sparam["sigma_" + str(i) + "_" + str(j)]
+
+    if activation is not None:
+        assert (
+            activation_0_0 is None
+        ), "activation and activation_0_0 cannot be set at the same time"
+        for i, j in sigma_key_index:
+            activation_ij[i, j] = activation
+    else:
+        assert activation_0_0 is not None, "activation or activation_0_0 must be set"
+        for i, j in sigma_key_index:
+            activation_ij[i, j] = sparam["activation_" + str(i) + "_" + str(j)]
+
+    if hybrid:
+        pair_coeff_str = "lj/cut/soft "
+    else:
+        pair_coeff_str = ""
+
+    for i, j in sigma_key_index:
+        ret += f"pair_coeff      {i + 1} {j + 1} {pair_coeff_str:s}{epsilon_ij[i, j]:f} {sigma_ij[i, j]:f} {activation_ij[i, j]:f}\n"
+    return ret
+
+
 def _ff_soft_on(lamb, sparam):
     nn = sparam["n"]
     alpha_lj = sparam["alpha_lj"]
     rcut = sparam["rcut"]
-    epsilon = sparam["epsilon"]
-    # sigma = sparam['sigma']
-    activation = sparam["activation"]
     ret = ""
-    ret += f"variable        EPSILON equal {epsilon:f}\n"
     ret += f"pair_style      lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
+    ret = parse_lj_sigma_epsilon(ret, sparam, hybrid=False)
 
-    element_num = sparam.get("element_num", 1)
-    sigma_key_index = filter(
-        lambda t: t[0] <= t[1],
-        ((i, j) for i in range(element_num) for j in range(element_num)),
-    )
-    for i, j in sigma_key_index:
-        ret += "pair_coeff      {} {} ${{EPSILON}} {:f} {:f}\n".format(
-            i + 1,
-            j + 1,
-            sparam["sigma_" + str(i) + "_" + str(j)],
-            activation,
-        )
-
-    # ret += 'pair_coeff      * * ${EPSILON} %f %f\n' % (sigma, activation)
     ret += "fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_LAMBDA scale yes\n"
-    ret += "compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_EPSILON\n"
+    ret += "compute         lj_pe all pair lj/cut/soft\n"
+    ret += "variable        e_diff equal c_lj_pe/v_LAMBDA\n"
     return ret
 
 
@@ -62,11 +106,7 @@ def _ff_deep_on(lamb, sparam, model, if_meam=False, meam_model=None):
     nn = sparam["n"]
     alpha_lj = sparam["alpha_lj"]
     rcut = sparam["rcut"]
-    epsilon = sparam["epsilon"]
-    # sigma = sparam['sigma']
-    activation = sparam["activation"]
     ret = ""
-    ret += f"variable        EPSILON equal {epsilon:f}\n"
     ret += "variable        ONE equal 1\n"
     if if_meam:
         ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
@@ -76,20 +116,8 @@ def _ff_deep_on(lamb, sparam, model, if_meam=False, meam_model=None):
         ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
 
-    element_num = sparam.get("element_num", 1)
-    sigma_key_index = filter(
-        lambda t: t[0] <= t[1],
-        ((i, j) for i in range(element_num) for j in range(element_num)),
-    )
-    for i, j in sigma_key_index:
-        ret += "pair_coeff      {} {} lj/cut/soft ${{EPSILON}} {:f} {:f}\n".format(
-            i + 1,
-            j + 1,
-            sparam["sigma_" + str(i) + "_" + str(j)],
-            activation,
-        )
+    ret = parse_lj_sigma_epsilon(ret, sparam, hybrid=True)
 
-    # ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
     if if_meam:
         ret += "fix             tot_pot all adapt/fep 0 pair meam scale * * v_LAMBDA\n"
         ret += "compute         e_diff all fep ${TEMP} pair meam scale * * v_ONE\n"
@@ -98,6 +126,7 @@ def _ff_deep_on(lamb, sparam, model, if_meam=False, meam_model=None):
             "fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA\n"
         )
         ret += "compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE\n"
+    ret += "variable        e_diff equal c_e_diff[1]\n"
     return ret
 
 
@@ -105,13 +134,8 @@ def _ff_soft_off(lamb, sparam, model, if_meam=False, meam_model=None):
     nn = sparam["n"]
     alpha_lj = sparam["alpha_lj"]
     rcut = sparam["rcut"]
-    epsilon = sparam["epsilon"]
-    # sigma = sparam['sigma']
-    activation = sparam["activation"]
     ret = ""
     ret += "variable        INV_LAMBDA equal 1-${LAMBDA}\n"
-    ret += f"variable        EPSILON equal {epsilon:f}\n"
-    ret += "variable        INV_EPSILON equal -${EPSILON}\n"
     if if_meam:
         ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
@@ -120,22 +144,11 @@ def _ff_soft_off(lamb, sparam, model, if_meam=False, meam_model=None):
         ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += "pair_coeff      * * deepmd\n"
 
-    element_num = sparam.get("element_num", 1)
-    sigma_key_index = filter(
-        lambda t: t[0] <= t[1],
-        ((i, j) for i in range(element_num) for j in range(element_num)),
-    )
-    for i, j in sigma_key_index:
-        ret += "pair_coeff      {} {} lj/cut/soft ${{EPSILON}} {:f} {:f}\n".format(
-            i + 1,
-            j + 1,
-            sparam["sigma_" + str(i) + "_" + str(j)],
-            activation,
-        )
+    ret = parse_lj_sigma_epsilon(ret, sparam, hybrid=True)
 
-    # ret += 'pair_coeff      * * lj/cut/soft ${EPSILON} %f %f\n' % (sigma, activation)
     ret += "fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_INV_LAMBDA scale yes\n"
-    ret += "compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_INV_EPSILON\n"
+    ret += "compute         lj_pe all pair lj/cut/soft\n"
+    ret += "variable        e_diff equal -c_lj_pe/v_INV_LAMBDA\n"
     return ret
 
 
@@ -202,7 +215,7 @@ def _gen_lammps_input_ideal(
     ret += f"timestep        {timestep}\n"
     ret += "compute         allmsd all msd\n"
     ret += "thermo          ${THERMO_FREQ}\n"
-    ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_diff[1] c_allmsd[*]\n"
+    ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol v_e_diff c_allmsd[*]\n"
     ret += "thermo_modify   format 9 %.16e\n"
     ret += "dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz\n"
     if ens == "nvt":
@@ -266,17 +279,19 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None):
         element_num = len(mass_map)
         sparam["element_num"] = element_num
 
-        sigma_key_index = filter(
-            lambda t: t[0] <= t[1],
-            ((i, j) for i in range(element_num) for j in range(element_num)),
-        )
-        sigma_key_name_list = [
-            "sigma_" + str(t[0]) + "_" + str(t[1]) for t in sigma_key_index
-        ]
-        for sigma_key_name in sigma_key_name_list:
-            assert sparam.get(
-                sigma_key_name, None
-            ), f"there must be key-value for {sigma_key_name} in soft_param"
+        sigma = sparam.get("sigma", None)
+        if sigma is None:
+            sigma_key_index = filter(
+                lambda t: t[0] <= t[1],
+                ((i, j) for i in range(element_num) for j in range(element_num)),
+            )
+            sigma_key_name_list = [
+                "sigma_" + str(t[0]) + "_" + str(t[1]) for t in sigma_key_index
+            ]
+            for sigma_key_name in sigma_key_name_list:
+                assert sparam.get(
+                    sigma_key_name, None
+                ), f"there must be key-value for sigma or {sigma_key_name} in soft_param"
 
     job_abs_dir = create_path(iter_name)
 
@@ -344,11 +359,11 @@ def make_tasks(iter_name, jdata, if_meam=None):
     create_path(iter_name)
     copied_conf = os.path.join(os.path.abspath(iter_name), "conf.lmp")
     shutil.copyfile(equi_conf, copied_conf)
-    # jdata['equi_conf'] = copied_conf
+    jdata["equi_conf"] = copied_conf
     if model:
         copied_model = os.path.join(os.path.abspath(iter_name), "graph.pb")
         shutil.copyfile(model, copied_model)
-    # jdata['model'] = copied_model
+    jdata["model"] = copied_model
 
     cwd = os.getcwd()
     os.chdir(iter_name)
