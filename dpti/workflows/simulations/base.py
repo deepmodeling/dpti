@@ -1,18 +1,38 @@
 import os
 import json
+from importlib import resources
+# from builtins import AttributeError
+from datetime import datetime, timezone
 from typing import Any, ClassVar, Dict, Tuple, TypeVar, Union, Optional, get_args, Generic, List, Type, NamedTuple, TypedDict
 # from typing_extensions import Type, TypedDict
 from abc import ABC, abstractmethod
+from functools import cached_property
 
-from pydantic import BaseModel, AliasChoices
 
-from ..service.workflow_service_module import WorkflowService
-from ..service.di import context_inject
+from typing import Dict, Any, Union
+import json
+import importlib.util
+import os
+from pathlib import Path
+from dataclasses import dataclass
+from pydantic import BaseModel, AliasChoices, model_validator, Field, computed_field
+# from dependency_injector import containers, providers
+# from dependency_injector.wiring import Provide, inject
+
+from dpti.workflows.service.workflow_service_module import WorkflowServices
+# from dpti.workflows.service.service_container import WorkflowServices
+
+from dpti.workflows.service.di import context_inject
+# from ..service.service_container import WorkflowContainer
+from dpti.workflows.service.workflow_service_module import BasicWorkflowServices
 
 from prefect import flow, task
 from ..prefect_task_hash import task_input_json_hash
+# from dpti.workflows.flows.base_flow import FlowRuntimeContext
+from prefect.runtime import flow_run, task_run
 
-REFRESH_CACHE = True
+# REFRESH_CACHE = True
+REFRESH_CACHE = False
 DEFAULT_EXAMPLE_DIR = os.path.join(os.path.dirname(__file__), '../../../examples/')
 
 
@@ -98,7 +118,7 @@ DEFAULT_EXAMPLE_DIR = os.path.join(os.path.dirname(__file__), '../../../examples
 
 entity_T = TypeVar('entity_T', bound=BaseModel)
 # partial_entity_T = entity_T.model_as_partial()
-InitializationType = TypeVar('InitializationType', bound=BaseModel)
+SettingsType = TypeVar('SettingsType', bound=BaseModel)
 # call_T = TypeVar('call_T', bound=BaseModel)
 # call_T = TypeVar('call_T')
 call_T = TypeVar('call_T', bound=Union[BaseModel, Dict[str, Any]])
@@ -115,7 +135,42 @@ class SimulationMetaConfig(BaseModel, extra='allow'):
     
     pass
 #%%
+class FlowRunInfo(BaseModel):
+    flow_run_number:Optional[int] = Field(default=0)
+    flow_trigger_dir:Optional[str] = Field(default=None)
+    flow_running_dirname:Optional[str] = Field(default=None)
 
+class FlowMetaInfo(BaseModel):
+    flow_platform: str
+    flow_name: str
+    flow_version: str
+
+
+
+class FlowProcedureControl(BaseModel):
+    only_extract: bool = Field(default=False)
+    # skip_steps: List[str] = Field(default=[])
+    dry_run: bool = Field(default=False)
+    debug_mode: bool = Field(default=False)
+
+    @computed_field
+    @cached_property
+    def skip_steps(self) -> List[str]:
+        if self.only_extract:
+            skip_steps = ['prepare', 'run']
+        else:
+            skip_steps = []
+        return skip_steps
+
+@dataclass()
+class FlowRuntimeContext:
+    flow_running_dir: str
+    flow_meta_info: FlowMetaInfo
+    flow_procedure_control: FlowProcedureControl
+    flow_workorder: BaseModel
+    
+
+#%%
 
 # class GenericMeta(type):
 class SimulationBaseMeta(type):
@@ -127,7 +182,32 @@ class SimulationBaseMeta(type):
         cls.init_type = type_args[1] # pyright: ignore[reportAttributeAccessIssue]
         # cls.call_type = type_args[2] # pyright: ignore[reportAttributeAccessIssue]
         cls.return_type = type_args[2] # pyright: ignore[reportAttributeAccessIssue]
+
+        # for method_name, method in namespace.items():
+        #     if hasattr(method, '_workflow_task_name'):
+        #         task_name = f"{name}_{method._workflow_task_name}"
+        #         decorated_method = task(
+        #             name=task_name,
+        #             cache_key_fn=task_input_json_hash,
+        #             persist_result=True,
+        #             refresh_cache=REFRESH_CACHE
+        #         )(method)
+        #         setattr(cls, method_name, decorated_method)
+        # cls._class_name = name
         return cls
+#%%
+
+# def workflow_task(method_name: str):
+#     def decorator(func):
+#         # only label this method, the actual task decorator will be applied in the metaclass
+#         func._workflow_task = method_name
+#         return func
+#     return decorator
+
+
+
+#%%
+
 
     # def __instancecheck__(cls, instance):
     #     print(f"__instancecheck__:{cls=} {instance=}")
@@ -179,7 +259,79 @@ class SimulationBaseMeta(type):
 # print(isinstance(A(), BaseModel))
 # print(isinstance(122, A))
 # print(isinstance(122, BaseModel))
+#%%
+def workflow_task(method_name: str, **task_kwargs):
+    def decorator(func):
+        def wrapper(*args, **kwargs): # args[0] is the instance object(self), like class NPTEquiSimulation's instance.
+            if args:
+                class_name = args[0].__class__.__name__ # get real class name like, `NPTEquiSimulation`
+                task_name = f"{class_name}_{method_name}"
+                
+                # Check if cache refresh is needed
+                instance = args[0]
+                force_refresh_tasks = getattr(instance, 'force_refresh_cache', [])
+                should_refresh = (
+                    REFRESH_CACHE or  # Global refresh setting
+                    method_name in force_refresh_tasks  # Task-specific force refresh
+                )
+            else:
+                # Fallback if no instance is provided
+                class_name = func.__qualname__.split('.')[0]
+                task_name = f"{class_name}_{method_name}"
+                should_refresh = REFRESH_CACHE
+                
+            # Merge default kwargs with custom kwargs
+            default_task_kwargs = {
+                "name": task_name,
+                "task_run_name": lambda: (
+                    f"{task_name}-{datetime.now(timezone.utc).strftime('UTC%z_%Y%m%d_%H%M%S_%f')}"
+                ),
+                "cache_key_fn": task_input_json_hash,
+                "persist_result": True,
+                "refresh_cache": should_refresh
+            }
+            # Override defaults with custom task_kwargs
+            default_task_kwargs.update(task_kwargs)
+            print(f"@workflow_task init: {default_task_kwargs=}")
+            
+            @task(**default_task_kwargs)
+            def task_wrapped(*task_args, **task_kwargs):
+                return func(*task_args, **task_kwargs)
+                
+            return task_wrapped(*args, **kwargs)
+        return wrapper
+    return decorator
 
+
+
+#%%
+# @staticmethod
+# def workflow_task(method_name: str):
+#     def decorator(func):
+#         class_name = func.__qualname__.split('.')[0]
+#         # actual_class_name = func.__class__._class_name
+#         # task_name = f"{actual_class_name}_{method_name}"
+#         task_name = f"{class_name}_{method_name}"
+
+#         @task(
+#             # name=lambda: f"{flow_run.get_flow_name()}_{method_name}",
+#             # name=f"{flow_run.get_flow_name()}_{method_name}",
+#             # name=f"{flow_run.get_flow_name()}_{task_run}_{func.__qualname__}_{method_name}",
+#             name=task_name,
+#             # name=lambda self:self.__class__.__name__ + "_" + method_name,
+#             task_run_name=lambda: f"{func.__class__._class_name}_{method_name}",
+#             cache_key_fn=task_input_json_hash,
+#             persist_result=True,
+#             refresh_cache=REFRESH_CACHE
+#         )
+#         def wrapper(*args, **kwargs):
+#             if args:
+#                 pass
+#                 # print(f"Running {actual_class_name=}_{method_name=}")
+#                 # actual_class = args[0].__class__.__name__
+#             return func(*args, **kwargs)
+#         return wrapper
+#     return decorator
 
 
 #%%
@@ -187,8 +339,8 @@ class SimulationBaseMeta(type):
 
 entity_T = TypeVar('entity_T', bound=BaseModel)
 # partial_entity_T = entity_T.model_as_partial()
-# InitializationType = TypeVar('InitializationType', bound=BaseModel)
-InitializationType = TypeVar('InitializationType', bound=Union[BaseModel, Dict[str, Any], NamedTuple])
+# SettingsType = TypeVar('SettingsType', bound=BaseModel)
+SettingsType = TypeVar('SettingsType', bound=BaseModel)
 # call_T = TypeVar('call_T', bound=BaseModel)
 # call_T = TypeVar('call_T')
 # call_T = TypeVar('call_T', bound=Union[BaseModel, Dict[str, Any]])
@@ -200,7 +352,7 @@ NodeDataType = TypeVar('NodeDataType', bound=BaseModel)
 ReturnType = TypeVar('ReturnType')
 
 #%%
-class SimulationBase(Generic[NodeDataType, InitializationType, ReturnType],
+class SimulationBase(Generic[NodeDataType, SettingsType, ReturnType],
                     #  BaseModel):
                      metaclass=SimulationBaseMeta):
                     # BaseModel,
@@ -210,7 +362,7 @@ class SimulationBase(Generic[NodeDataType, InitializationType, ReturnType],
     DEFAULT_NODEDATA_JSON: str
     JOB_DIRNAME: str
     UPLOAD_LOCAL_FILES: List[str]
-    UPLOAD_FIELDS_FILES: List[str]
+    UPLOAD_LOCAL_FILES_FIELDS: List[str]
 
 
     # entity_class: ClassVar[Type[entity_T]]  # type: ignore[reportUnknownArgumentType]
@@ -219,27 +371,29 @@ class SimulationBase(Generic[NodeDataType, InitializationType, ReturnType],
     # _type_arg: Type[entity_T]  # pyright: ignore[reportInvalidTypeArguments]
 
     flow_running_dir: str
-    job_dir: str
+    # job_dir: str
 
-    # init_entity: Optional[InitializationType]
+    # init_entity: Optional[SettingsType]
     # call_entity: Optional[call_T]
-    workflow_service: WorkflowService
+    # workflow_services: WorkflowServices
     # io_handler:
     
     # default_entity: entity_T
-    default_nodedata: NodeDataType
-    updated_nodedata: NodeDataType
+    # default_nodedata: NodeDataType
+    # updated_nodedata: NodeDataType
+    
     # startup_entity: entity_T
     # runtime_entity: entity_T
     runtime_nodedata: NodeDataType
     all_prepared_paths: List[str] = []
 
     nodedata_type: Type[NodeDataType]
+    node_settings: SettingsType
     # nodedata_type: Type[NodeDataType]
-    # init_type: Type[InitializationType]
+    # init_type: Type[SettingsType]
     # call_type: Type[call_T]
     # return_type: Type[ReturnType]
-    init_type: Type[InitializationType]
+    init_type: Type[SettingsType]
     return_type: Type[ReturnType]
     # return_DataClass: ReturnType
 
@@ -256,7 +410,7 @@ class SimulationBase(Generic[NodeDataType, InitializationType, ReturnType],
     #     raise NotImplementedError
 
 
-    # def default_init(self, init_entity: Optional[InitializationType] = None) -> None:
+    # def default_init(self, init_entity: Optional[SettingsType] = None) -> None:
     #     self.init_entity = init_entity
     #     print("note: init_entity", init_entity)
     #     self.default_entity = self.load_default_entity()
@@ -267,21 +421,21 @@ class SimulationBase(Generic[NodeDataType, InitializationType, ReturnType],
     #     self.job_dir = os.path.join(self.flow_running_dir, self.meta_config.JOB_DIRNAME)
 
 
-    # def __init__(self, init_entity: Optional[InitializationType] = None) -> None: 
+    # def __init__(self, init_entity: Optional[SettingsType] = None) -> None: 
     #     self.default_init(init_entity=init_entity)
 
     # @overload
     # def __init__(self) -> NoReturn: ...
 
     # @overload
-    # def __init__(self, workflow_service: WorkflowService) -> None:...
+    # def __init__(self, workflow_services: WorkflowServices) -> None:...
 
     # @inject
 
-    # def __init__(self, init_data:InitializationType, setting_update:Dict={}, setting_template=None):
+    # def __init__(self, node_settings:SettingsType, setting_update:Dict={}, setting_template=None):
     #     pass
 
-    # def __init__(self, init_param:InitializationType):
+    # def __init__(self, init_param:SettingsType):
     #     self.init_param = init_param
         
     #     if isinstance(init_param, BaseModel):
@@ -297,7 +451,45 @@ class SimulationBase(Generic[NodeDataType, InitializationType, ReturnType],
     #     print(f"note: prepared to validate: {self.updated_nodedata=}")
     #     valid_return = self.updated_nodedata.model_validate(self.updated_nodedata)
     #     print(f"note: valid field pass: self.updated_nodedata as model {valid_return=}")
+    # def __init__(self, node_settings:Union[BaseModel, Dict[str, Any],NamedTuple, None] = None,
+    #             updates:Optional[Dict[str, Any]]=None,
+    #             template_json:Optional[str]=None,
+    #             # workflow_service:Optional[WorkflowService]=None,
+    #             # skip_steps:Optional[List[str]]=None
+    #             ):
+    #     self.node_settings = node_settings
+    #     self.updates = updates
+    #     self.template_json = template_json
+    #     self.nodedata = self.nodedata_type.model_construct(node_settings=self.node_settings)
 
+    #     self._initialize()
+
+
+        # self.updated_nodedata = self.settings_data_type.from_input(model_data=node_settings, updates=updates, template_json=template_json)
+
+        # self.updated_nodedata = self.nodedata_type.from_input(model_data=node_settings, 
+        #                                                       updates=updates,
+        #                                                       template_json=template_json)
+        # self.updated_nodedata = self.nodedata_type.model_construct(**node_settings)
+
+    # @context_inject
+    # def _inject_flow_runtime_context(self, flow_runtime_context:FlowRuntimeContext):
+    #     self.flow_runtime_context = flow_runtime_context
+
+
+    @context_inject
+    def __init__(self,
+            node_settings:SettingsType,
+            # flow_running_dir: str,
+            flow_runtime_context:FlowRuntimeContext,
+            ):
+        self.node_settings = node_settings
+        self.flow_running_dir = flow_runtime_context.flow_running_dir
+        self.flow_runtime_context = flow_runtime_context
+        self.nodedata = self.nodedata_type.model_construct(node_settings=self.node_settings)
+        self._initialize()
+
+        self.skip_steps = self.flow_runtime_context.flow_procedure_control.skip_steps
 
     # def 
 
@@ -307,32 +499,50 @@ class SimulationBase(Generic[NodeDataType, InitializationType, ReturnType],
     # @overload
     # def __call__(self, workflow_service: WorkflowService) -> ReturnType:...
 
-    @context_inject
-    def __call__(self, workflow_service: WorkflowService, skip_steps:Optional[List[str]]=None) -> ReturnType:
-        if workflow_service is None:
-            raise ValueError("workflow_service must be provided and cannot be None."
-                            + "Possible due to Dependency Injection failed"
-                            + "")
-        self.workflow_service = workflow_service
-        self.io_handler = self.workflow_service.io_handler
-        self.flow_running_dir = self.io_handler.flow_running_dir
-        self.io_handler.use_job_info(job_dirname=self.JOB_DIRNAME)
-        self.job_executor = self.workflow_service.job_executor
-        self.result_analyzer = self.workflow_service.result_analyzer
-        self.job_dir = os.path.join(self.flow_running_dir, self.JOB_DIRNAME)
-        
-        self.skip_steps = skip_steps
+    # @abstractmethod
+    def _initialize(self) -> None:
+        pass
+        # raise NotImplementedError("Must be override by subclass")
 
-        execute_return: ReturnType = self.execute(skip_steps=self.skip_steps)  # pyright: ignore[reportCallIssue]  due to Prefect flow decorator
-        return execute_return
+
+
+    # @context_inject
+    # def __call__(self,
+    #              node_upstream_data:Optional[Dict[str, Any]] = None,
+    #              workflow_service: WorkflowService = None,
+    #              skip_steps:Optional[List[str]]=None) -> ReturnType:
+    #     if workflow_service is None:
+    #         raise ValueError("workflow_service must be provided and cannot be None."
+    #                         + "Possible due to Dependency Injection failed"
+    #                         + "")
+    #     self.node_upstream_data = node_upstream_data
+
+    #     self.workflow_service = workflow_service
+    #     self.io_handler = self.workflow_service.io_handler
+    #     self.flow_running_dir = self.io_handler.flow_running_dir
+    #     self.io_handler.use_job_info(job_dirname=self.JOB_DIRNAME)
+    #     self.job_executor = self.workflow_service.job_executor
+    #     self.result_analyzer = self.workflow_service.result_analyzer
+    #     self.job_dir = os.path.join(self.flow_running_dir, self.JOB_DIRNAME)
+        
+    #     self.skip_steps = workflow_service.skip_steps if skip_steps is None else skip_steps
+
+    #     # logger.info(f"simulation_base: {self=}")
+    #     print(f"simulation_base:__call__: {self.__annotations__=}")
+    #     print(f"simulation_base:__call__: {self.node_settings=}")
+    #     print(f"simulation_base:__call__: {self.node_upstream_data=}")
+    #     print(f"simulation_base:__call__: {self.skip_steps=}")
+    #     execute_return: ReturnType = self.execute(skip_steps=self.skip_steps)  # pyright: ignore[reportCallIssue]  due to Prefect flow decorator
+    #     return execute_return
 
         
     def for_json(self):
-        """Used by simplejson model_dump method for serialize.
+        """Used by simplejson model_dump method for serialize. (in `task_input_json_hash`)
         """
         return_dict = {'class_name': self.__class__.__qualname__,
-                      'nodadata_type': self.nodedata_type.__qualname__,
-                      'updated_nodedata': self.updated_nodedata.model_dump()}
+                        'flow_running_dir': self.flow_running_dir,
+                      'nodedata_type': self.nodedata_type.__qualname__,
+                      'node_settings': self.node_settings.model_dump()}
         return return_dict
 
     # def __init__(self, workflow_service: WorkflowService | None = None) -> None:
@@ -351,6 +561,66 @@ class SimulationBase(Generic[NodeDataType, InitializationType, ReturnType],
     #     self.result_analyzer = self.workflow_service.result_analyzer
     #     self.job_dir = os.path.join(self.flow_running_dir, self.JOB_DIRNAME)
 
+    # @abstractmethod
+    # def init_workflow_services(self, workflow_services:WorkflowServices):
+    #     pass
+
+
+    # def prepare_call(self, *args: Any, **kwds: Any) -> Any:
+
+
+        # return super().__call__(*args, **kwds)
+    
+    @context_inject
+    def _init_workflow_services_from_injector(self, workflow_services:BasicWorkflowServices):
+        self.workflow_services = workflow_services
+
+    def _resolve_workflow_services(self, workflow_services:Optional[WorkflowServices]=None):
+        if workflow_services is None:
+            # use injector to get workflow_services
+            self._init_workflow_services_from_injector()
+        else:
+            self.workflow_services = workflow_services
+
+        if self.workflow_services is None:
+            raise ValueError("workflow_services must be provided and cannot be None."
+                             + "Possible due to Dependency Injection (via injector package) failed"
+                             + "")
+        else:
+            pass
+
+        self.io_handler = self.workflow_services.io_handler
+        self.flow_running_dir = self.io_handler.flow_running_dir
+        self.job_dir = os.path.join(self.flow_running_dir, self.JOB_DIRNAME)
+
+    # def _before_call(self, workflow_services:WorkflowServices):
+    #     pass
+
+    # def _after_call(self, workflow_services:WorkflowServices):
+    #     pass
+
+
+    # @context_inject
+    def __call__(self,
+                prev_results:Optional[Dict[str, Any]] = None,
+                workflow_services: Optional[WorkflowServices] = None,
+                ) -> Union[ReturnType, None]:
+
+        self._resolve_workflow_services(workflow_services=workflow_services)
+
+        self.prev_results = prev_results
+
+        self.job_dir = os.path.join(
+            self.io_handler.flow_running_dir,
+            self.JOB_DIRNAME)
+
+        print(f"workflow_services: {self.workflow_services=}")
+        # 
+        # self.io_handler = self.workflow_service.io_handler
+
+        r_execute = self.execute(skip_steps=self.skip_steps)
+        # r = self.__call__impl()
+        return r_execute
 
     # def __call__(self, call_entity: call_T) -> ReturnType:
     #     if isinstance(call_entity, BaseModel):
@@ -369,7 +639,18 @@ class SimulationBase(Generic[NodeDataType, InitializationType, ReturnType],
     #     return r_execute
 
     # @flow(persist_result=True)
-    @flow
+
+    # @property
+    # def generate_task_name(self) -> str:
+    #     task_name = f"{self.__class__.__name__}_{self.__qualname__}"
+    #     return task_name
+    
+    # @property
+    # def generate_flow_name(self) -> str:
+    #     flow_name = f"{self.__class__.__name__}_{self.__qualname__}_execute"
+    #     return flow_name
+
+    # @flow(name=generate_flow_name)
     def execute(self, skip_steps:Optional[List[str]]=None) -> Union[ReturnType, None]:
         print(f"note: is going to execute job:{self=}")
         # pyright checker ignore reason: Prefect framework provides @task decorator
@@ -396,30 +677,47 @@ class SimulationBase(Generic[NodeDataType, InitializationType, ReturnType],
     #     return simulation_nodedata
 
     # def upload_predefined_files(self, io_handler: IOHandler) -> List[str]:
+
+    # def _get_nested_attr(self, obj, field_path: str):
+    #     """获取嵌套对象的属性值
+        
+    #     Args:
+    #         obj: 起始对象
+    #         field_path: 以点号分隔的字段路径，如 "a.b.c"
+    #     """
+    #     attrs = field_path.split('.')
+    #     value = obj
+    #     for attr in attrs:
+    #         value = getattr(value, attr)
+    #     return value
+
     def upload_predefined_files(self,
                                 upload_local_files: List[str] = [],
-                                upload_fields_files: List[str] = []
+                                upload_local_files_fields: List[str] = []
                                 ) -> List[str]:
-        files_symlinks = []
+        return_files = []
+        io_handler = self.workflow_services.io_handler
 
-        io_handler = self.io_handler
-        r1 = io_handler.upload_files(file_paths=upload_local_files, 
+        for file_path in upload_local_files:
+            return_files_by_direct = io_handler.upload_file(file_path=file_path, 
                                      base_dir=io_handler.flow_trigger_dir)
-        files_symlinks.extend(r1)
+            return_files.append(return_files_by_direct)
 
-        # r2list = [getattr(self.updated_nodedata, field) for field in upload_fields_files]
-        r2list = [getattr(self.updated_nodedata, field) for field in upload_fields_files]
-        r2 = io_handler.upload_files(
-            file_paths=r2list,
-            base_dir=io_handler.flow_trigger_dir
-            # file_paths=(getattr(self.startup_entity, field) for field in ["model", "equi_conf"], []))
+        # r2list = [getattr(self.node_settings, field) for field in upload_files_fields]
+        for field in upload_local_files_fields: 
+            return_list_by_fields = getattr(self.node_settings, field)
+            return_files_by_fields = io_handler.upload_file(
+                file_path=return_list_by_fields,
+                base_dir=io_handler.flow_trigger_dir
             )
-        files_symlinks.extend(r2)
-        return files_symlinks
+            return_files.append(return_files_by_fields)
+        return return_files
     
     # @task
+
     
-    @task(cache_key_fn=task_input_json_hash, persist_result=True, refresh_cache=REFRESH_CACHE)
+    # @task(name="prepare", cache_key_fn=task_input_json_hash, persist_result=True, refresh_cache=REFRESH_CACHE)
+    @workflow_task("prepare")
     def prepare(self) -> Any:
         prepare_return = self._prepare()
         return prepare_return
@@ -429,7 +727,8 @@ class SimulationBase(Generic[NodeDataType, InitializationType, ReturnType],
         raise NotImplementedError("Must be override by subclass")
 
 
-    @task(cache_key_fn=task_input_json_hash, persist_result=True, refresh_cache=REFRESH_CACHE)
+    # @task(name="run", cache_key_fn=task_input_json_hash, persist_result=True, refresh_cache=REFRESH_CACHE)
+    @workflow_task("run")
     def run(self) -> Any:
         run_return = self._run()
         return run_return
@@ -438,8 +737,8 @@ class SimulationBase(Generic[NodeDataType, InitializationType, ReturnType],
     def _run(self):
         raise NotImplementedError("Must be override by subclass")
 
-    # @task
-    @task(cache_key_fn=task_input_json_hash, persist_result=True, refresh_cache=REFRESH_CACHE)
+    # @task(name="extract", cache_key_fn=task_input_json_hash, persist_result=True, refresh_cache=REFRESH_CACHE)
+    @workflow_task("extract")
     def extract(self) -> ReturnType:
         extract_return:ReturnType = self._extract()
         return extract_return
@@ -525,7 +824,7 @@ class CreateFromTemplateMixin(object):
 
 def transfer_matching_fields(from_obj: BaseModel, to_type: Type[BaseModel]) -> Dict:
     to_fields = to_type.model_fields
-    print(f"{to_fields=}")
+    # print(f"transfer_matching_fields: {to_fields=} {from_obj=} {to_type=}")
     model_fields_set = from_obj.model_fields_set
     if isinstance(model_fields_set, set): # pydantic BaseModel subclass constructor-built object
         from_data = from_obj.model_dump() 
@@ -564,3 +863,269 @@ class FreeEnergyValuePoint(TypedDict):
     gibbs_free_energy_err: float # standard deviation of e1
     temp: float # the e1 corresponding thermo condition
     pres: float # the e1 corresponding thermo condition
+
+
+class SettingsBase(BaseModel, ABC):
+    # @model_validator(mode='before')
+    # @classmethod 
+    # def handle_flat_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    #     """同时支持扁平化和嵌套格式的输入"""
+    #     if not isinstance(data, dict):
+    #         return data
+            
+    #     nested_fields = cls._get_nested_fields()
+    #     if cls._is_nested_format(data, nested_fields):
+    #         return data
+            
+    #     return cls._restructure_flat_data(data, nested_fields)
+
+    # @classmethod
+    # def _get_nested_fields(cls) -> Dict[str, Type[BaseModel]]:
+    #     """获取所有嵌套的Pydantic模型字段"""
+    #     return {
+    #         field_name: field_info.annotation
+    #         for field_name, field_info in cls.model_fields.items()
+    #         if hasattr(field_info.annotation, 'model_fields')
+    #     }
+
+    # @classmethod
+    # def _is_nested_format(cls, data: Dict[str, Any], nested_fields: Dict[str, Type[BaseModel]]) -> bool:
+    #     """检查是否已经是嵌套格式"""
+    #     return any(k in data for k in nested_fields)
+
+    # @classmethod
+    # def _get_field_mapping(cls, model_class: Type[BaseModel]) -> Dict[str, str]:
+    #     """获取字段的所有可能名称到实际字段名的映射"""
+    #     mapping = {}
+    #     for field_name, field_info in model_class.model_fields.items():
+    #         # 添加原始字段名映射
+    #         mapping[field_name] = field_name
+            
+    #         # 处理验证别名
+    #         alias = field_info.validation_alias
+    #         if alias:
+    #             if isinstance(alias, str):
+    #                 # 反向映射：别名 -> 实际字段名
+    #                 mapping[alias] = field_name
+    #             elif isinstance(alias, AliasChoices):
+    #                 for alias_choice in alias.choices:
+    #                     # 反向映射：别名 -> 实际字段名
+    #                     mapping[alias_choice] = field_name
+                        
+    #     print(f"字段映射 {model_class.__name__}: {mapping}")  # 调试信息
+    #     return mapping
+
+    # @classmethod
+    # def _restructure_flat_data(cls, data: Dict[str, Any], 
+    #                          nested_fields: Dict[str, Type[BaseModel]]) -> Dict[str, Any]:
+    #     """重构扁平化数据为嵌套格式"""
+    #     nested_data = {}
+    #     remaining_data = {}
+        
+    #     # 为每个嵌套模型创建字段映射
+    #     field_mappings = {
+    #         field_name: cls._get_field_mapping(model_class)
+    #         for field_name, model_class in nested_fields.items()
+    #     }
+        
+    #     # 处理每个输入字段
+    #     for key, value in data.items():
+    #         field_assigned = False
+            
+    #         # 检查每个嵌套模型的字段映射
+    #         for parent_field, mapping in field_mappings.items():
+    #             if key in mapping:
+    #                 actual_field = mapping[key]
+    #                 nested_data.setdefault(parent_field, {})
+    #                 nested_data[parent_field][actual_field] = value
+    #                 field_assigned = True
+    #                 break
+                    
+    #         if not field_assigned:
+    #             remaining_data[key] = value
+                
+    #     return remaining_data | nested_data
+
+    # @classmethod
+    # def _process_input_data(cls,
+    #                      model_data: Union[BaseModel, Dict[str, Any], Tuple, None],
+    #                      updates: Optional[Dict[str, Any]] = None,
+    #                      template_json: Optional[str] = None) -> Dict[str, Any]:
+    #     """处理输入数据"""
+    #     # 处理template_json
+    #     if template_json:
+    #         # with resources.path('dpti.')
+    #         # current_file = Path(__file__)
+    #         current_file_dir = os.path.dirname(__file__)
+    #         # repo_root = current_file_dir.parent.parent.parent  # 回溯到repo根目录
+    #         template_json_basedir = os.path.join(current_file_dir, '../', '../', '../' 'examples')
+    #         template_json_filepath = os.path.join(template_json_basedir, template_json)
+    #         with open(template_json_filepath, 'r') as f:
+    #             settings_data = json.load(f)
+    #     # 处理model_data
+    #     elif isinstance(model_data, BaseModel):
+    #         settings_data = model_data.model_dump()
+    #     elif isinstance(model_data, dict):
+    #         settings_data = model_data.copy()
+    #     elif isinstance(model_data, tuple):
+    #         settings_data = model_data._asdict()
+    #     else:
+    #         raise ValueError(f"model_data must be BaseModel/Dict/Tuple type, get {type(model_data)=}")
+
+    #     # 合并updates
+    #     if updates:
+    #         updated_settings_data = settings_data | updates
+    #     else:
+    #         updated_settings_data = settings_data.copy()
+            
+    #     return updated_settings_data
+
+    @classmethod
+    def from_input(cls,
+                  model_data: Union[BaseModel, Dict[str, Any], Tuple],
+                  updates: Optional[Dict[str, Any]] = None,
+                  template_json: Optional[str] = None) -> 'SettingsBase':
+        """从多种输入数据格式创建实例的工厂方法
+        
+        Args:
+            model_data: 基础数据,可以是BaseModel/Dict/NamedTuple
+            updates: 可选的更新数据字典
+            template_json: 可选的模板JSON文件路径
+            
+        Returns:
+            SettingsBase实例
+        """
+        processed_data = cls._process_input_data(
+            model_data=model_data,
+            updates=updates,
+            template_json=template_json
+        )
+
+        print(f"-------from_input----{processed_data=}")
+
+        # flattened_data = cls.handle_flat_data(processed_data)
+        # print(f"-------from_input----{flattened_data=}")
+        
+        # 创建实例，这会触发handle_flat_data和其他验证器
+        # return cls(**flattened_data)
+        return cls.model_validate(processed_data)
+
+    @classmethod 
+    def from_template(cls, template_json: str, 
+                     updates: Optional[Dict[str, Any]] = None) -> 'SettingsBase':
+        """从模板文件创建实例的便捷方法"""
+        return cls.from_input(
+            model_data={},
+            updates=updates,
+            template_json=template_json
+        )
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any], 
+                  updates: Optional[Dict[str, Any]] = None) -> 'SettingsBase':
+        """从字典创建实例的便捷方法"""
+        return cls.from_input(
+            model_data=data,
+            updates=updates
+        )
+
+    def __init__(self, **data):
+        super().__init__(**data)
+
+    # def __init__(self,
+    #              model_data: Union[BaseModel, Dict[str, Any], Tuple],
+    #              updates: Optional[Dict[str, Any]] = None,
+    #              template_json: Optional[str] = None):
+        
+    #     processed_data = self._process_input_data(
+    #         model_data=model_data,
+    #         updates=updates, 
+    #         template_json=template_json
+    #     )
+        
+    #     # 2. 调用BaseModel.__init__进行验证和初始化
+    #     # 这会触发handle_flat_data和其他验证器
+    #     super().__init__(**processed_data)
+        
+
+    REQUIRED_CLASS_ATTRS:ClassVar[str] = {
+        # 'DEFAULT_TEMPLATE_JSON': str,
+        # 'NODEDATA_FILENAME': str,
+        # 'JOB_DIRNAME': str,
+        # 'UPLOAD_LOCAL_FILES': list
+    }
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        #check if all required class attributes are defined
+        for attr_name, attr_type in cls.REQUIRED_CLASS_ATTRS.items():
+            if not hasattr(cls, attr_name):
+                raise TypeError(f"Can't instantiate abstract class {cls.__name__} with"
+                              f" abstract attribute {attr_name}")
+            else:
+                pass
+            # if not isinstance(getattr(cls, attr_name), attr_type):
+            #     raise TypeError(f"Attribute {attr_name} in class {cls.__name__} must be"
+            #                   f" of type {attr_type}")
+
+class NodedataBase(BaseModel):
+    pass
+
+
+
+class ConfigManager:
+    """Configuration manager that supports loading from both JSON files and Python modules"""
+    
+    @staticmethod
+    def load_config(config_source: str, flow_trigger_dir: str) -> Dict[str, Any]:
+        if config_source.endswith('.json'):
+            return ConfigManager._load_json_config(config_source, flow_trigger_dir)
+        elif config_source.endswith('.py'):
+            return ConfigManager._load_python_config(config_source, flow_trigger_dir)
+        else:
+            raise ValueError(f"Unsupported config file format: {config_source}")
+    
+    @staticmethod
+    def _load_json_config(json_file: str, flow_trigger_dir: str) -> Dict[str, Any]:
+        """Load configuration from JSON file"""
+        config_path = os.path.join(flow_trigger_dir, json_file)
+        if not os.path.isfile(config_path):
+            raise ValueError(f"Config file not found: {config_path}")
+            
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    
+    @staticmethod
+    def _load_python_config(py_file: str, flow_trigger_dir: str) -> Dict[str, Any]:
+        """
+        Load configuration from Python module
+        
+        The Python config module must define a CONFIG dictionary containing all settings
+        """
+        config_path = os.path.join(flow_trigger_dir, py_file)
+        if not os.path.isfile(config_path):
+            raise ValueError(f"Config file not found: {config_path}")
+            
+        # Dynamically load Python module
+        spec = importlib.util.spec_from_file_location("config_module", config_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Cannot load config module: {config_path}")
+            
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        
+        # Get configuration dictionary
+        if hasattr(module, 'CONFIG'):
+            return module.CONFIG
+        else:
+            raise AttributeError(f"Config module must define CONFIG dictionary: {config_path}")
+    # @property
+    # @abstractmethod
+    # def DEFAULT_TEMPLATE_JSON(self) -> Optional[str]:
+    #     raise NotImplementedError("Subclasses must define class attribute DEFAULT_TEMPLATE_JSON or set it to None")
+
+    
+
+#%%
+
+
