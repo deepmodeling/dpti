@@ -503,7 +503,9 @@ def compute_task(
     if "copies" in jdata:
         natoms *= np.prod(jdata["copies"])
     fe, fe_err, thermo_info = post_tasks(job, natoms)
-    print(f"hti_liq.compute_task: ideal gas fe = {fe:.68}eV, err = {fe_err[0]:.6f}eV, {fe_err[1]:.6f}eV per atom")
+    print(
+        f"hti_liq.compute_task: ideal gas fe = {fe:.68}eV, err = {fe_err[0]:.6f}eV, {fe_err[1]:.6f}eV per atom"
+    )
     _print_thermo_info(thermo_info)
 
     info = thermo_info.copy()

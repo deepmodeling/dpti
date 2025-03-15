@@ -1,33 +1,45 @@
-from typing import Protocol, Any, Optional
-import os
 import glob
-import asyncio
-from dpdispatcher import Job, Machine as DPDispatcherMachine
-from dpdispatcher import Task as DPDispatcherTask
+import os
+from typing import Any, Protocol
+
+from dpdispatcher import Machine as DPDispatcherMachine
 from dpdispatcher import Resources as DPDispatcherResources
 from dpdispatcher import Submission as DPDispatcherSubmission
-import shutil
+from dpdispatcher import Task as DPDispatcherTask
 
 from dpti.workflows.service.dpdispatcher_configs import default_config
+
+
 class JobExecutor(Protocol):
-    def submit(self, job_dir: str, command:str = "") -> Any:
-        raise NotImplementedError
-    
-    async def group_submit(self, job_dir: str, subtasks_template:str = "", command:str = "") -> Any:
+    def submit(self, job_dir: str, command: str = "") -> Any:
         raise NotImplementedError
 
-class DpdispatcherExecutor: # implements JobExecutor
+    async def group_submit(
+        self, job_dir: str, subtasks_template: str = "", command: str = ""
+    ) -> Any:
+        raise NotImplementedError
+
+
+class DpdispatcherExecutor:  # implements JobExecutor
     job_dir: str
     submission: DPDispatcherSubmission
     default_config = default_config
 
     def __init__(self):
-
-        self.machine = DPDispatcherMachine.load_from_dict(self.default_config['machine'])
-        self.resources = DPDispatcherResources.load_from_dict(self.default_config['resources'])
+        self.machine = DPDispatcherMachine.load_from_dict(
+            self.default_config["machine"]
+        )
+        self.resources = DPDispatcherResources.load_from_dict(
+            self.default_config["resources"]
+        )
         pass
 
-    async def group_submit(self, job_dir:str, subtasks_template:str="./*/task*", command="lmp -i in.lammps") -> Any:
+    async def group_submit(
+        self,
+        job_dir: str,
+        subtasks_template: str = "./*/task*",
+        command="lmp -i in.lammps",
+    ) -> Any:
         if job_dir is None or job_dir == "":
             raise ValueError("job_dir cannot be None or empty")
         if not os.path.exists(job_dir):
@@ -43,13 +55,15 @@ class DpdispatcherExecutor: # implements JobExecutor
         # We may create it manually during task execution for some cases.
         # pre_command_symlink = "test -f graph.pb || ln -s ../../graph.pb ./; "
 
-        task_list = [DPDispatcherTask(
-            command=command,
-            task_work_path=subdir,
-            # forward_files=["in.lammps", "*lmp", "graph.pb"],
-            forward_files=["in.lammps", "*lmp"],
-            backward_files=["log.lammps", "*lmp"],
-        ) for subdir in task_dir_list
+        task_list = [
+            DPDispatcherTask(
+                command=command,
+                task_work_path=subdir,
+                # forward_files=["in.lammps", "*lmp", "graph.pb"],
+                forward_files=["in.lammps", "*lmp"],
+                backward_files=["log.lammps", "*lmp"],
+            )
+            for subdir in task_dir_list
         ]
 
         self.submission = DPDispatcherSubmission(
@@ -57,7 +71,7 @@ class DpdispatcherExecutor: # implements JobExecutor
             resources=self.resources,
             machine=self.machine,
             forward_common_files=["graph.pb", "*lmp"],
-            task_list=task_list
+            task_list=task_list,
         )
 
         self.submission.generate_jobs()
@@ -66,7 +80,9 @@ class DpdispatcherExecutor: # implements JobExecutor
         # submission_hash = str(self.submission.submission_hash)
 
         # loop = asyncio.get_event_loop()
-        submission_hash = await self.submission.async_run_submission(check_interval=60, clean=False)
+        submission_hash = await self.submission.async_run_submission(
+            check_interval=60, clean=False
+        )
 
         return submission_hash
 
@@ -84,20 +100,24 @@ class DpdispatcherExecutor: # implements JobExecutor
             backward_files=["log.lammps", "dump.*", "out.lmp"],
         )
 
-        # dpdispatcher_task_list = 
+        # dpdispatcher_task_list =
 
         self.submission = DPDispatcherSubmission(
             work_base=job_dir,
             resources=self.resources,
             machine=self.machine,
-            task_list=[dpdispatcher_task]
+            task_list=[dpdispatcher_task],
         )
         # self.submission = submission
         self.submission.generate_jobs()
-        print(f"note: DpdispatcherExecutor.submit: submission {self.submission.submission_hash} to be submit")
+        print(
+            f"note: DpdispatcherExecutor.submit: submission {self.submission.submission_hash} to be submit"
+        )
         submission_r = self.submission.run_submission(check_interval=15)
         print(f"note: DpdispatcherExecutor.submit: submission {submission_r} finished")
         submission_hash = str(self.submission.submission_hash)
         return submission_hash
         # print(f"Submitting job: {job_dir}")
-#%%
+
+
+# %%
