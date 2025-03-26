@@ -35,7 +35,7 @@ def plot_free_energy_comparison(
 
     Returns
     -------
-        base64 encoded string of the plot image
+    base64 encoded string of the plot image
     """
     plt.figure(figsize=(12, 8))
     plt.rcParams.update({"font.size": 14})
@@ -175,7 +175,7 @@ def analyze_align_different_temp_starting_points(result_info: dict) -> str:
 
     Returns
     -------
-        base64 encoded string of the plot image
+    base64 encoded string of the plot image
     """
     pass
 
@@ -192,7 +192,7 @@ def compare_multiple_runs(result_files: list, labels: Optional[list] = None) -> 
 
     Returns
     -------
-        base64 encoded string of the plot image
+    base64 encoded string of the plot image
     """
     # Create figure with two subplots
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 16), height_ratios=[1, 1])
@@ -348,10 +348,10 @@ def plot_multiple_phase_comparison(
 
     Returns
     -------
-        Dict containing base64 encoded plot images:
-        - 'all_comparisons': Plot showing all N*M comparisons
-        - 'statistical_distribution': Plot showing distribution and mean
-        - 'mean_comparison': Plot showing mean values with error bars
+    Dict containing base64 encoded plot images:
+    - 'all_comparisons': Plot showing all N*M comparisons
+    - 'statistical_distribution': Plot showing distribution and mean
+    - 'mean_comparison': Plot showing mean values with error bars
     """
     import base64
     from itertools import product

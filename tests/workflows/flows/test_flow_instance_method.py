@@ -32,7 +32,7 @@ def create_workflow_flow(workflow_class, method_name, **flow_kwargs):
 
     Returns
     -------
-        装饰后的flow函数
+    装饰后的flow函数
     """
 
     @flow(**flow_kwargs)
