@@ -106,7 +106,7 @@ def save_grouped_json(groups: Dict[str, Dict[str, str]], output_base: str) -> No
     parent_dir = output_base.parent
 
     for group_name, group_files in groups.items():
-        output_file = parent_dir / f"{base_name}_{group_name}.json"
+        output_file = parent_dir / f"{base_name}_{group_name}.json.txt"
         wrapper = {
             "project_files": {
                 "description": f"Python source files collection - {group_name}",

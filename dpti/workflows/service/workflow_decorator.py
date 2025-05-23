@@ -3,7 +3,7 @@ import functools
 import hashlib
 from functools import partial
 from typing import Any, Dict, Optional, Union
-
+from datetime import datetime, timezone
 import simplejson
 from prefect import task
 
@@ -51,7 +51,15 @@ def hash_objects(*args, hash_algo=_md5, **kwargs) -> Optional[str]:
     # we use simplejson only for its `for_json` function: we implement for_json method for the Class SimulationBase (amd maybe others).
     # when simplejson dumps json, it just called the instance's `for_json` method.
     print(f"hash_objects begin: {args=} {kwargs=} {hash_algo=}")
-    origin_hash = simplejson.dumps((args, kwargs), for_json=True, sort_keys=True)
+    try:
+        origin_hash = simplejson.dumps((args, kwargs), for_json=True, sort_keys=True)
+    except TypeError as e:
+        # print(f"hash_objects: error: {e}")
+        print(f"hash_objects: (args, kwargs) is not serializable:\n"
+            f"{args=}"
+            f"{kwargs=}")
+        raise e
+        
     print(f"hash_objects:origin_hash: {origin_hash=}")
     hash = stable_hash(origin_hash, hash_algo=hash_algo)
 
@@ -227,7 +235,49 @@ class PrefectTaskDecorator:
 
 # %%
 
+def workflow_task(method_name: str, **task_kwargs):
+    def decorator(func):
+        def wrapper(*args, **kwargs): # args[0] is the instance object(self), like class NPTEquiSimulation's instance.
+            if args:
+                class_name = args[0].__class__.__name__ # get real class name like, `NPTEquiSimulation`
+                task_name = f"{class_name}_{method_name}"
+                
+                # Check if cache refresh is needed
+                instance = args[0]
+                force_refresh_tasks = getattr(instance, 'force_refresh_cache', [])
+                should_refresh = (
+                    REFRESH_CACHE or  # Global refresh setting
+                    method_name in force_refresh_tasks  # Task-specific force refresh
+                )
+            else:
+                # Fallback if no instance is provided
+                class_name = func.__qualname__.split('.')[0]
+                task_name = f"{class_name}_{method_name}"
+                should_refresh = REFRESH_CACHE
+                
+            # Merge default kwargs with custom kwargs
+            default_task_kwargs = {
+                "name": task_name,
+                "task_run_name": lambda: (
+                    f"{task_name}-{datetime.now(timezone.utc).strftime('UTC%z_%Y%m%d_%H%M%S_%f')}"
+                ),
+                "cache_key_fn": task_input_json_hash,
+                "persist_result": True,
+                "refresh_cache": should_refresh
+            }
+            # Override defaults with custom task_kwargs
+            default_task_kwargs.update(task_kwargs)
+            print(f"@workflow_task init: {default_task_kwargs=}")
+            
+            @task(**default_task_kwargs)
+            def task_wrapped(*task_args, **task_kwargs):
+                return func(*task_args, **task_kwargs)
+                
+            return task_wrapped(*args, **kwargs)
+        return wrapper
+    return decorator
 
+#%%
 workflow_task_decorator = PrefectTaskDecorator(
     log_prints=True, retries=0, method_settings={}
 )

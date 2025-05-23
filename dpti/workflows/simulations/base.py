@@ -23,7 +23,9 @@ from typing import (
 from prefect import task
 from pydantic import AliasChoices, BaseModel, Field, computed_field
 
+from dpti.workflows.service.workflow_decorator import workflow_task
 from dpti.workflows.prefect.prefect_task_hash import task_input_json_hash
+
 from dpti.workflows.service.di import context_inject
 from dpti.workflows.service.workflow_service_module import (
     BasicWorkflowServices,

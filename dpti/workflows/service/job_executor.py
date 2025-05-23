@@ -34,6 +34,14 @@ class DpdispatcherExecutor:  # implements JobExecutor
         )
         pass
 
+    def generate_mdata(self):
+        mdata = dict(
+            machine=self.machine.serialize(),
+            resources=self.resources.serialize(),
+        )
+        print(f"generate_mdata: mdata: {mdata=}")
+        return mdata
+
     async def group_submit(
         self,
         job_dir: str,

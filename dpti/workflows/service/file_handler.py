@@ -53,6 +53,8 @@ class IOHandler(Protocol):
 
     def subjobdir_context(self, subjob_dirname: str = "./") -> Any: ...
 
+    def chdir_context(self, base_dir: str, dir_path: str) -> Any: ...
+
     def isfile(self, file_path: str) -> bool: ...
 
     def isdir(self, dir_path: str) -> bool: ...
@@ -155,6 +157,19 @@ class LocalFileHandler:  # implement IOHandler
             )
             produced_symlinks.append(return_link)
         return produced_symlinks
+
+    @contextmanager
+    def chdir_context(self, base_dir: str, dir_path: str) -> Iterator[Any]:
+        ori_dir = os.getcwd()
+        new_dir = os.path.join(base_dir, dir_path)
+        try:
+            os.chdir(new_dir)
+            yield self
+        except Exception as e:
+            print(f"LocalFileHandler: An exception occurred in chdir_context: {e}")
+            raise e
+        finally:
+            os.chdir(ori_dir)
 
     @contextmanager
     def jobdir_context(self, job_dirname: str) -> Iterator[Any]:

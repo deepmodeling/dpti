@@ -21,3 +21,7 @@ dist/
 tests/tmp
 dpdispatcher.log
 dpdisp.log
+
+
+# ignore all test dir in the dpti/workflows/examples/Sn_beta_quicktest/
+dpti/workflows/examples/Sn_beta_quicktest/*_*/

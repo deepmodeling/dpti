@@ -136,6 +136,7 @@ class FlowSettingsBase:
 
 class FreeEnergyLineSettings(FlowSettingsBase):
     flow_trigger_dir: str
+    flow_running_dirname: str
     domain_input_raw: FreeEnergyLineDomainInput
     flow_runtime_context: Optional[FlowRuntimeContext]
 
