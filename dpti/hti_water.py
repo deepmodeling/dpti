@@ -64,9 +64,9 @@ def _ff_deep_on(lamb, model, bparam, sparam):
     alpha_lj = sparam["alpha_lj"]
     rcut = sparam["rcut"]
     epsilon = sparam["epsilon"]
-    sigma_oo = sparam["sigma_oo"]
-    sigma_oh = sparam["sigma_oh"]
-    sigma_hh = sparam["sigma_hh"]
+    sigma_oo = sparam.get("sigma_oo", None) or sparam.get("sigma_0_0")
+    sigma_oh = sparam.get("sigma_oh", None) or sparam.get("sigma_0_1")
+    sigma_hh = sparam.get("sigma_hh", None) or sparam.get("sigma_1_1")
     activation = sparam["activation"]
     ret = ""
     ret += f"variable        EPSILON equal {epsilon:f}\n"
