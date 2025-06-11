@@ -17,6 +17,3 @@ dpti hti compute ./new_job/  -t gibbs --npt ../NPT_sim/new_job/
 # TI
 dpti ti gen ti_settings.json -o TI_sim/
 dpti ti compute ./TI_sim/new_job/  --hti ../HTI_sim/new_job/
-
-
-

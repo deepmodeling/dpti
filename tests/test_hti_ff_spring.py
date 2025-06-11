@@ -50,7 +50,6 @@ class TestHtiFfSpring(unittest.TestCase):
         ret2 = dpti.hti._ff_spring(**input)
         self.assertEqual(ret1, ret2)
 
-
     def test_spring_var_spring_multiple_element(self):
         input = {"lamb": 0.20, "m_spring_k": [118.71, 207.2], "var_spring": False}
         ret1 = textwrap.dedent(
