@@ -1,5 +1,5 @@
 {
-    "equi_conf": null,
+    "equi_conf": "nvt_last_dump.lmp",
     "ncopies": [
         1,
         1,
