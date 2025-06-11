@@ -12,4 +12,5 @@ __all__ = [
     "ti",
     "ti_water",
     "lib",
+    "workflows",
 ]
