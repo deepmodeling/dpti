@@ -1,0 +1,21 @@
+{
+    "equi_conf":"conf.lmp",
+    "copies":	[1,1,1],
+    "model":	"graph.pb",
+    "model_mass_map": [
+        16,
+        2
+    ],
+    "nsteps":	100000,
+    "dt":	0.0005,
+    "ens":	"npt-tri",
+    "path":	"p",
+    "temps":	150,
+    "press":	["0:20000:2000", "20000"],
+    "tau_t":	0.1,
+    "tau_p":	0.5,
+    "stat_freq":	10,
+    "stat_skip":	5000,
+    "stat_bsize":	1000,
+    "_comment": "that's all"
+}
