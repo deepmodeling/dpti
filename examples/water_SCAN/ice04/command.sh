@@ -1,4 +1,4 @@
-# docker pull yfb222333/dpti-lammps-fep:latest 
+# docker pull yfb222333/dpti-lammps-fep:latest
 #  docker run -it --gpus all dpti-lammps-fep:latest
 # all in /opt/
 # all files in /opt/dpti/examples/water_SCAN/ice04/
@@ -22,7 +22,7 @@ dpti hti_ice gen hti_ice.json -s three-step -o hti/
 
 # submit jobs `lmp -i in.lammps` for subdirs like  `hti/0*/task*/`
 
-dpti hti_ice compute  ./hti/  -t gibbs --npt ./npt/  # note use NPT simulation usually longer steps, and the P*V value is more accurate  
+dpti hti_ice compute  ./hti/  -t gibbs --npt ./npt/  # note use NPT simulation usually longer steps, and the P*V value is more accurate
 
 # result txt in ./hti/result
 
@@ -35,7 +35,3 @@ dpti ti_water gen path-t.json -o ti_path_t/
  dpti ti_water compute ./ti_path_t/  --hti ./hti/  # HTI simulation (starting point, gibbs free energy value)
 
 #  final result for a ti-line txt in ./ti_path_t/result
-
-
-
-
