@@ -35,9 +35,9 @@ def _ff_angle_on(lamb, model, bparam, sparam):
     alpha_lj = sparam["alpha_lj"]
     rcut = sparam["rcut"]
     epsilon = sparam["epsilon"]
-    sigma_oo = sparam["sigma_oo"]
-    sigma_oh = sparam["sigma_oh"]
-    sigma_hh = sparam["sigma_hh"]
+    sigma_oo = sparam.get("sigma_oo", None) or sparam["sigma_0_0"]
+    sigma_oh = sparam.get("sigma_oh", None) or sparam["sigma_0_1"]
+    sigma_hh = sparam.get("sigma_hh", None) or sparam["sigma_1_1"]
     activation = sparam["activation"]
     ret = ""
     ret += f"variable        EPSILON equal {epsilon:f}\n"
@@ -94,9 +94,9 @@ def _ff_bond_angle_off(lamb, model, bparam, sparam):
     alpha_lj = sparam["alpha_lj"]
     rcut = sparam["rcut"]
     epsilon = sparam["epsilon"]
-    sigma_oo = sparam["sigma_oo"]
-    sigma_oh = sparam["sigma_oh"]
-    sigma_hh = sparam["sigma_hh"]
+    sigma_oo = sparam.get("sigma_oo", None) or sparam["sigma_0_0"]
+    sigma_oh = sparam.get("sigma_oh", None) or sparam["sigma_0_1"]
+    sigma_hh = sparam.get("sigma_hh", None) or sparam["sigma_1_1"]
     activation = sparam["activation"]
     ret = ""
     ret += "variable        INV_LAMBDA equal 1-${LAMBDA}\n"
