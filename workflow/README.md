@@ -264,4 +264,3 @@ The hti out file at
 | conf_lmp | string | "bct.lmp" | see note1. the materials structure to be calculated |
 | ens | string | "npt-iso" | MD simulation ensemble in lammps |
 | if_liquid | bool | false | if simulate liquid |
-

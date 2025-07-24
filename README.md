@@ -62,7 +62,7 @@ At first, dpti is a collection of python scripts to generate LAMMPS input script
 useful directories:
 
 
-# 
+#
 ```
 dpti/ # main directory for dpti python modules
 dpti/lib/ usefule libs for numberical integration and analysis, free energy calculation, etc.
@@ -163,7 +163,7 @@ in `ti.p.json`, we writes
 ```json
 "temp":200,
 "pres_seq":[
-    "0:10000:500", 
+    "0:10000:500",
     "10000"
 ]
 ```
@@ -317,7 +317,7 @@ Image usage:
 # 3. Build commands:
 #    # Build base image
 #    docker build --target dpti-devel-base --tag dpti-devel-base:latest -f dp-lammps-fep.Dockerfile ./
-   
+
 #    # Build final image (two methods):
 #    # Method 1: Direct build
 #    docker build --tag dpti-lammps-fep:latest -f dp-lammps-fep.Dockerfile ./
