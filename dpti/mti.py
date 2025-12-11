@@ -165,9 +165,9 @@ def make_tasks(iter_name, jdata):
         raise RuntimeError("invalid ens")
 
     job_type = jdata["job_type"]
-    assert job_type == "nbead_convergence" or job_type == "mass_ti", (
-        "Unknow job_type. Only nbead_convergence and mass_ti are supported."
-    )
+    assert (
+        job_type == "nbead_convergence" or job_type == "mass_ti"
+    ), "Unknow job_type. Only nbead_convergence and mass_ti are supported."
     mass_scale_y_seq = get_first_matched_key_from_dict(jdata, ["mass_scale_y"])
     mass_scale_y_list = parse_seq(mass_scale_y_seq)
     mass_scales = (1.0 / np.array(mass_scale_y_list)) ** 2
@@ -176,13 +176,13 @@ def make_tasks(iter_name, jdata):
     nnode_seq = jdata.get("nnode", None)
     if nnode_seq is not None:
         nnode_list = parse_seq(nnode_seq)
-        assert len(nbead_list) == len(nnode_list), (
-            "Lists nbead and nnode should have same length. Please specify one nnode for each nbead."
-        )
+        assert (
+            len(nbead_list) == len(nnode_list)
+        ), "Lists nbead and nnode should have same length. Please specify one nnode for each nbead."
     if job_type == "mass_ti":
-        assert len(mass_scale_y_list) == len(nbead_list), (
-            "For mass TI tasks, you must provide one value of nbead for each value of mass_scale_y."
-        )
+        assert (
+            len(mass_scale_y_list) == len(nbead_list)
+        ), "For mass TI tasks, you must provide one value of nbead for each value of mass_scale_y."
 
     job_abs_dir = create_path(iter_name)
     ti_settings["equi_conf"] = relative_link_file(equi_conf, job_abs_dir)
