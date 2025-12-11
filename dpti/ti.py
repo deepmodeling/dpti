@@ -463,7 +463,6 @@ def post_tasks(
 
     all_tasks = glob.glob(os.path.join(iter_name, "task.[0-9]*"))
     all_tasks.sort()
-    ntasks = len(all_tasks)
 
     all_t = []
     all_e = []
@@ -680,7 +679,6 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms=None):
 
     all_tasks = glob.glob(os.path.join(iter_name, "task.[0-9]*"))
     all_tasks.sort()
-    ntasks = len(all_tasks)
 
     if "nvt" in ens and path == "t":
         # TotEng
@@ -811,7 +809,7 @@ def refine_task(from_task, to_task, err):
     from_ti = os.path.join(from_task, "ti.out")
     if not os.path.isfile(from_ti):
         raise RuntimeError(
-            f"cannot find file {from_ti}, task should be computed befor refined"
+            f"cannot find file {from_ti}, task should be computed before refined"
         )
     tmp_array = np.loadtxt(from_ti)
     all_t = tmp_array[:, 0]
