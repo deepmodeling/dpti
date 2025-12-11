@@ -83,7 +83,7 @@ def _gen_lammps_input(
     ret += "box             tilt large\n"
     ret += f"read_data       {conf_file}\n"
     if copies is not None:
-        ret += f"replicate       {int(copies[0])} {int(copies[1])} {int(copies[2])}\n"
+        ret += f"replicate       {copies[0]:d} {copies[1]:d} {copies[2]:d}\n"
     ret += "change_box      all triclinic\n"
     for jj in range(len(mass_map)):
         ret += f"mass            {jj + 1} {mass_map[jj]:f}\n"
