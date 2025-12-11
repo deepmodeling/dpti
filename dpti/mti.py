@@ -50,7 +50,7 @@ def _gen_lammps_input(
     ret = ""
     ret += "clear\n"
     ret += "# --------------------- VARIABLES-------------------------\n"
-    ret += f"variable        ibead           uloop {power - 1} pad\n"
+    ret += f"variable        ibead           uloop {(power - 1):d} pad\n"
     ret += f"variable        NSTEPS          equal {nsteps:d}\n"
     ret += f"variable        THERMO_FREQ     equal {thermo_freq:d}\n"
     ret += f"variable        DUMP_FREQ       equal {dump_freq:d}\n"
@@ -69,7 +69,7 @@ def _gen_lammps_input(
     if copies is not None:
         ret += f"replicate       {copies[0]} {copies[1]} {copies[2]}\n"
     for jj in range(len(mass_map)):
-        ret += f"mass            {jj + 1} {mass_map[jj] * mass_scale:f}\n"
+        ret += f"mass            {jj + 1} {(mass_map[jj] * mass_scale):f}\n"
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
     if model is not None:
         ret += f"pair_style      deepmd {model}\n"
