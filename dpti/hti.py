@@ -1435,7 +1435,7 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
     command = (
         f"{mdata['command']} -i in.lammps"
         if no_dp
-        else f"ln -s ../../../graph.pb graph.pb; {mdata['command']} -i in.lammps"
+        else f"ln -s ../../graph.pb graph.pb; {mdata['command']} -i in.lammps"
     )
     task_list = [
         Task(
@@ -1447,7 +1447,7 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
         for ii in task_dir_list
     ]
     if not no_dp:
-        submission.forward_common_files = ["graph.pb"]
+        submission.forward_common_files = [os.path.join(task_dir, "graph.pb")]
 
     submission.register_task_list(task_list=task_list)
     submission.run_submission()
