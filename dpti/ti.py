@@ -621,6 +621,7 @@ def post_tasks(
             scheme=scheme,
             all_e=all_e,
         )
+    all_fe_tot_err = np.linalg.norm(np.vstack([all_fe_err, all_fe_sys_err]), axis=0)
 
     # print('ti.py:debug:data', data)
     result = ""
@@ -639,9 +640,9 @@ def post_tasks(
         )
         for ii in range(len(all_temps)):
             print(
-                f"{all_temps[ii]:9.2f}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]):9.2e}"
+                f"{all_temps[ii]:9.2f}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {all_fe_tot_err[ii]:9.2e}"
             )
-            result += f"{all_temps[ii]:9.2f}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]):9.2e}\n"
+            result += f"{all_temps[ii]:9.2f}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {all_fe_tot_err[ii]:9.2e}\n"
     elif "npt" in ens:
         print(
             "#%8s  %15s  %20s  %9s  %9s  %9s"
@@ -657,11 +658,9 @@ def post_tasks(
         )
         for ii in range(len(all_temps)):
             print(
-                f"{all_temps[ii]:9.2f}  {all_press[ii]:15.8e}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]):9.2e}"
+                f"{all_temps[ii]:9.2f}  {all_press[ii]:15.8e}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {all_fe_tot_err[ii]:9.2e}"
             )
-            result += f"{all_temps[ii]:9.2f}  {all_press[ii]:15.8e}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]):9.2e}\n"
-            # print(all_temps[ii], all_press[ii], all_fe[ii], all_fe_err[ii], all_fe_sys_err[ii], np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]))
-    # result_file.close()
+            result += f"{all_temps[ii]:9.2f}  {all_press[ii]:15.8e}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {all_fe_tot_err[ii]:9.2e}\n"
 
     data = {
         "all_temps": all_temps.tolist(),
@@ -669,7 +668,7 @@ def post_tasks(
         "all_fe": all_fe.tolist(),
         "all_fe_stat_err": all_fe_err.tolist(),
         "all_fe_inte_err": all_fe_sys_err.tolist(),
-        "all_fe_tot_err": np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist(),
+        "all_fe_tot_err": all_fe_tot_err.tolist(),
     }
 
     # data = [all_temps.tolist(), all_press.tolist(),
