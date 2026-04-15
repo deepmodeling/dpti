@@ -1414,13 +1414,11 @@ def _is_completed_lammps_task(task_work_path):
     if not os.path.isfile(log_file):
         return False
     try:
-        with open(log_file, "r", errors="ignore") as fp:
+        with open(log_file, errors="ignore") as fp:
             lines = [line.strip() for line in fp if line.strip()]
         if not lines:
             return False
-        return lines[0].startswith("LAMMPS") and lines[-1].startswith(
-            "Total wall time"
-        )
+        return lines[0].startswith("LAMMPS") and lines[-1].startswith("Total wall time")
     except OSError:
         return False
 
