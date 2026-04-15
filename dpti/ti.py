@@ -905,9 +905,27 @@ def compute_task(job, inte_method, Eo, Eo_err, To, scheme="simpson"):
     return info
 
 
+def _is_completed_lammps_task(task_work_path):
+    log_file = os.path.join(task_work_path, "log.lammps")
+    if not os.path.isfile(log_file):
+        return False
+    try:
+        with open(log_file, errors="ignore") as fp:
+            lines = [line.strip() for line in fp if line.strip()]
+        if not lines:
+            return False
+        return lines[0].startswith("LAMMPS") and lines[-1].startswith("Total wall time")
+    except OSError:
+        return False
+
+
 def run_task(task_name, machine_file):
     task_dir_list = glob.glob(os.path.join(task_name, "task.*"))
     task_dir_list = sorted(task_dir_list)
+    task_dir_list = [ii for ii in task_dir_list if not _is_completed_lammps_task(ii)]
+    if len(task_dir_list) == 0:
+        print("# all tasks already completed; nothing to submit")
+        return
     work_base_dir = os.getcwd()
     with open(machine_file) as f:
         mdata = json.load(f)
