@@ -922,7 +922,7 @@ def run_task(task_name, machine_file):
 
     task_list = [
         Task(
-            command=f"ln -s ../../graph.pb graph.pb; {mdata['command']} -in in.lammps",
+            command=f"ln -s ../graph.pb graph.pb; {mdata['command']} -in in.lammps",
             task_work_path=ii,
             forward_files=["in.lammps", "*.lmp"],
             backward_files=["log*", "final.lmp", "traj.dump"],
@@ -930,7 +930,7 @@ def run_task(task_name, machine_file):
         for ii in task_dir_list
     ]
 
-    submission.forward_common_files = ["graph.pb"]
+    submission.forward_common_files = [os.path.join(task_name, "graph.pb")]
     submission.register_task_list(task_list=task_list)
     submission.run_submission()
 
