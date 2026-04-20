@@ -108,10 +108,10 @@ def _gen_lammps_input(
     ret += "compute         allmsd all msd\n"
     if ens == "nvt":
         ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n"
-        ret += "thermo_modify   format 4*8 %20.6f\n"
+        ret += "thermo_modify   format float %20.6f\n"
     elif "npt" in ens:
         ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol c_allmsd[*]\n"
-        ret += "thermo_modify   format 4*8 %20.6f\n"
+        ret += "thermo_modify   format float %20.6f\n"
     else:
         raise RuntimeError(f"unknow ensemble {ens}\n")
     ret += "dump            1 all custom ${DUMP_FREQ} traj.dump id type x y z\n"

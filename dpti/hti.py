@@ -1331,7 +1331,11 @@ def compute_task(
         print(print_format % (e1, de_err[0], de_err[1]))
     elif free_energy_type == "gibbs":
         if npt is not None:
-            npt_in = json.load(open(os.path.join(npt, "jdata.json")))
+            # Try jdata.json first, then equi_settings.json for compatibility
+            try:
+                npt_in = json.load(open(os.path.join(npt, "jdata.json")))
+            except FileNotFoundError:
+                npt_in = json.load(open(os.path.join(npt, "equi_settings.json")))
             npt_info = json.load(open(os.path.join(npt, "result.json")))
             p = npt_in["pres"]
             v = npt_info["v"]

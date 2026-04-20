@@ -20,13 +20,13 @@ readme = "README.md"
 requires-python = ">3.6"
 keywords = ["free energy", "thermodynamics integration", "deepmd-kit"]
 dependencies = [
-    "apache-airflow >= 2.0",
+ #    "apache-airflow >= 2.0",
     "scipy",
     "numpy",
     "pymbar",
     "dargs",
     "dpdispatcher >= 0.3",
-    "sqlalchemy >=1.4.28,<2.0",
+    "sqlalchemy",
 ]
 
 [project.urls]
