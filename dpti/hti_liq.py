@@ -13,6 +13,7 @@ import dpti.lib.lmp as lmp
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 from dpti import einstein, hti
 from dpti.lib.lammps import get_thermo
+from dpti.lib.output import tee_stdout
 from dpti.lib.utils import (
     block_avg,
     create_path,
@@ -666,10 +667,11 @@ def handle_run(args):
 
 
 def handle_compute(args):
-    compute_task(
-        job=args.JOB,
-        free_energy_type=args.type,
-        manual_pv=args.pv,
-        manual_pv_err=args.pv_err,
-        npt=args.npt,
-    )
+    with tee_stdout(os.path.join(args.JOB, "result.out")):
+        compute_task(
+            job=args.JOB,
+            free_energy_type=args.type,
+            manual_pv=args.pv,
+            manual_pv_err=args.pv_err,
+            npt=args.npt,
+        )

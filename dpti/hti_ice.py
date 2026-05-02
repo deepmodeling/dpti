@@ -9,6 +9,7 @@ import scipy.constants as pc
 
 from dpti import einstein, hti
 from dpti.lib import lmp
+from dpti.lib.output import tee_stdout
 
 
 def _main():
@@ -178,7 +179,7 @@ def handle_refine(args):
     hti.refine_task(args.input, args.output, args.error, args.print)
 
 
-def handle_compute(args):
+def _handle_compute(args):
     job = args.JOB
     jdata = json.load(open(os.path.join(job, "in.json")))
     fp_conf = open(os.path.join(args.JOB, "conf.lmp"))
@@ -275,6 +276,11 @@ def handle_compute(args):
     with open(os.path.join(job, "result.json"), "w") as result:
         result.write(json.dumps(info))
     return info
+
+
+def handle_compute(args):
+    with tee_stdout(os.path.join(args.JOB, "result.out")):
+        return _handle_compute(args)
 
 
 def handle_run(args):
