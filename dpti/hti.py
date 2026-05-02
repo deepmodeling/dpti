@@ -14,6 +14,7 @@ from dpdispatcher import Machine, Resources, Submission, Task
 
 from dpti.einstein import free_energy, frenkel
 from dpti.lib.lammps import get_natoms, get_thermo
+from dpti.lib.output import tee_stdout
 
 # from lib.utils import integrate_sys_err
 from dpti.lib.utils import (
@@ -1581,15 +1582,16 @@ def handle_gen(args):
 
 
 def handle_compute(args):
-    compute_task(
-        job=args.JOB,
-        free_energy_type=args.type,
-        method=args.inte_method,
-        scheme=args.scheme,
-        manual_pv=args.pv,
-        manual_pv_err=args.pv_err,
-        npt=args.npt,
-    )
+    with tee_stdout(os.path.join(args.JOB, "result.out")):
+        compute_task(
+            job=args.JOB,
+            free_energy_type=args.type,
+            method=args.inte_method,
+            scheme=args.scheme,
+            manual_pv=args.pv,
+            manual_pv_err=args.pv_err,
+            npt=args.npt,
+        )
     # if 'reference' not in jdata :
     #     jdata['reference'] = 'einstein'
 
