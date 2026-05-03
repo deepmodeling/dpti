@@ -89,6 +89,30 @@ def parse_lj_sigma_epsilon(ret, sparam, hybrid=False):
     return ret
 
 
+def _ff_lj_fep(ret, sparam, sign=1.0):
+    element_num = sparam.get("element_num", 1)
+    sigma_key_index = list(
+        filter(
+            lambda t: t[0] <= t[1],
+            ((i, j) for i in range(element_num) for j in range(element_num)),
+        )
+    )
+
+    epsilon = sparam.get("epsilon", None)
+    if epsilon is not None:
+        ret += f"variable        EPSILON equal {sign * epsilon:f}\n"
+        ret += "compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_EPSILON\n"
+    else:
+        fep_args = []
+        for i, j in sigma_key_index:
+            var_name = f"EPSILON_{i + 1}_{j + 1}"
+            ret += f"variable        {var_name} equal {sign * sparam['epsilon_' + str(i) + '_' + str(j)]:f}\n"
+            fep_args.append(f"pair lj/cut/soft epsilon {i + 1} {j + 1} v_{var_name}")
+        ret += f"compute         e_diff all fep ${{TEMP}} {' '.join(fep_args)}\n"
+    ret += "variable        e_diff equal c_e_diff[1]\n"
+    return ret
+
+
 def _ff_soft_on(lamb, sparam):
     nn = sparam["n"]
     alpha_lj = sparam["alpha_lj"]
@@ -98,8 +122,7 @@ def _ff_soft_on(lamb, sparam):
     ret = parse_lj_sigma_epsilon(ret, sparam, hybrid=False)
 
     ret += "fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_LAMBDA scale yes\n"
-    ret += "compute         lj_pe all pair lj/cut/soft\n"
-    ret += "variable        e_diff equal c_lj_pe/v_LAMBDA\n"
+    ret = _ff_lj_fep(ret, sparam, sign=1.0)
     return ret
 
 
@@ -148,8 +171,7 @@ def _ff_soft_off(lamb, sparam, model, if_meam=False, meam_model=None):
     ret = parse_lj_sigma_epsilon(ret, sparam, hybrid=True)
 
     ret += "fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_INV_LAMBDA scale yes\n"
-    ret += "compute         lj_pe all pair lj/cut/soft\n"
-    ret += "variable        e_diff equal -c_lj_pe/v_INV_LAMBDA\n"
+    ret = _ff_lj_fep(ret, sparam, sign=-1.0)
     return ret
 
 
