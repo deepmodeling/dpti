@@ -107,9 +107,7 @@ def _ff_lj_fep(ret, sparam, sign=1.0):
         for i, j in sigma_key_index:
             var_name = f"EPSILON_{i + 1}_{j + 1}"
             ret += f"variable        {var_name} equal {sign * sparam['epsilon_' + str(i) + '_' + str(j)]:f}\n"
-            fep_args.append(
-                f"pair lj/cut/soft epsilon {i + 1} {j + 1} v_{var_name}"
-            )
+            fep_args.append(f"pair lj/cut/soft epsilon {i + 1} {j + 1} v_{var_name}")
         ret += f"compute         e_diff all fep ${{TEMP}} {' '.join(fep_args)}\n"
     ret += "variable        e_diff equal c_e_diff[1]\n"
     return ret
