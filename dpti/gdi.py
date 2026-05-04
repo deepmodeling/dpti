@@ -241,8 +241,8 @@ def make_dpdt(
         else:
             raise RuntimeError("invalid inte_dir " + inte_dir)
         assert min_idx >= 0
-        conf_0 = os.path.join("database", "task.%06d" % min_idx, "0", "out.lmp")
-        conf_1 = os.path.join("database", "task.%06d" % min_idx, "1", "out.lmp")
+        conf_0 = os.path.join("database", "task.%06d" % min_idx, "0", "final.lmp")
+        conf_1 = os.path.join("database", "task.%06d" % min_idx, "1", "final.lmp")
     else:
         conf_0 = "conf.0.lmp"
         conf_1 = "conf.1.lmp"
@@ -294,7 +294,7 @@ def make_dpdt(
             meam_library_basename = os.path.basename(meam_model["library"])
             meam_potential_basename = os.path.basename(meam_model["potential"])
             forward_files.extend([meam_library_basename, meam_potential_basename])
-        backward_files = ["log.lammps", "out.lmp"]
+        backward_files = ["log.lammps", "final.lmp"]
 
         task_list = []
         for ii in range(2):
