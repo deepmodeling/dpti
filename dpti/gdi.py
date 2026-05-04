@@ -355,7 +355,11 @@ def make_dpdt(
         t1 = ti._compute_thermo(log_1, natoms[1], stat_skip, stat_bsize)
         dv = t1["v"] - t0["v"]
         dh = t1["h"] - t0["h"] - (shift[1] - shift[0])
-        with open(os.path.join("database", "dpdt.out"), "a") as fp:
+        dpdt_path = os.path.join("database", "dpdt.out")
+        if (not os.path.exists(dpdt_path)) or os.path.getsize(dpdt_path) == 0:
+            with open(dpdt_path, "w") as fp:
+                fp.write("# T P V1-V0 H1-H0\n")
+        with open(dpdt_path, "a") as fp:
             fp.write(f"{temp:.16e} {pres:.16e} {dv:.16e} {dh:.16e}\n")
     os.chdir(cwd)
     return [dv, dh]
