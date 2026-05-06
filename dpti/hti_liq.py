@@ -542,11 +542,11 @@ def compute_task(
 
     print("# numb atoms: %d" % natoms)
     print_format = "%20.12f  %10.3e  %10.3e"
+    print("# Helmholtz free ener per atom (err) [eV]:")
+    print(print_format % (fe, fe_err[0], fe_err[1]))
     if free_energy_type == "helmholtz":
         e1 = fe  # e0 + de
         e1_err = fe_err[0]
-        print("# Helmholtz free ener per atom (err) [eV]:")
-        print(print_format % (fe, fe_err[0], fe_err[1]))
     elif free_energy_type == "gibbs":
         if npt is not None:
             npt_in = json.load(open(os.path.join(npt, "jdata.json")))
