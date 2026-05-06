@@ -486,21 +486,32 @@ def _post_tasks(iter_name, step, natoms):
 
 def post_tasks(iter_name, natoms):
     fe = einstein.ideal_gas_fe(iter_name)
+    print(f"# fe of ideal gas : {fe:20.12f}")
+
     subtask_name = os.path.join(iter_name, "00.soft_on")
     e0, err0, tinfo0 = _post_tasks(subtask_name, "soft_on", natoms)
+    print(f"# fe of soft_on   : {e0:20.12f}  {err0[0]:10.3e} {err0[1]:10.3e}")
+
     subtask_name = os.path.join(iter_name, "01.deep_on")
     e1, err1, tinfo1 = _post_tasks(subtask_name, "deep_on", natoms)
+    print(f"# fe of deep_on   : {e1:20.12f}  {err1[0]:10.3e} {err1[1]:10.3e}")
+
     subtask_name = os.path.join(iter_name, "02.soft_off")
     e2, err2, tinfo2 = _post_tasks(subtask_name, "soft_off", natoms)
+    print(f"# fe of soft_off  : {e2:20.12f}  {err2[0]:10.3e} {err2[1]:10.3e}")
+
     fe = fe + e0 + e1 + e2
-    print(f"# HTI three-step error [stt_err, sys_err] {err0} {err1} {err2}")
+    print("# HTI three-step error [stt_err, sys_err]")
+    print(f"#   soft_on  : {err0[0]:10.3e} {err0[1]:10.3e}")
+    print(f"#   deep_on  : {err1[0]:10.3e} {err1[1]:10.3e}")
+    print(f"#   soft_off : {err2[0]:10.3e} {err2[1]:10.3e}")
     err = np.sqrt(np.square(err0[0]) + np.square(err1[0]) + np.square(err2[0]))
     sys_err = (err0[1]) + (err1[1]) + (err2[1])
     return fe, [err, sys_err], tinfo2
 
 
 def _print_thermo_info(info):
-    ptr = "# thermodynamics (normalized by nmols)\n"
+    ptr = "# thermodynamics (normalized by natoms)\n"
     ptr += "# E (err)  [eV]:  {:20.8f} {:20.8f}\n".format(info["e"], info["e_err"])
     ptr += "# H (err)  [eV]:  {:20.8f} {:20.8f}\n".format(info["h"], info["h_err"])
     ptr += "# T (err)   [K]:  {:20.8f} {:20.8f}\n".format(info["t"], info["t_err"])
@@ -540,11 +551,6 @@ def compute_task(
         e1_err = fe_err[0]
         print("# Helmholtz free ener per atom (err) [eV]:")
         print(print_format % (fe, fe_err[0], fe_err[1]))
-    if free_energy_type == "helmholtz":
-        e1 = fe  # e0 + de
-        e1_err = fe_err[0]
-        print("# Helmholtz free ener per atom (err) [eV]:")
-        print(print_format % (fe, fe_err[0], fe_err[1]))
     elif free_energy_type == "gibbs":
         if npt is not None:
             npt_in = json.load(open(os.path.join(npt, "jdata.json")))
@@ -568,7 +574,7 @@ def compute_task(
             pv_err = manual_pv_err
         e1 = fe + pv
         e1_err = np.sqrt(fe_err[0] ** 2 + pv_err**2)
-        print("# Gibbs free ener per mol (err) [eV]:")
+        print("# Gibbs free ener per atom (err) [eV]:")
         print(print_format % (e1, e1_err, fe_err[1]))
     else:
         raise RuntimeError("unknown free energy type")
