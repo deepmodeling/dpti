@@ -501,10 +501,6 @@ def post_tasks(iter_name, natoms):
     print(f"# fe of soft_off  : {e2:20.12f}  {err2[0]:10.3e} {err2[1]:10.3e}")
 
     fe = fe + e0 + e1 + e2
-    print("# HTI three-step error [stt_err, sys_err]")
-    print(f"#   soft_on  : {err0[0]:10.3e} {err0[1]:10.3e}")
-    print(f"#   deep_on  : {err1[0]:10.3e} {err1[1]:10.3e}")
-    print(f"#   soft_off : {err2[0]:10.3e} {err2[1]:10.3e}")
     err = np.sqrt(np.square(err0[0]) + np.square(err1[0]) + np.square(err2[0]))
     sys_err = (err0[1]) + (err1[1]) + (err2[1])
     return fe, [err, sys_err], tinfo2
