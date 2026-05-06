@@ -1325,11 +1325,12 @@ def compute_task(
     pv = None
     pv_err = None
 
+    print("# Helmholtz free ener per atom (stat_err inte_err) [eV]:")
+    print(print_format % (e0 + de, de_err[0], de_err[1]))
+
     if free_energy_type == "helmholtz":
         e1 = e0 + de
         e1_err = de_err[0]
-        print("# Helmholtz free ener per atom (stat_err inte_err) [eV]:")
-        print(print_format % (e1, de_err[0], de_err[1]))
     elif free_energy_type == "gibbs":
         if npt is not None:
             npt_in = json.load(open(os.path.join(npt, "jdata.json")))
