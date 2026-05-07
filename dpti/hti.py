@@ -1425,6 +1425,14 @@ def _is_completed_lammps_task(task_work_path):
         return False
 
 
+def _graph_link_command(task_dir, job_work_dir):
+    graph_relpath = os.path.relpath(
+        os.path.join(task_dir, "graph.pb"),
+        os.path.join(job_work_dir, "task.000000"),
+    )
+    return f"ln -s {graph_relpath} graph.pb"
+
+
 def run_task(task_dir, machine_file, task_name, no_dp=False):
     if task_name == "00" or task_name == "01" or task_name == "02":
         job_work_dir_ = glob.glob(os.path.join(task_dir, task_name + "*"))
@@ -1455,7 +1463,10 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
     command = (
         f"{mdata['command']} -i in.lammps"
         if no_dp
-        else f"ln -s ../../graph.pb graph.pb; {mdata['command']} -i in.lammps"
+        else (
+            f"{_graph_link_command(task_dir, job_work_dir)}; "
+            f"{mdata['command']} -i in.lammps"
+        )
     )
     task_list = [
         Task(
