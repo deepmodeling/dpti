@@ -95,6 +95,16 @@ class TestHtiMakeTask(unittest.TestCase):
             f2 = os.path.join(test_dir, file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1, f2))
 
+    def test_graph_link_command(self):
+        self.assertEqual(
+            dpti.hti._graph_link_command("hti", "hti"),
+            "ln -s ../graph.pb graph.pb",
+        )
+        self.assertEqual(
+            dpti.hti._graph_link_command("hti", "hti/00.deep_on"),
+            "ln -s ../../graph.pb graph.pb",
+        )
+
     @patch("numpy.random.default_rng")
     def test_meam_three_step(self, patch_random):
         patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
