@@ -855,9 +855,9 @@ def _handle_compute(args):
         e1_err = fe_err[0]
     elif args.type == "gibbs":
         if args.npt is not None:
-            npt_in = json.load(open(os.path.join(args.npt, "jdata.json")))
             npt_info = json.load(open(os.path.join(args.npt, "result.json")))
-            p = npt_in["pres"]
+            anchor = hti.get_npt_anchor_state(args.npt)
+            p = anchor["p0"]
             v = npt_info["v"]
             v_err = npt_info["v_err"]
             unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
@@ -884,6 +884,8 @@ def _handle_compute(args):
         raise RuntimeError("known free energy type")
     free_energy_type = args.type
     info["free_energy_type"] = free_energy_type
+    if args.npt is not None:
+        info.update(hti.get_npt_anchor_state(args.npt))
     # info['de'] = de
     # info['de_err'] = de_err
     info["e1"] = e1
