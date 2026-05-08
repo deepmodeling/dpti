@@ -915,17 +915,13 @@ def _get_hti_anchor_position(path, jdata_hti, jdata_hti_in):
         return to
     if path == "p":
         try:
-            return get_first_matched_key_from_dict(
-                jdata_hti, ["p0", "pres", "press"]
-            )
+            return get_first_matched_key_from_dict(jdata_hti, ["p0", "pres", "press"])
         except KeyError:
             pass
         try:
             return get_first_matched_key_from_dict(jdata_hti_in, ["pres", "press"])
         except KeyError:
-            raise ValueError(
-                "Cannot find pressure in hti's result or input json file"
-            )
+            raise ValueError("Cannot find pressure in hti's result or input json file")
     return None
 
 
