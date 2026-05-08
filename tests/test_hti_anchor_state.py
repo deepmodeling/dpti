@@ -37,6 +37,12 @@ class TestHtiAnchorState(unittest.TestCase):
         self.assertEqual(
             dpti.ti._get_hti_anchor_position("p", hti_result, hti_input), 50000
         )
+        self.assertEqual(
+            dpti.ti_water._get_hti_anchor_position("t", hti_result, hti_input), 1600
+        )
+        self.assertEqual(
+            dpti.ti_water._get_hti_anchor_position("p", hti_result, hti_input), 50000
+        )
 
     def test_ti_falls_back_to_hti_input_for_old_results(self):
         hti_result = {}
@@ -47,6 +53,12 @@ class TestHtiAnchorState(unittest.TestCase):
         )
         self.assertEqual(
             dpti.ti._get_hti_anchor_position("p", hti_result, hti_input), 10000
+        )
+        self.assertEqual(
+            dpti.ti_water._get_hti_anchor_position("t", hti_result, hti_input), 1500
+        )
+        self.assertEqual(
+            dpti.ti_water._get_hti_anchor_position("p", hti_result, hti_input), 10000
         )
 
 
