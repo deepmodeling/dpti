@@ -549,9 +549,9 @@ def compute_task(
         e1_err = fe_err[0]
     elif free_energy_type == "gibbs":
         if npt is not None:
-            npt_in = json.load(open(os.path.join(npt, "jdata.json")))
             npt_info = json.load(open(os.path.join(npt, "result.json")))
-            p = npt_in["pres"]
+            anchor = hti.get_npt_anchor_state(npt)
+            p = anchor["p0"]
             v = npt_info["v"]
             v_err = npt_info["v_err"]
             unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
@@ -576,6 +576,8 @@ def compute_task(
         raise RuntimeError("unknown free energy type")
 
     info["free_energy_type"] = free_energy_type
+    if npt is not None:
+        info.update(hti.get_npt_anchor_state(npt))
     info["pv"] = pv
     info["pv_err"] = pv_err
     # info['de'] = de

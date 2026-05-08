@@ -1287,6 +1287,20 @@ def print_thermo_info(info):
     print(ptr)
 
 
+def get_npt_anchor_state(npt):
+    npt_in = json.load(open(os.path.join(npt, "jdata.json")))
+    anchor = {}
+    try:
+        anchor["t0"] = get_first_matched_key_from_dict(npt_in, ["temp", "temps"])
+    except KeyError:
+        pass
+    try:
+        anchor["p0"] = get_first_matched_key_from_dict(npt_in, ["pres", "press"])
+    except KeyError:
+        pass
+    return anchor
+
+
 def compute_task(
     job,
     free_energy_type="helmholtz",
@@ -1333,9 +1347,9 @@ def compute_task(
         e1_err = de_err[0]
     elif free_energy_type == "gibbs":
         if npt is not None:
-            npt_in = json.load(open(os.path.join(npt, "jdata.json")))
             npt_info = json.load(open(os.path.join(npt, "result.json")))
-            p = npt_in["pres"]
+            anchor = get_npt_anchor_state(npt)
+            p = anchor["p0"]
             v = npt_info["v"]
             v_err = npt_info["v_err"]
             unit_cvt = 1e5 * (1e-10**3) / pc.electron_volt
@@ -1360,6 +1374,8 @@ def compute_task(
         raise RuntimeError("unknown free energy type")
 
     info["free_energy_type"] = free_energy_type
+    if npt is not None:
+        info.update(get_npt_anchor_state(npt))
     info["e0"] = e0
     info["pv"] = pv
     info["pv_err"] = pv_err

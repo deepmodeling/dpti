@@ -905,6 +905,26 @@ def compute_task(job, inte_method, Eo, Eo_err, To, scheme="simpson"):
     return info
 
 
+def _get_hti_anchor_position(path, jdata_hti, jdata_hti_in):
+    if path == "t" or path == "t-ginv":
+        to = jdata_hti.get("t0", jdata_hti_in.get("temp"))
+        if to is None:
+            raise ValueError(
+                "Cannot find temperature in hti's result or input json file"
+            )
+        return to
+    if path == "p":
+        try:
+            return get_first_matched_key_from_dict(jdata_hti, ["p0", "pres", "press"])
+        except KeyError:
+            pass
+        try:
+            return get_first_matched_key_from_dict(jdata_hti_in, ["pres", "press"])
+        except KeyError:
+            raise ValueError("Cannot find pressure in hti's result or input json file")
+    return None
+
+
 def _is_completed_lammps_task(task_work_path):
     log_file = os.path.join(task_work_path, "log.lammps")
     if not os.path.isfile(log_file):
@@ -1060,19 +1080,7 @@ def handle_compute(args):
     if args.Eo_err is None:
         args.Eo_err = jdata_hti["e1_err"]
     if args.To is None:
-        if path == "t" or path == "t-ginv":
-            args.To = jdata_hti_in["temp"]
-            if args.To is None:
-                raise ValueError("Cannot find temperature in hti's input json file")
-        elif path == "p":
-            try:
-                args.To = get_first_matched_key_from_dict(
-                    jdata_hti_in, ["pres", "press"]
-                )
-            except KeyError:
-                args.To = None
-            if args.To is None:
-                raise ValueError("Cannot find pressure in hti's input json file")
+        args.To = _get_hti_anchor_position(path, jdata_hti, jdata_hti_in)
     compute_task(
         args.JOB,
         inte_method=args.inte_method,

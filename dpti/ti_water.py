@@ -134,6 +134,10 @@ def handle_gen(args):
     ti.make_tasks(output, jdata)
 
 
+def _get_hti_anchor_position(path, jdata_hti, jdata_hti_in):
+    return ti._get_hti_anchor_position(path, jdata_hti, jdata_hti_in)
+
+
 def handle_compute(args):
     job = args.JOB
     jdata = json.load(open(os.path.join(job, "ti_settings.json")))
@@ -155,10 +159,7 @@ def handle_compute(args):
     if args.Eo_err is None:
         args.Eo_err = jdata_hti["e1_err"]
     if args.To is None:
-        if path == "t" or path == "t-ginv":
-            args.To = jdata_hti_in["temp"]
-        elif path == "p":
-            args.To = jdata_hti_in["pres"]
+        args.To = _get_hti_anchor_position(path, jdata_hti, jdata_hti_in)
     if args.inte_method == "inte":
         ti.post_tasks(
             job,
