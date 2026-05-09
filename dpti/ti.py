@@ -29,7 +29,7 @@ from dpti.lib.utils import (
 
 
 def make_iter_name(iter_index):
-    return "task_ti." + ("%04d" % iter_index)
+    return f"task_ti.{iter_index:04d}"
 
 
 def parse_seq_ginv(seq):
@@ -65,9 +65,9 @@ def _gen_lammps_input(
     ret = ""
     ret += "clear\n"
     ret += "# --------------------- VARIABLES-------------------------\n"
-    ret += "variable        NSTEPS          equal %d\n" % nsteps
-    ret += "variable        THERMO_FREQ     equal %d\n" % thermo_freq
-    ret += "variable        DUMP_FREQ       equal %d\n" % dump_freq
+    ret += f"variable        NSTEPS          equal {nsteps:d}\n"
+    ret += f"variable        THERMO_FREQ     equal {thermo_freq:d}\n"
+    ret += f"variable        DUMP_FREQ       equal {dump_freq:d}\n"
     ret += f"variable        TEMP            equal {temp:f}\n"
     ret += f"variable        PRES            equal {pres:f}\n"
     ret += f"variable        TAU_T           equal {tau_t:f}\n"
@@ -83,17 +83,17 @@ def _gen_lammps_input(
     ret += "box             tilt large\n"
     ret += f"read_data       {conf_file}\n"
     if copies is not None:
-        ret += "replicate       %d %d %d\n" % (copies[0], copies[1], copies[2])
+        ret += f"replicate       {copies[0]:d} {copies[1]:d} {copies[2]:d}\n"
     ret += "change_box      all triclinic\n"
     for jj in range(len(mass_map)):
-        ret += "mass            %d %f\n" % (jj + 1, mass_map[jj])
+        ret += f"mass            {jj + 1} {mass_map[jj]:f}\n"
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
     # if if_meam:
     #     ret += 'pair_style      meam \n'
     #     ret += 'pair_coeff      * * /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
     if if_meam:
         ret += "pair_style      meam\n"
-        ret += f'pair_coeff      * * {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
+        ret += f"pair_coeff      * * {meam_model['library']} {meam_model['element']} {meam_model['potential']} {meam_model['element']}\n"
     else:
         if append:
             ret += f"pair_style      deepmd {model:s} {append:s}\n"
@@ -131,9 +131,7 @@ def _gen_lammps_input(
         raise RuntimeError(f"unknow ensemble {ens}\n")
     ret += "fix             mzero all momentum 10 linear 1 1 1\n"
     ret += "# --------------------- INITIALIZE -----------------------\n"
-    ret += "velocity        all create ${TEMP} %d\n" % (
-        np.random.default_rng().integers(1, 2**16)
-    )
+    ret += f"velocity        all create ${{TEMP}} {np.random.default_rng().integers(1, 2**16)}\n"
     ret += "velocity        all zero linear\n"
     ret += "# --------------------- RUN ------------------------------\n"
     ret += "run             ${NSTEPS}\n"
@@ -242,7 +240,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
         json.dump(ti_settings, f, indent=4)
 
     for ii in range(ntasks):
-        task_dir = os.path.join(job_abs_dir, "task.%06d" % ii)
+        task_dir = os.path.join(job_abs_dir, f"task.{ii:06d}")
         task_abs_dir = create_path(task_dir)
         # os.chdir(work_path)
 
@@ -465,7 +463,6 @@ def post_tasks(
 
     all_tasks = glob.glob(os.path.join(iter_name, "task.[0-9]*"))
     all_tasks.sort()
-    ntasks = len(all_tasks)
 
     all_t = []
     all_e = []
@@ -491,7 +488,7 @@ def post_tasks(
         print("# TI in NPT along P path")
     else:
         raise RuntimeError("invalid ens or path setting")
-    print("# natoms: %d" % natoms)
+    print(f"# natoms: {natoms:d}")
 
     for ii in all_tasks:
         # get T or P
@@ -628,16 +625,9 @@ def post_tasks(
     # result_file = open(f"{iter_name}/../result", 'w')
     if "nvt" == ens:
         print(
-            "#%8s  %20s  %9s  %9s  %9s"
-            % ("T(ctrl)", "F", "stat_err", "inte_err", "err")
+            f"#{'T(ctrl)':>8}  {'F':>20}  {'stat_err':>9}  {'inte_err':>9}  {'err':>9}"
         )
-        result += "#%8s  %20s  %9s  %9s  %9s\n" % (
-            "T(ctrl)",
-            "F",
-            "stat_err",
-            "inte_err",
-            "err",
-        )
+        result += f"#{'T(ctrl)':>8}  {'F':>20}  {'stat_err':>9}  {'inte_err':>9}  {'err':>9}\n"
         for ii in range(len(all_temps)):
             print(
                 f"{all_temps[ii]:9.2f}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {all_fe_tot_err[ii]:9.2e}"
@@ -645,17 +635,9 @@ def post_tasks(
             result += f"{all_temps[ii]:9.2f}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {all_fe_tot_err[ii]:9.2e}\n"
     elif "npt" in ens:
         print(
-            "#%8s  %15s  %20s  %9s  %9s  %9s"
-            % ("T(ctrl)", "P(ctrl)", "F", "stat_err", "inte_err", "err")
+            f"#{'T(ctrl)':>8}  {'P(ctrl)':>15}  {'F':>20}  {'stat_err':>9}  {'inte_err':>9}  {'err':>9}"
         )
-        result += "#%8s  %15s  %20s  %9s  %9s  %9s\n" % (
-            "T(ctrl)",
-            "P(ctrl)",
-            "F",
-            "stat_err",
-            "inte_err",
-            "err",
-        )
+        result += f"#{'T(ctrl)':>8}  {'P(ctrl)':>15}  {'F':>20}  {'stat_err':>9}  {'inte_err':>9}  {'err':>9}\n"
         for ii in range(len(all_temps)):
             print(
                 f"{all_temps[ii]:9.2f}  {all_press[ii]:15.8e}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}  {all_fe_tot_err[ii]:9.2e}"
@@ -696,7 +678,6 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms=None):
 
     all_tasks = glob.glob(os.path.join(iter_name, "task.[0-9]*"))
     all_tasks.sort()
-    ntasks = len(all_tasks)
 
     if "nvt" in ens and path == "t":
         # TotEng
@@ -712,7 +693,7 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms=None):
         print("# TI in NPT along P path")
     else:
         raise RuntimeError("invalid ens or path setting")
-    print("# natoms: %d" % natoms)
+    print(f"# natoms: {natoms:d}")
 
     all_t = []
     for ii in all_tasks:
@@ -796,15 +777,14 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms=None):
         all_fe_sys_err.append(sys_err)
 
     if "nvt" == ens:
-        print("#%8s  %15s  %9s  %9s" % ("T(ctrl)", "F", "stat_err", "inte_err"))
+        print(f"#{'T(ctrl)':>8}  {'F':>15}  {'stat_err':>9}  {'inte_err':>9}")
         for ii in range(len(all_temps)):
             print(
                 f"{all_temps[ii]:9.2f}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}"
             )
     elif "npt" in ens:
         print(
-            "#%8s  %15s  %15s  %9s  %9s"
-            % ("T(ctrl)", "P(ctrl)", "F", "stat_err", "inte_err")
+            f"#{'T(ctrl)':>8}  {'P(ctrl)':>15}  {'F':>15}  {'stat_err':>9}  {'inte_err':>9}"
         )
         for ii in range(len(all_temps)):
             print(
@@ -828,7 +808,7 @@ def refine_task(from_task, to_task, err):
     from_ti = os.path.join(from_task, "ti.out")
     if not os.path.isfile(from_ti):
         raise RuntimeError(
-            f"cannot find file {from_ti}, task should be computed befor refined"
+            f"cannot find file {from_ti}, task should be computed before refined"
         )
     tmp_array = np.loadtxt(from_ti)
     all_t = tmp_array[:, 0]

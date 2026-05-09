@@ -50,10 +50,10 @@ def _gen_lammps_input(
     ret = ""
     ret += "clear\n"
     ret += "# --------------------- VARIABLES-------------------------\n"
-    ret += "variable        ibead           uloop %d pad\n" % (power - 1)
-    ret += "variable        NSTEPS          equal %d\n" % nsteps
-    ret += "variable        THERMO_FREQ     equal %d\n" % thermo_freq
-    ret += "variable        DUMP_FREQ       equal %d\n" % dump_freq
+    ret += f"variable        ibead           uloop {(power - 1):d} pad\n"
+    ret += f"variable        NSTEPS          equal {nsteps:d}\n"
+    ret += f"variable        THERMO_FREQ     equal {thermo_freq:d}\n"
+    ret += f"variable        DUMP_FREQ       equal {dump_freq:d}\n"
     ret += f"variable        TEMP            equal {temp:f}\n"
     ret += f"variable        PRES            equal {pres:f}\n"
     ret += f"variable        TAU_T           equal {tau_t:f}\n"
@@ -67,9 +67,9 @@ def _gen_lammps_input(
     ret += "box             tilt large\n"
     ret += f'if "${{restart}} > 0" then "read_restart ${{ibead}}.restart.*" else "read_data {conf_file}"\n'
     if copies is not None:
-        ret += "replicate       %d %d %d\n" % (copies[0], copies[1], copies[2])
+        ret += f"replicate       {copies[0]} {copies[1]} {copies[2]}\n"
     for jj in range(len(mass_map)):
-        ret += "mass            %d %f\n" % (jj + 1, mass_map[jj] * mass_scale)
+        ret += f"mass            {jj + 1} {(mass_map[jj] * mass_scale):f}\n"
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
     if model is not None:
         ret += f"pair_style      deepmd {model}\n"
@@ -194,7 +194,7 @@ def make_tasks(iter_name, jdata):
         json.dump(ti_settings, f, indent=4)
 
     for ii in range(ntasks):
-        task_dir = os.path.join(job_abs_dir, "task.%06d" % ii)
+        task_dir = os.path.join(job_abs_dir, f"task.{ii:06d}")
         task_abs_dir = create_path(task_dir)
         settings = {}
         if path == "t":
@@ -207,12 +207,12 @@ def make_tasks(iter_name, jdata):
         settings["pres"] = pres
         if job_type == "nbead_convergence":
             for jj in range(len(mass_scale_y_list)):
-                mass_scale_y_dir = os.path.join(task_abs_dir, "mass_scale_y.%06d" % jj)
+                mass_scale_y_dir = os.path.join(task_abs_dir, f"mass_scale_y.{jj:06d}")
                 mass_scale_y_abs_dir = create_path(mass_scale_y_dir)
                 settings["mass_scale_y"] = mass_scale_y_list[jj]
                 settings["mass_scale"] = mass_scales[jj]
                 for kk in range(len(nbead_list)):
-                    nbead_dir = os.path.join(mass_scale_y_abs_dir, "nbead.%06d" % kk)
+                    nbead_dir = os.path.join(mass_scale_y_abs_dir, f"nbead.{kk:06d}")
                     nbead_abs_dir = create_path(nbead_dir)
                     settings["nbead"] = nbead_list[kk]
                     if nnode_seq is not None:
@@ -263,7 +263,7 @@ def make_tasks(iter_name, jdata):
                         json.dump(settings, f, indent=4)
         elif job_type == "mass_ti":
             for jj in range(len(mass_scale_y_list)):
-                mass_scale_y_dir = os.path.join(task_abs_dir, "mass_scale_y.%06d" % jj)
+                mass_scale_y_dir = os.path.join(task_abs_dir, f"mass_scale_y.{jj:06d}")
                 mass_scale_y_abs_dir = create_path(mass_scale_y_dir)
                 settings["mass_scale_y"] = mass_scale_y_list[jj]
                 settings["mass_scale"] = mass_scales[jj]
