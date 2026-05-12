@@ -29,6 +29,28 @@ from dpti.lib.utils import (
 )
 
 
+def format_refine_summary(all_lambda, interval_nrefine, source_task=None):
+    lines = []
+    if source_task is not None:
+        lines.append(f"# original task: {os.path.abspath(source_task)}")
+    lines.append("# refinement plan")
+    lines.append("# interval  lambda_left      lambda_right     nrefine  nnew")
+    total_new_points = 0
+    for idx, nrefine in enumerate(interval_nrefine):
+        nnew = max(nrefine - 1, 0)
+        total_new_points += nnew
+        lines.append(
+            f"{idx:10d}  {all_lambda[idx]:15.8e}  {all_lambda[idx + 1]:15.8e}"
+            f"  {nrefine:7d}  {nnew:4d}"
+        )
+    lines.append(f"# total new points: {total_new_points}")
+    return "\n".join(lines)
+
+
+def print_refine_summary(all_lambda, interval_nrefine, source_task=None):
+    print(format_refine_summary(all_lambda, interval_nrefine, source_task))
+
+
 def make_iter_name(iter_index):
     return "task_hti." + ("%04d" % iter_index)
 
@@ -851,9 +873,12 @@ def refine_task(
     ntask = all_t.size
 
     interval_nrefine = compute_nrefine(all_t, integrand, err)
+    refine_summary = format_refine_summary(
+        all_t, interval_nrefine, source_task=from_task
+    )
+    print(refine_summary)
     if print_ref:
-        print(interval_nrefine)
-        return
+        return refine_summary
 
     refined_t = []
     back_map = []
@@ -872,14 +897,41 @@ def refine_task(
     from_jdata = json.load(open(from_json))
     to_jdata = from_jdata
 
-    to_jdata["lambda"] = refined_t
+    switch = to_jdata.get("switch", "one-step")
+    step = to_jdata.get("step", "both")
+    if switch == "one-step" or step == "both":
+        to_jdata["lambda"] = refined_t
+    elif step == "deep_on":
+        to_jdata["lambda_deep_on"] = refined_t
+        to_jdata["lambda_deep_on_back_map"] = back_map
+    elif step == "spring_off":
+        to_jdata["lambda_spring_off"] = refined_t
+        to_jdata["lambda_spring_off_back_map"] = back_map
+    elif step == "lj_on":
+        to_jdata["lambda_lj_on"] = refined_t
+        to_jdata["lambda_lj_on_back_map"] = back_map
+    else:
+        raise RuntimeError(f"unknown HTI refinement step {step}")
     to_jdata["orig_task"] = from_task
     to_jdata["back_map"] = back_map
     to_jdata["refine_error"] = err
     to_jdata["equi_conf"] = get_task_file_abspath(from_task, from_jdata["equi_conf"])
     to_jdata["model"] = get_task_file_abspath(from_task, from_jdata["model"])
 
-    make_tasks(to_task, to_jdata, to_jdata["reference"], if_meam=if_meam)
+    if switch == "one-step" or step == "both":
+        make_tasks(to_task, to_jdata, to_jdata["reference"], if_meam=if_meam)
+    else:
+        _make_tasks(
+            to_task,
+            to_jdata,
+            to_jdata["reference"],
+            switch=switch,
+            step=step,
+            if_meam=if_meam,
+            meam_model=meam_model,
+        )
+    with open(os.path.join(to_task, "refine.out"), "w") as fp:
+        fp.write(refine_summary + "\n")
 
     from_task_list = glob.glob(os.path.join(from_task, "task.[0-9]*"))
     from_task_list.sort()
@@ -898,6 +950,7 @@ def refine_task(
             )
         with open(os.path.join(to_task_list[ii], "from.dir"), "w") as fp:
             fp.write(from_task_list[back_map[ii]])
+    return refine_summary
 
 
 def _compute_thermo(fname, natoms, stat_skip, stat_bsize):
@@ -1583,6 +1636,23 @@ def add_module_subparsers(main_subparsers):
     )
     parser_compute.set_defaults(func=handle_compute)
 
+    parser_refine = module_subparsers.add_parser(
+        "refine", help="Refine the grid of a job"
+    )
+    parser_refine.add_argument(
+        "-i", "--input", type=str, required=True, help="input job"
+    )
+    parser_refine.add_argument(
+        "-o", "--output", type=str, required=True, help="output job"
+    )
+    parser_refine.add_argument(
+        "-e", "--error", type=float, required=True, help="the error required"
+    )
+    parser_refine.add_argument(
+        "-p", "--print", action="store_true", help="print the refinement and exit"
+    )
+    parser_refine.set_defaults(func=handle_refine)
+
     parser_run = module_subparsers.add_parser("run", help="run the job")
     parser_run.add_argument("JOB", type=str, help="folder of the job")
     parser_run.add_argument("machine", type=str, help="machine.json file for the job")
@@ -1622,6 +1692,10 @@ def handle_compute(args):
         )
     # if 'reference' not in jdata :
     #     jdata['reference'] = 'einstein'
+
+
+def handle_refine(args):
+    refine_task(args.input, args.output, args.error, args.print)
 
 
 def handle_run(args):
