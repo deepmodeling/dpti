@@ -11,7 +11,6 @@ import scipy.constants as pc
 from dpdispatcher import Machine, Resources, Submission, Task
 
 from dpti.lib.lammps import get_natoms, get_thermo
-from dpti.lib.output import tee_stdout
 
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 # from lib.utils import integrate_sys_err
@@ -551,11 +550,8 @@ def post_tasks(
     all_print.append(all_enthalpy)
     all_print.append(all_msd_xyz)
     all_print = np.array(all_print)
-    if output_dir is None:
-        output_dir = iter_name
-
     np.savetxt(
-        os.path.join(output_dir, "ti.out"),
+        os.path.join(iter_name, "ti.out"),
         all_print.T,
         fmt="%.12e",
         header="t/p Integrand U/V U/V_err enthalpy msd_xyz",
@@ -680,14 +676,14 @@ def post_tasks(
     #     np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist()]
     info = {"start_point_info": info0, "end_point_info": info1, "data": data}
     # print('result', result)
-    with open(os.path.join(output_dir, "result"), "w") as f:
+    with open(os.path.join(iter_name, "../", "result"), "w") as f:
         f.write(result)
-    with open(os.path.join(output_dir, "result.json"), "w") as f:
+    with open(os.path.join(iter_name, "result.json"), "w") as f:
         f.write(json.dumps(info))
     return info
 
 
-def post_tasks_mbar(iter_name, jdata, Eo, natoms=None, output_dir=None):
+def post_tasks_mbar(iter_name, jdata, Eo, natoms=None):
     equi_conf = jdata["equi_conf"]
     if natoms is None:
         natoms = get_natoms(equi_conf)
@@ -799,49 +795,25 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms=None, output_dir=None):
         all_fe_err.append(err)
         all_fe_sys_err.append(sys_err)
 
-    result = ""
     if "nvt" == ens:
         print("#%8s  %15s  %9s  %9s" % ("T(ctrl)", "F", "stat_err", "inte_err"))
-        result += "#%8s  %15s  %9s  %9s\n" % ("T(ctrl)", "F", "stat_err", "inte_err")
         for ii in range(len(all_temps)):
-            line = f"{all_temps[ii]:9.2f}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}"
-            print(line)
-            result += line + "\n"
+            print(
+                f"{all_temps[ii]:9.2f}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}"
+            )
     elif "npt" in ens:
         print(
             "#%8s  %15s  %15s  %9s  %9s"
             % ("T(ctrl)", "P(ctrl)", "F", "stat_err", "inte_err")
         )
-        result += "#%8s  %15s  %15s  %9s  %9s\n" % (
-            "T(ctrl)",
-            "P(ctrl)",
-            "F",
-            "stat_err",
-            "inte_err",
-        )
         for ii in range(len(all_temps)):
-            line = f"{all_temps[ii]:9.2f}  {all_press[ii]:15.8e}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}"
-            print(line)
-            result += line + "\n"
-
-    if output_dir is None:
-        output_dir = iter_name
-    data = {
-        "all_temps": list(all_temps),
-        "all_press": list(all_press),
-        "all_fe": list(all_fe),
-        "all_fe_stat_err": list(all_fe_err),
-        "all_fe_inte_err": list(all_fe_sys_err),
-        "all_fe_tot_err": list(
-            np.linalg.norm(np.vstack([all_fe_err, all_fe_sys_err]), axis=0)
-        ),
-    }
-    info = {"start_point_info": info0, "end_point_info": info1, "data": data}
-    with open(os.path.join(output_dir, "result"), "w") as f:
-        f.write(result)
-    with open(os.path.join(output_dir, "result.json"), "w") as f:
-        f.write(json.dumps(info))
-    return info
+            print(
+                f"{all_temps[ii]:9.2f}  {all_press[ii]:15.8e}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}"
+            )
+    # info = dict(start_point_info=info0, end_point_info=info1, all_temps=list(all_temps), all_press=list(all_press),
+    #              all_fe=list(all_fe), all_fe_err=list(all_fe_err), all_fe_sys_err=list(all_fe_sys_err))
+    # open(os.path.join(iter_name, 'result.json'), 'w').write(json.dumps(info))
+    # return info
 
 
 def refine_task(from_task, to_task, err):
@@ -920,22 +892,14 @@ def refine_task(from_task, to_task, err):
             fp.write(from_task_list[back_map[ii]])
 
 
-def compute_task(job, inte_method, Eo, Eo_err, To, scheme="simpson", output_dir=None):
+def compute_task(job, inte_method, Eo, Eo_err, To, scheme="simpson"):
     # job = args.JOB
     with open(os.path.join(job, "ti_settings.json")) as f:
         jdata = json.load(f)
     if inte_method == "inte":
-        info = post_tasks(
-            job,
-            jdata,
-            Eo=Eo,
-            Eo_err=Eo_err,
-            To=To,
-            scheme=scheme,
-            output_dir=output_dir,
-        )
+        info = post_tasks(job, jdata, Eo=Eo, Eo_err=Eo_err, To=To, scheme=scheme)
     elif inte_method == "mbar":
-        info = post_tasks_mbar(job, jdata, Eo, output_dir=output_dir)
+        info = post_tasks_mbar(job, jdata, Eo)
     else:
         raise RuntimeError("unknow integration method")
     return info
@@ -1105,35 +1069,26 @@ def handle_compute(args):
     jdata = json.load(open(os.path.join(job, "ti_settings.json")))
     path = jdata["path"]
     hti_dir = args.hti
-    output_dir = args.JOB
-    if hti_dir is not None:
-        hti_dir = os.path.normpath(hti_dir)
-        hti_name = os.path.basename(hti_dir)
-        output_dir = os.path.join(args.JOB, hti_name)
-        create_path(output_dir)
-        jdata_hti = json.load(open(os.path.join(hti_dir, "result.json")))
-        jdata_hti_in = json.load(open(os.path.join(hti_dir, "in.json")))
-        if args.Eo is not None and args.hti is not None:
-            raise ValueError(
-                "Both Eo and hti are provided. Eo will be overrided by the e1 value in hti's result.json file. Make sure this is what you want."
-            )
-        if args.Eo is None:
-            args.Eo = jdata_hti["e1"]
-        if args.Eo_err is None:
-            args.Eo_err = jdata_hti["e1_err"]
-        if args.To is None:
-            args.To = _get_hti_anchor_position(path, jdata_hti, jdata_hti_in)
-
-    with tee_stdout(os.path.join(output_dir, "result.out")):
-        compute_task(
-            args.JOB,
-            inte_method=args.inte_method,
-            Eo=args.Eo,
-            Eo_err=args.Eo_err,
-            To=args.To,
-            scheme=args.scheme,
-            output_dir=output_dir,
+    jdata_hti = json.load(open(os.path.join(hti_dir, "result.json")))
+    jdata_hti_in = json.load(open(os.path.join(hti_dir, "in.json")))
+    if args.Eo is not None and args.hti is not None:
+        raise ValueError(
+            "Both Eo and hti are provided. Eo will be overrided by the e1 value in hti's result.json file. Make sure this is what you want."
         )
+    if args.Eo is None:
+        args.Eo = jdata_hti["e1"]
+    if args.Eo_err is None:
+        args.Eo_err = jdata_hti["e1_err"]
+    if args.To is None:
+        args.To = _get_hti_anchor_position(path, jdata_hti, jdata_hti_in)
+    compute_task(
+        args.JOB,
+        inte_method=args.inte_method,
+        Eo=args.Eo,
+        Eo_err=args.Eo_err,
+        To=args.To,
+        scheme=args.scheme,
+    )
     #     job = args.JOB
     #     jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
     #     if args.inte_method == 'inte' :

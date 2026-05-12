@@ -8,7 +8,6 @@ import numpy as np
 
 from dpti import ti
 from dpti.lib.lammps import get_natoms
-from dpti.lib.output import tee_stdout
 from dpti.lib.utils import get_task_file_abspath
 
 
@@ -149,41 +148,33 @@ def handle_compute(args):
         natoms *= np.prod(jdata["copies"])
     nmols = natoms // 3
     hti_dir = args.hti
-    output_dir = args.JOB
-    if hti_dir is not None:
-        hti_dir = os.path.normpath(hti_dir)
-        hti_name = os.path.basename(hti_dir)
-        output_dir = os.path.join(args.JOB, hti_name)
-        ti.create_path(output_dir)
-        jdata_hti = json.load(open(os.path.join(hti_dir, "result.json")))
-        jdata_hti_in = json.load(open(os.path.join(hti_dir, "in.json")))
-        if args.Eo is not None and args.hti is not None:
-            raise Warning(
-                "Both Eo and hti are provided. Eo will be overrided by the e1 value in hti's result.json file. Make sure this is what you want."
-            )
-        if args.Eo is None:
-            args.Eo = jdata_hti["e1"]
-        if args.Eo_err is None:
-            args.Eo_err = jdata_hti["e1_err"]
-        if args.To is None:
-            args.To = _get_hti_anchor_position(path, jdata_hti, jdata_hti_in)
-    with tee_stdout(os.path.join(output_dir, "result.out")):
-        if args.inte_method == "inte":
-            ti.post_tasks(
-                job,
-                jdata,
-                args.Eo,
-                Eo_err=args.Eo_err,
-                To=args.To,
-                natoms=nmols,
-                scheme=args.scheme,
-                shift=args.shift,
-                output_dir=output_dir,
-            )
-        elif args.inte_method == "mbar":
-            ti.post_tasks_mbar(job, jdata, args.Eo, natoms=nmols, output_dir=output_dir)
-        else:
-            raise RuntimeError("unknow integration method")
+    jdata_hti = json.load(open(os.path.join(hti_dir, "result.json")))
+    jdata_hti_in = json.load(open(os.path.join(hti_dir, "in.json")))
+    if args.Eo is not None and args.hti is not None:
+        raise Warning(
+            "Both Eo and hti are provided. Eo will be overrided by the e1 value in hti's result.json file. Make sure this is what you want."
+        )
+    if args.Eo is None:
+        args.Eo = jdata_hti["e1"]
+    if args.Eo_err is None:
+        args.Eo_err = jdata_hti["e1_err"]
+    if args.To is None:
+        args.To = _get_hti_anchor_position(path, jdata_hti, jdata_hti_in)
+    if args.inte_method == "inte":
+        ti.post_tasks(
+            job,
+            jdata,
+            args.Eo,
+            Eo_err=args.Eo_err,
+            To=args.To,
+            natoms=nmols,
+            scheme=args.scheme,
+            shift=args.shift,
+        )
+    elif args.inte_method == "mbar":
+        ti.post_tasks_mbar(job, jdata, args.Eo, natoms=nmols)
+    else:
+        raise RuntimeError("unknow integration method")
 
 
 def handle_refine(args):
