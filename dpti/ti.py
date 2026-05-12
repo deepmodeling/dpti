@@ -448,7 +448,15 @@ def _thermo_inte(
 
 
 def post_tasks(
-    iter_name, jdata, Eo, Eo_err=0, To=None, natoms=None, scheme="simpson", shift=0.0
+    iter_name,
+    jdata,
+    Eo,
+    Eo_err=0,
+    To=None,
+    natoms=None,
+    scheme="simpson",
+    shift=0.0,
+    output_dir=None,
 ):
     equi_conf = get_task_file_abspath(iter_name, jdata["equi_conf"])
     if natoms is None:
@@ -961,6 +969,39 @@ def _get_hti_anchor_position(path, jdata_hti, jdata_hti_in):
     return None
 
 
+def _format_anchor_value(value):
+    if value is None:
+        return None
+    value = float(value)
+    if value.is_integer():
+        return str(int(value))
+    return format(value, ".10g").replace("+", "")
+
+
+def _get_hti_anchor_tp(jdata_hti, jdata_hti_in):
+    t0 = jdata_hti.get("t0", jdata_hti_in.get("temp"))
+    p0 = None
+    try:
+        p0 = get_first_matched_key_from_dict(jdata_hti, ["p0", "pres", "press"])
+    except KeyError:
+        try:
+            p0 = get_first_matched_key_from_dict(jdata_hti_in, ["pres", "press"])
+        except KeyError:
+            p0 = None
+    return t0, p0
+
+
+def _make_ti_output_dir(job, hti_dir, jdata_hti, jdata_hti_in):
+    hti_name = os.path.basename(os.path.normpath(hti_dir))
+    t0, p0 = _get_hti_anchor_tp(jdata_hti, jdata_hti_in)
+    parts = [hti_name]
+    if t0 is not None:
+        parts.append(f"T0_{_format_anchor_value(t0)}")
+    if p0 is not None:
+        parts.append(f"p0_{_format_anchor_value(p0)}")
+    return os.path.join(job, ".".join(parts)), t0, p0
+
+
 def _is_completed_lammps_task(task_work_path):
     log_file = os.path.join(task_work_path, "log.lammps")
     if not os.path.isfile(log_file):
@@ -1108,11 +1149,12 @@ def handle_compute(args):
     output_dir = args.JOB
     if hti_dir is not None:
         hti_dir = os.path.normpath(hti_dir)
-        hti_name = os.path.basename(hti_dir)
-        output_dir = os.path.join(args.JOB, hti_name)
-        create_path(output_dir)
         jdata_hti = json.load(open(os.path.join(hti_dir, "result.json")))
         jdata_hti_in = json.load(open(os.path.join(hti_dir, "in.json")))
+        output_dir, _, _ = _make_ti_output_dir(
+            args.JOB, hti_dir, jdata_hti, jdata_hti_in
+        )
+        create_path(output_dir)
         if args.Eo is not None and args.hti is not None:
             raise ValueError(
                 "Both Eo and hti are provided. Eo will be overrided by the e1 value in hti's result.json file. Make sure this is what you want."

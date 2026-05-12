@@ -152,11 +152,12 @@ def handle_compute(args):
     output_dir = args.JOB
     if hti_dir is not None:
         hti_dir = os.path.normpath(hti_dir)
-        hti_name = os.path.basename(hti_dir)
-        output_dir = os.path.join(args.JOB, hti_name)
-        ti.create_path(output_dir)
         jdata_hti = json.load(open(os.path.join(hti_dir, "result.json")))
         jdata_hti_in = json.load(open(os.path.join(hti_dir, "in.json")))
+        output_dir, _, _ = ti._make_ti_output_dir(
+            args.JOB, hti_dir, jdata_hti, jdata_hti_in
+        )
+        ti.create_path(output_dir)
         if args.Eo is not None and args.hti is not None:
             raise Warning(
                 "Both Eo and hti are provided. Eo will be overrided by the e1 value in hti's result.json file. Make sure this is what you want."
