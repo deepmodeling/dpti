@@ -16,6 +16,7 @@ from dpti.lib.lammps import get_thermo
 from dpti.lib.output import tee_stdout
 from dpti.lib.utils import (
     block_avg,
+    compute_nrefine,
     create_path,
     get_first_matched_key_from_dict,
     integrate,
@@ -506,6 +507,109 @@ def post_tasks(iter_name, natoms):
     return fe, [err, sys_err], tinfo2
 
 
+def _refinement_from_stage(from_task, err):
+    from_task = os.path.abspath(from_task)
+    from_ti = os.path.join(from_task, "hti.out")
+    if not os.path.isfile(from_ti):
+        raise RuntimeError(
+            f"cannot find file {from_ti}, task should be computed befor refined"
+        )
+    tmp_array = np.loadtxt(from_ti)
+    all_t = tmp_array[:, 0]
+    integrand = tmp_array[:, 1]
+    ntask = all_t.size
+
+    interval_nrefine = compute_nrefine(all_t, integrand, err)
+    refined_t = []
+    back_map = []
+    for ii in range(0, ntask - 1):
+        refined_t.append(all_t[ii])
+        back_map.append(ii)
+        hh = (all_t[ii + 1] - all_t[ii]) / interval_nrefine[ii]
+        for jj in range(1, interval_nrefine[ii]):
+            refined_t.append(all_t[ii] + jj * hh)
+            back_map.append(-1)
+    refined_t.append(all_t[-1])
+    back_map.append(ntask - 1)
+    return all_t, interval_nrefine, refined_t, back_map
+
+
+def refine_tasks(from_task, to_task, err, print_ref=False):
+    from_task = os.path.abspath(from_task)
+    to_task = os.path.abspath(to_task)
+    with open(os.path.join(from_task, "in.json")) as fp:
+        jdata = json.load(fp)
+
+    stage_specs = [
+        ("00.soft_on", "soft_on", "lambda_soft_on"),
+        ("01.deep_on", "deep_on", "lambda_deep_on"),
+        ("02.soft_off", "soft_off", "lambda_soft_off"),
+    ]
+    stage_refinements = {}
+    refine_summaries = []
+    for stage_name, step, lambda_key in stage_specs:
+        stage_task = os.path.join(from_task, stage_name)
+        all_t, interval_nrefine, refined_t, back_map = _refinement_from_stage(
+            stage_task, err
+        )
+        print(f"# {stage_name}")
+        refine_summary = hti.format_refine_summary(
+            all_t, interval_nrefine, source_task=stage_task
+        )
+        print(refine_summary)
+        refine_summaries.append(f"# {stage_name}\n{refine_summary}")
+        stage_refinements[stage_name] = (refined_t, back_map)
+        jdata[lambda_key] = refined_t
+        jdata[f"{lambda_key}_back_map"] = back_map
+
+    if print_ref:
+        return
+
+    equi_conf = hti.get_task_file_abspath(from_task, jdata["equi_conf"])
+    model = hti.get_task_file_abspath(from_task, jdata["model"])
+    if_meam = jdata.get("if_meam", False)
+    meam_model = jdata.get("meam_model", None)
+
+    create_path(to_task)
+    shutil.copyfile(equi_conf, os.path.join(to_task, "conf.lmp"))
+    jdata["equi_conf"] = "conf.lmp"
+    shutil.copyfile(model, os.path.join(to_task, "graph.pb"))
+    jdata["model"] = "graph.pb"
+    jdata["orig_task"] = from_task
+    jdata["refine_error"] = err
+
+    with open(os.path.join(to_task, "in.json"), "w") as fp:
+        json.dump(jdata, fp, indent=4)
+    with open(os.path.join(to_task, "refine.out"), "w") as fp:
+        fp.write("\n".join(refine_summaries) + "\n")
+
+    for stage_name, step, _ in stage_specs:
+        _make_tasks(
+            os.path.join(to_task, stage_name),
+            jdata,
+            step,
+            if_meam=if_meam,
+            meam_model=meam_model,
+        )
+
+        refined_t, back_map = stage_refinements[stage_name]
+        from_task_list = glob.glob(os.path.join(from_task, stage_name, "task.[0-9]*"))
+        from_task_list.sort()
+        to_task_list = glob.glob(os.path.join(to_task, stage_name, "task.[0-9]*"))
+        to_task_list.sort()
+        assert len(to_task_list) == len(refined_t)
+        for ii in range(len(to_task_list)):
+            if back_map[ii] < 0:
+                continue
+            for jj in ["data", "log.lammps"]:
+                shutil.copyfile(
+                    os.path.join(from_task_list[back_map[ii]], jj),
+                    os.path.join(to_task_list[ii], jj),
+                )
+            with open(os.path.join(to_task_list[ii], "from.dir"), "w") as fp:
+                fp.write(from_task_list[back_map[ii]])
+
+
 def _print_thermo_info(info):
     ptr = "# thermodynamics (normalized by natoms)\n"
     ptr += "# E (err)  [eV]:  {:20.8f} {:20.8f}\n".format(info["e"], info["e_err"])
@@ -643,6 +747,23 @@ def add_module_subparsers(main_subparsers):
     )
     parser_compute.set_defaults(func=handle_compute)
 
+    parser_refine = module_subparsers.add_parser(
+        "refine", help="Refine the grid of a job"
+    )
+    parser_refine.add_argument(
+        "-i", "--input", type=str, required=True, help="input job"
+    )
+    parser_refine.add_argument(
+        "-o", "--output", type=str, required=True, help="output job"
+    )
+    parser_refine.add_argument(
+        "-e", "--error", type=float, required=True, help="the error required"
+    )
+    parser_refine.add_argument(
+        "-p", "--print", action="store_true", help="print the refinement and exit"
+    )
+    parser_refine.set_defaults(func=handle_refine)
+
     parser_run = module_subparsers.add_parser("run", help="run the job")
     parser_run.add_argument("JOB", type=str, help="folder of the job")
     parser_run.add_argument("machine", type=str, help="machine.json file for the job")
@@ -701,3 +822,7 @@ def handle_compute(args):
             manual_pv_err=args.pv_err,
             npt=args.npt,
         )
+
+
+def handle_refine(args):
+    refine_tasks(args.input, args.output, args.error, args.print)

@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import shutil
 
 import numpy as np
 import scipy.constants as pc
@@ -175,8 +176,77 @@ def handle_gen(args):
     hti.make_tasks(output, jdata, "einstein", args.switch)
 
 
+def _detect_switch(job, jdata):
+    switch = jdata.get("switch", None)
+    if switch is not None:
+        return switch
+    if os.path.isdir(os.path.join(job, "00.lj_on")):
+        return "three-step"
+    if os.path.isdir(os.path.join(job, "00.deep_on")):
+        return "two-step"
+    return "one-step"
+
+
+def refine_tasks(from_task, to_task, err, print_ref=False):
+    from_task = os.path.abspath(from_task)
+    to_task = os.path.abspath(to_task)
+    with open(os.path.join(from_task, "in.json")) as fp:
+        jdata = json.load(fp)
+
+    switch = _detect_switch(from_task, jdata)
+    if switch == "one-step":
+        hti.refine_task(from_task, to_task, err, print_ref)
+        return
+
+    if switch == "two-step":
+        stage_names = ["00.deep_on", "01.spring_off"]
+    elif switch == "three-step":
+        stage_names = ["00.lj_on", "01.deep_on", "02.spring_off"]
+    else:
+        raise RuntimeError(f"unknown HTI switch {switch}")
+
+    if print_ref:
+        for stage_name in stage_names:
+            print(f"# {stage_name}")
+            hti.refine_task(
+                os.path.join(from_task, stage_name),
+                os.path.join(to_task, stage_name),
+                err,
+                print_ref=True,
+            )
+        return
+
+    equi_conf = hti.get_task_file_abspath(from_task, jdata["equi_conf"])
+    model = hti.get_task_file_abspath(from_task, jdata["model"])
+
+    hti.create_path(to_task)
+    shutil.copyfile(equi_conf, os.path.join(to_task, "conf.lmp"))
+    jdata["equi_conf"] = "conf.lmp"
+    shutil.copyfile(model, os.path.join(to_task, "graph.pb"))
+    jdata["model"] = "graph.pb"
+    jdata["switch"] = switch
+    jdata["orig_task"] = from_task
+    jdata["refine_error"] = err
+
+    with open(os.path.join(to_task, "in.json"), "w") as fp:
+        json.dump(jdata, fp, indent=4)
+
+    refine_summaries = []
+    for stage_name in stage_names:
+        print(f"# {stage_name}")
+        refine_summary = hti.refine_task(
+            os.path.join(from_task, stage_name),
+            os.path.join(to_task, stage_name),
+            err,
+        )
+        refine_summaries.append(f"# {stage_name}\n{refine_summary}")
+
+    with open(os.path.join(to_task, "refine.out"), "w") as fp:
+        fp.write("\n".join(refine_summaries) + "\n")
+
+
 def handle_refine(args):
-    hti.refine_task(args.input, args.output, args.error, args.print)
+    refine_tasks(args.input, args.output, args.error, args.print)
 
 
 def _handle_compute(args):
