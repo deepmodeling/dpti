@@ -163,7 +163,7 @@ def parse_seq(in_s, *, protect_eps=None):
             for jj in _parse_one_str(ii):
                 all_l.append(jj)
     elif isinstance(in_s, list) and isinstance(
-        in_s[0], (float, np.float32, np.float64, int)
+        in_s[0], float | np.float32 | np.float64 | int
     ):
         all_l = [float(ii) for ii in in_s]
     elif isinstance(in_s, str):

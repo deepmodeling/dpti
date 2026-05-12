@@ -175,7 +175,7 @@ def add_bonds(lines_, max_roh=1.3):
             cc += 1
     for ii in range(sum(natoms)):
         if atype[ii] == 2:
-            mole_idx[ii] = mole_idx[bonds[ii]]
+            mole_idx[ii] = mole_idx[bonds[ii][0]]
     cc = 0
     for idx in range(atoms_idx + 2, atoms_idx + 2 + sum(natoms)):
         words = lines[idx].split()

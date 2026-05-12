@@ -457,6 +457,7 @@ def post_tasks(
     scheme="simpson",
     shift=0.0,
     output_dir=None,
+    hti_path=None,
 ):
     equi_conf = get_task_file_abspath(iter_name, jdata["equi_conf"])
     if natoms is None:
@@ -687,15 +688,24 @@ def post_tasks(
     #     all_fe.tolist(), all_fe_err.tolist(), all_fe_sys_err.tolist(),
     #     np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist()]
     info = {"start_point_info": info0, "end_point_info": info1, "data": data}
-    # print('result', result)
-    with open(os.path.join(output_dir, "result"), "w") as f:
-        f.write(result)
+    if hti_path is not None:
+        info["hti_path"] = os.path.abspath(hti_path)
+        hti_result_json = os.path.join(hti_path, "result.json")
+        hti_input_json = os.path.join(hti_path, "in.json")
+        if os.path.isfile(hti_result_json) and os.path.isfile(hti_input_json):
+            jdata_hti = json.load(open(hti_result_json))
+            jdata_hti_in = json.load(open(hti_input_json))
+            t0, p0 = _get_hti_anchor_tp(jdata_hti, jdata_hti_in)
+            if t0 is not None:
+                info["T0"] = t0
+            if p0 is not None:
+                info["p0"] = p0
     with open(os.path.join(output_dir, "result.json"), "w") as f:
         f.write(json.dumps(info))
     return info
 
 
-def post_tasks_mbar(iter_name, jdata, Eo, natoms=None, output_dir=None):
+def post_tasks_mbar(iter_name, jdata, Eo, natoms=None, output_dir=None, hti_path=None):
     equi_conf = jdata["equi_conf"]
     if natoms is None:
         natoms = get_natoms(equi_conf)
@@ -845,8 +855,18 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms=None, output_dir=None):
         ),
     }
     info = {"start_point_info": info0, "end_point_info": info1, "data": data}
-    with open(os.path.join(output_dir, "result"), "w") as f:
-        f.write(result)
+    if hti_path is not None:
+        info["hti_path"] = os.path.abspath(hti_path)
+        hti_result_json = os.path.join(hti_path, "result.json")
+        hti_input_json = os.path.join(hti_path, "in.json")
+        if os.path.isfile(hti_result_json) and os.path.isfile(hti_input_json):
+            jdata_hti = json.load(open(hti_result_json))
+            jdata_hti_in = json.load(open(hti_input_json))
+            t0, p0 = _get_hti_anchor_tp(jdata_hti, jdata_hti_in)
+            if t0 is not None:
+                info["T0"] = t0
+            if p0 is not None:
+                info["p0"] = p0
     with open(os.path.join(output_dir, "result.json"), "w") as f:
         f.write(json.dumps(info))
     return info
@@ -928,7 +948,16 @@ def refine_task(from_task, to_task, err):
             fp.write(from_task_list[back_map[ii]])
 
 
-def compute_task(job, inte_method, Eo, Eo_err, To, scheme="simpson", output_dir=None):
+def compute_task(
+    job,
+    inte_method,
+    Eo,
+    Eo_err,
+    To,
+    scheme="simpson",
+    output_dir=None,
+    hti_path=None,
+):
     # job = args.JOB
     with open(os.path.join(job, "ti_settings.json")) as f:
         jdata = json.load(f)
@@ -941,9 +970,10 @@ def compute_task(job, inte_method, Eo, Eo_err, To, scheme="simpson", output_dir=
             To=To,
             scheme=scheme,
             output_dir=output_dir,
+            hti_path=hti_path,
         )
     elif inte_method == "mbar":
-        info = post_tasks_mbar(job, jdata, Eo, output_dir=output_dir)
+        info = post_tasks_mbar(job, jdata, Eo, output_dir=output_dir, hti_path=hti_path)
     else:
         raise RuntimeError("unknow integration method")
     return info
@@ -1175,6 +1205,7 @@ def handle_compute(args):
             To=args.To,
             scheme=args.scheme,
             output_dir=output_dir,
+            hti_path=hti_dir,
         )
     #     job = args.JOB
     #     jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))

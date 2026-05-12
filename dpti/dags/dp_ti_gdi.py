@@ -2,7 +2,7 @@ import json
 import os
 import time
 from datetime import datetime, timedelta
-from typing import ClassVar, Dict
+from typing import ClassVar
 
 from airflow import DAG
 from airflow.api.client.local_client import Client
@@ -30,12 +30,12 @@ from dpti.gdi import gdi_main_loop
 
 
 class GDIDAGFactory:
-    default_args: ClassVar[Dict[str, object]] = {
+    default_args: ClassVar[dict[str, object]] = {
         "owner": "airflow",
         "start_date": datetime(2018, 1, 1),
     }
 
-    dagargs: ClassVar[Dict[str, object]] = {
+    dagargs: ClassVar[dict[str, object]] = {
         "default_args": default_args,
         "schedule_interval": None,
     }

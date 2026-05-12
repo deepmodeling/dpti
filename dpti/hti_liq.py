@@ -387,7 +387,9 @@ def make_tasks(iter_name, jdata, if_meam=None):
     if model:
         copied_model = os.path.join(os.path.abspath(iter_name), "graph.pb")
         shutil.copyfile(model, copied_model)
-    jdata["model"] = copied_model
+        jdata["model"] = copied_model
+    else:
+        jdata["model"] = None
 
     cwd = os.getcwd()
     os.chdir(iter_name)

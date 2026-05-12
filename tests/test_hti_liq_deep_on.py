@@ -20,13 +20,13 @@ class TestDeepOn(unittest.TestCase):
         }
         ret1 = textwrap.dedent(
             """\
-        variable        EPSILON equal 0.030000
         variable        ONE equal 1
         pair_style      hybrid/overlay deepmd graph.pb lj/cut/soft 1.000000 0.500000 6.000000
         pair_coeff      * * deepmd
-        pair_coeff      1 1 lj/cut/soft ${EPSILON} 2.493672 0.500000
+        pair_coeff      1 1 lj/cut/soft 0.030000 2.493672 0.500000
         fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA
         compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE
+        variable        e_diff equal c_e_diff[1]
         """
         )
         ret2 = _ff_deep_on(**input)
@@ -43,18 +43,18 @@ class TestDeepOn(unittest.TestCase):
 
         ret1 = textwrap.dedent(
             """\
-        variable        EPSILON equal 0.030000
         variable        ONE equal 1
         pair_style      hybrid/overlay deepmd graph.pb lj/cut/soft 1.000000 0.600000 6.000000
         pair_coeff      * * deepmd
-        pair_coeff      1 1 lj/cut/soft ${EPSILON} 2.000000 0.500000
-        pair_coeff      1 2 lj/cut/soft ${EPSILON} 2.010000 0.500000
-        pair_coeff      1 3 lj/cut/soft ${EPSILON} 2.020000 0.500000
-        pair_coeff      2 2 lj/cut/soft ${EPSILON} 2.110000 0.500000
-        pair_coeff      2 3 lj/cut/soft ${EPSILON} 2.120000 0.500000
-        pair_coeff      3 3 lj/cut/soft ${EPSILON} 2.220000 0.500000
+        pair_coeff      1 1 lj/cut/soft 0.030000 2.000000 0.500000
+        pair_coeff      1 2 lj/cut/soft 0.030000 2.010000 0.500000
+        pair_coeff      1 3 lj/cut/soft 0.030000 2.020000 0.500000
+        pair_coeff      2 2 lj/cut/soft 0.030000 2.110000 0.500000
+        pair_coeff      2 3 lj/cut/soft 0.030000 2.120000 0.500000
+        pair_coeff      3 3 lj/cut/soft 0.030000 2.220000 0.500000
         fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA
         compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE
+        variable        e_diff equal c_e_diff[1]
         """
         )
 
@@ -71,13 +71,13 @@ class TestDeepOn(unittest.TestCase):
         }
         ret1 = textwrap.dedent(
             """\
-        variable        EPSILON equal 0.030000
         variable        ONE equal 1
         pair_style      hybrid/overlay deepmd graph.pb lj/cut/soft 1.000000 0.500000 6.000000
         pair_coeff      * * deepmd
-        pair_coeff      1 1 lj/cut/soft ${EPSILON} 2.493672 0.500000
+        pair_coeff      1 1 lj/cut/soft 0.030000 2.493672 0.500000
         fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA
         compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE
+        variable        e_diff equal c_e_diff[1]
         """
         )
         ret2 = _ff_deep_on(**input)
@@ -100,13 +100,13 @@ class TestDeepOn(unittest.TestCase):
         }
         ret1 = textwrap.dedent(
             """\
-        variable        EPSILON equal 0.030000
         variable        ONE equal 1
         pair_style      hybrid/overlay meam lj/cut/soft 1.000000 0.500000 6.000000
         pair_coeff      * * meam library_18Metals.meam Sn Sn_18Metals.meam Sn
-        pair_coeff      1 1 lj/cut/soft ${EPSILON} 2.493672 0.500000
+        pair_coeff      1 1 lj/cut/soft 0.030000 2.493672 0.500000
         fix             tot_pot all adapt/fep 0 pair meam scale * * v_LAMBDA
         compute         e_diff all fep ${TEMP} pair meam scale * * v_ONE
+        variable        e_diff equal c_e_diff[1]
         """
         )
         ret2 = _ff_deep_on(**input)
