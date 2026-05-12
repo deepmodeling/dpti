@@ -154,7 +154,9 @@ def handle_compute(args):
         hti_dir = os.path.normpath(hti_dir)
         jdata_hti = json.load(open(os.path.join(hti_dir, "result.json")))
         jdata_hti_in = json.load(open(os.path.join(hti_dir, "in.json")))
-        output_dir, _, _ = ti._make_ti_output_dir(args.JOB, hti_dir, jdata_hti, jdata_hti_in)
+        output_dir, _, _ = ti._make_ti_output_dir(
+            args.JOB, hti_dir, jdata_hti, jdata_hti_in
+        )
         ti.create_path(output_dir)
         if args.Eo is not None and args.hti is not None:
             raise Warning(
