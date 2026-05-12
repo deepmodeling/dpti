@@ -812,7 +812,13 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms=None, output_dir=None):
             "#%8s  %15s  %15s  %9s  %9s"
             % ("T(ctrl)", "P(ctrl)", "F", "stat_err", "inte_err")
         )
-        result += "#%8s  %15s  %15s  %9s  %9s\n" % ("T(ctrl)", "P(ctrl)", "F", "stat_err", "inte_err")
+        result += "#%8s  %15s  %15s  %9s  %9s\n" % (
+            "T(ctrl)",
+            "P(ctrl)",
+            "F",
+            "stat_err",
+            "inte_err",
+        )
         for ii in range(len(all_temps)):
             line = f"{all_temps[ii]:9.2f}  {all_press[ii]:15.8e}  {all_fe[ii]:20.12f}  {all_fe_err[ii]:9.2e}  {all_fe_sys_err[ii]:9.2e}"
             print(line)
@@ -826,7 +832,9 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms=None, output_dir=None):
         "all_fe": list(all_fe),
         "all_fe_stat_err": list(all_fe_err),
         "all_fe_inte_err": list(all_fe_sys_err),
-        "all_fe_tot_err": list(np.linalg.norm(np.vstack([all_fe_err, all_fe_sys_err]), axis=0)),
+        "all_fe_tot_err": list(
+            np.linalg.norm(np.vstack([all_fe_err, all_fe_sys_err]), axis=0)
+        ),
     }
     info = {"start_point_info": info0, "end_point_info": info1, "data": data}
     with open(os.path.join(output_dir, "result"), "w") as f:
