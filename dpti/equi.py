@@ -131,7 +131,7 @@ def gen_equi_dump_settings(if_dump_avg_posi):
     return ret
 
 
-def gen_equi_ensemble_settings(ens, if_dump_avg_posi):
+def gen_equi_ensemble_settings(ens, if_dump_avg_posi=False):
     # ens = equi_settings['ens']
     ret = ""
     if ens == "nvt":

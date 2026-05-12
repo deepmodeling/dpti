@@ -63,17 +63,18 @@ class TestGenLammpsIdeal(unittest.TestCase):
         change_box      all triclinic
         mass            1 118.710000
         # --------------------- FORCE FIELDS ---------------------
-        variable        EPSILON equal 0.030000
         pair_style      lj/cut/soft 1.000000 0.500000 6.000000
-        pair_coeff      1 1 ${EPSILON} 2.493672 0.500000
+        pair_coeff      1 1 0.030000 2.493672 0.500000
         fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_LAMBDA scale yes
+        variable        EPSILON equal 0.030000
         compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_EPSILON
+        variable        e_diff equal c_e_diff[1]
         # --------------------- MD SETTINGS ----------------------
         neighbor        1.0 bin
         timestep        0.002
         compute         allmsd all msd
         thermo          ${THERMO_FREQ}
-        thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_diff[1] c_allmsd[*]
+        thermo_style    custom step ke pe etotal enthalpy temp press vol v_e_diff c_allmsd[*]
         thermo_modify   format 9 %.16e
         dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz
         fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}
@@ -141,19 +142,19 @@ class TestGenLammpsIdeal(unittest.TestCase):
         change_box      all triclinic
         mass            1 118.710000
         # --------------------- FORCE FIELDS ---------------------
-        variable        EPSILON equal 0.030000
         variable        ONE equal 1
         pair_style      hybrid/overlay deepmd graph.pb lj/cut/soft 1.000000 0.500000 6.000000
         pair_coeff      * * deepmd
-        pair_coeff      1 1 lj/cut/soft ${EPSILON} 2.493672 0.500000
+        pair_coeff      1 1 lj/cut/soft 0.030000 2.493672 0.500000
         fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA
         compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE
+        variable        e_diff equal c_e_diff[1]
         # --------------------- MD SETTINGS ----------------------
         neighbor        1.0 bin
         timestep        0.002
         compute         allmsd all msd
         thermo          ${THERMO_FREQ}
-        thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_diff[1] c_allmsd[*]
+        thermo_style    custom step ke pe etotal enthalpy temp press vol v_e_diff c_allmsd[*]
         thermo_modify   format 9 %.16e
         dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz
         fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}
@@ -223,19 +224,19 @@ class TestGenLammpsIdeal(unittest.TestCase):
         mass            1 118.710000
         # --------------------- FORCE FIELDS ---------------------
         variable        INV_LAMBDA equal 1-${LAMBDA}
-        variable        EPSILON equal 0.030000
-        variable        INV_EPSILON equal -${EPSILON}
         pair_style      hybrid/overlay deepmd graph.pb lj/cut/soft 1.000000 0.500000 6.000000
         pair_coeff      * * deepmd
-        pair_coeff      1 1 lj/cut/soft ${EPSILON} 2.493672 0.500000
+        pair_coeff      1 1 lj/cut/soft 0.030000 2.493672 0.500000
         fix             tot_pot all adapt/fep 0 pair lj/cut/soft epsilon * * v_INV_LAMBDA scale yes
-        compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_INV_EPSILON
+        variable        EPSILON equal -0.030000
+        compute         e_diff all fep ${TEMP} pair lj/cut/soft epsilon * * v_EPSILON
+        variable        e_diff equal c_e_diff[1]
         # --------------------- MD SETTINGS ----------------------
         neighbor        1.0 bin
         timestep        0.002
         compute         allmsd all msd
         thermo          ${THERMO_FREQ}
-        thermo_style    custom step ke pe etotal enthalpy temp press vol c_e_diff[1] c_allmsd[*]
+        thermo_style    custom step ke pe etotal enthalpy temp press vol v_e_diff c_allmsd[*]
         thermo_modify   format 9 %.16e
         dump            1 all custom ${DUMP_FREQ} dump.hti id type x y z vx vy vz
         fix             1 all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}
