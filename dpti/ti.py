@@ -688,9 +688,18 @@ def post_tasks(
     #     all_fe.tolist(), all_fe_err.tolist(), all_fe_sys_err.tolist(),
     #     np.linalg.norm([all_fe_err[ii], all_fe_sys_err[ii]]).tolist()]
     info = {"start_point_info": info0, "end_point_info": info1, "data": data}
-    # print('result', result)
-    with open(os.path.join(output_dir, "result"), "w") as f:
-        f.write(result)
+    if hti_path is not None:
+        info["hti_path"] = os.path.abspath(hti_path)
+        hti_result_json = os.path.join(hti_path, "result.json")
+        hti_input_json = os.path.join(hti_path, "in.json")
+        if os.path.isfile(hti_result_json) and os.path.isfile(hti_input_json):
+            jdata_hti = json.load(open(hti_result_json))
+            jdata_hti_in = json.load(open(hti_input_json))
+            t0, p0 = _get_hti_anchor_tp(jdata_hti, jdata_hti_in)
+            if t0 is not None:
+                info["T0"] = t0
+            if p0 is not None:
+                info["p0"] = p0
     with open(os.path.join(output_dir, "result.json"), "w") as f:
         f.write(json.dumps(info))
     return info
