@@ -307,26 +307,20 @@ def integrate_sys_err_trapezoidal(xx, yy):
 
 
 def integrate_sys_err_simpson(xx, yy):
-    err = 0
     if len(xx) <= 4:
-        return err
+        return 0
     xx = np.array(xx)
+    yy = np.array(yy)
     ye = np.zeros(xx.size)
-    interval_error = np.zeros(xx.size // 4 + 1)
-    for ii in range(xx.size // 4):
-        inte0, _ = integrate_simpson_nonuniform(
-            xx[ii * 4 : ii * 4 + 5], yy[ii * 4 : ii * 4 + 5], ye[ii * 4 : ii * 4 + 5]
-        )
-        inte1, _ = integrate_simpson_nonuniform(
-            xx[ii * 4 : ii * 4 + 5 : 2],
-            yy[ii * 4 : ii * 4 + 5 : 2],
-            ye[ii * 4 : ii * 4 + 5 : 2],
-        )
-        err = np.abs(inte0 - inte1)
-        interval_error[ii + 1] = err
-    # from scipy.interpolate import interp1d
-    # err = interp1d(xx[::4], err0, kind='cubic')
-    return interval_error[-1]
+    inte0, _ = integrate_simpson_nonuniform(xx, yy, ye)
+
+    coarse_idx = np.arange(0, xx.size, 2)
+    if coarse_idx[-1] != xx.size - 1:
+        coarse_idx = np.append(coarse_idx, xx.size - 1)
+    inte1, _ = integrate_simpson_nonuniform(
+        xx[coarse_idx], yy[coarse_idx], np.zeros(coarse_idx.size)
+    )
+    return np.abs(inte0 - inte1) / 16.0
 
 
 def integrate_sys_err(xx, yy, scheme_="s"):
