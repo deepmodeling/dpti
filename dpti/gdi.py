@@ -106,9 +106,11 @@ def _make_tasks_onephase(
     os.chdir(task_path)
     if not os.path.exists("conf.lmp"):
         os.symlink(os.path.relpath(conf_file), "conf.lmp")
+    local_graph_file = graph_file
     if graph_file:
         if not os.path.exists("graph.pb"):
             os.symlink(os.path.relpath(graph_abs_file), "graph.pb")
+        local_graph_file = "graph.pb"
 
     if if_meam:
         relative_link_file(meam_model["library_abs_path"], "./")
@@ -122,7 +124,7 @@ def _make_tasks_onephase(
     lmp_str = _gen_lammps_input(
         "conf.lmp",
         mass_map,
-        graph_file,
+        local_graph_file,
         nsteps,
         timestep,
         ens,
@@ -144,6 +146,26 @@ def _make_tasks_onephase(
     # end _make_tasks_onephase
 
 
+def _get_phase_model(jdata, phase_key):
+    phase_model = jdata[phase_key].get("model")
+    if phase_model is not None:
+        return phase_model
+    return jdata.get("model")
+
+
+def _has_phase_specific_model(jdata):
+    return (
+        jdata["phase_i"].get("model") is not None
+        or jdata["phase_ii"].get("model") is not None
+    )
+
+
+def _get_phase_graph_file(jdata, phase_idx):
+    if _has_phase_specific_model(jdata):
+        return f"graph.{phase_idx}.pb"
+    return "graph.pb"
+
+
 def _setup_dpdt(task_path, jdata):
     name_0 = jdata["phase_i"]["name"]
     name_1 = jdata["phase_ii"]["name"]
@@ -151,22 +173,30 @@ def _setup_dpdt(task_path, jdata):
     conf_1 = os.path.join(task_path, "../", jdata["phase_ii"]["equi_conf"])
     conf_0 = os.path.abspath(conf_0)
     conf_1 = os.path.abspath(conf_1)
-    model = os.path.join(task_path, "../", jdata["model"])
-    if model:
-        model = os.path.abspath(model)
+    model_0 = _get_phase_model(jdata, "phase_i")
+    model_1 = _get_phase_model(jdata, "phase_ii")
+    if model_0:
+        model_0 = os.path.abspath(os.path.join(task_path, "../", model_0))
+    if model_1:
+        model_1 = os.path.abspath(os.path.join(task_path, "../", model_1))
 
     task_abs_dir = create_path(task_path)
     conf_0_name = f"conf.{'0'}.lmp"
     conf_1_name = f"conf.{'1'}.lmp"
+    model_0_name = _get_phase_graph_file(jdata, 0)
+    model_1_name = _get_phase_graph_file(jdata, 1)
     # conf_0_name = 'conf.%s.lmp' % name_0
     # conf_1_name = 'conf.%s.lmp' % name_1
     copied_conf_0 = os.path.join(os.path.abspath(task_path), conf_0_name)
     copied_conf_1 = os.path.join(os.path.abspath(task_path), conf_1_name)
     shutil.copyfile(conf_0, copied_conf_0)
     shutil.copyfile(conf_1, copied_conf_1)
-    if model:
-        linked_model = os.path.join(os.path.abspath(task_path), "graph.pb")
-        shutil.copyfile(model, linked_model)
+    if model_0:
+        copied_model_0 = os.path.join(os.path.abspath(task_path), model_0_name)
+        shutil.copyfile(model_0, copied_model_0)
+    if model_1:
+        copied_model_1 = os.path.join(os.path.abspath(task_path), model_1_name)
+        shutil.copyfile(model_1, copied_model_1)
 
     with open(os.path.join(os.path.abspath(task_path), "in.json"), "w") as fp:
         json.dump(jdata, fp, indent=4)
@@ -267,7 +297,7 @@ def make_dpdt(
             jdata,
             ens=jdata["phase_i"].get("ens", None),
             conf_file=conf_0,
-            graph_file="graph.pb",
+            graph_file=_get_phase_graph_file(jdata, 0),
             if_meam=if_meam,
             meam_model=meam_model,
         )
@@ -278,7 +308,7 @@ def make_dpdt(
             jdata,
             ens=jdata["phase_ii"].get("ens", None),
             conf_file=conf_1,
-            graph_file="graph.pb",
+            graph_file=_get_phase_graph_file(jdata, 1),
             if_meam=if_meam,
             meam_model=meam_model,
         )
