@@ -98,13 +98,13 @@ def _gen_lammps_input(
     else:
         raise RuntimeError(f"unknow ensemble {ens}\n")
     if ens == "nvt" or ens == "nve":
-        ret += "thermo_style    custom step temp f_1[5] f_1[7] c_allmsd[*]\n"
+        ret += "thermo_style    custom step temp pe f_1[5] f_1[7] c_allmsd[*]\n"
         ret += "thermo_modify   format float %6.8e\n"
-        ret += 'fix print all print ${THERMO_FREQ} "$(step) $(temp) $(f_1[5]) $(f_1[7])" append ${ibead}.out title "# step temp K_prim K_cv" screen no'
+        ret += 'fix print all print ${THERMO_FREQ} "$(step) $(temp) $(pe) $(f_1[5]) $(f_1[7])" append ${ibead}.out title "# step temp pe K_prim K_cv" screen no'
     elif "npt" in ens:
-        ret += "thermo_style    custom step temp vol density f_1[5] f_1[7] f_1[8] f_1[10] c_allmsd[*]\n"
+        ret += "thermo_style    custom step temp vol density pe f_1[5] f_1[7] f_1[8] f_1[10] c_allmsd[*]\n"
         ret += "thermo_modify   format float %6.8e\n"
-        ret += 'fix print all print ${THERMO_FREQ} "$(step) $(temp) $(vol) $(density) $(f_1[5]) $(f_1[7])" append ${ibead}.out title "# step temp vol density K_prim K_cv" screen no'
+        ret += 'fix print all print ${THERMO_FREQ} "$(step) $(temp) $(vol) $(density) $(pe) $(f_1[5]) $(f_1[7])" append ${ibead}.out title "# step temp vol density pe K_prim K_cv" screen no'
     else:
         raise RuntimeError(f"unknow ensemble {ens}\n")
     ret += "# --------------------- INITIALIZE -----------------------\n"
