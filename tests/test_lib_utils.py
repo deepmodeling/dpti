@@ -5,7 +5,13 @@ import unittest
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from dpti.lib.utils import block_avg, integrate_range_hti, parse_seq, relative_link_file
+from dpti.lib.utils import (
+    block_avg,
+    get_model_filename,
+    integrate_range_hti,
+    parse_seq,
+    relative_link_file,
+)
 
 lambda_seq = [
     "0.00:0.05:0.010",
@@ -171,6 +177,22 @@ class TestRelativeLinkFile(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree("relative_link_file_test_dir/")
+
+
+class TestGetModelFilename(unittest.TestCase):
+    def test_preserves_backend_suffix(self):
+        self.assertEqual(get_model_filename("graph.pb"), "graph.pb")
+        self.assertEqual(get_model_filename("/tmp/model.pth"), "graph.pth")
+        self.assertEqual(get_model_filename("model.savedmodel"), "graph.savedmodel")
+
+    def test_phase_prefix(self):
+        self.assertEqual(
+            get_model_filename("/tmp/model.pth", prefix="graph.0"),
+            "graph.0.pth",
+        )
+
+    def test_default_model_name(self):
+        self.assertEqual(get_model_filename(None), "graph.pb")
 
 
 if __name__ == "__main__":

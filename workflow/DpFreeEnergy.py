@@ -12,6 +12,24 @@ from airflow.operators.python import get_current_context
 from dpti import equi, hti, hti_liq, ti
 
 
+def _model_file_from_json(job_work_dir, json_file):
+    path = os.path.join(job_work_dir, json_file)
+    if not os.path.isfile(path):
+        return "graph.pb"
+    with open(path) as fp:
+        jdata = json.load(fp)
+    model = jdata.get("model")
+    return os.path.basename(model) if model else None
+
+
+def _forward_files_with_model(job_work_dir, json_file, base_files):
+    forward_files = list(base_files)
+    model_file = _model_file_from_json(job_work_dir, json_file)
+    if model_file:
+        forward_files.append(model_file)
+    return forward_files
+
+
 @task()
 def all_start_check():
     context = get_current_context()
@@ -97,7 +115,9 @@ def NPT_sim(job_work_dir):
     task = Task(
         command="lmp -i in.lammps",
         task_work_path="./",
-        forward_files=["in.lammps", "*lmp", "graph.pb"],
+        forward_files=_forward_files_with_model(
+            job_work_dir, "equi_settings.json", ["in.lammps", "*lmp"]
+        ),
         backward_files=["log.lammps", "dump.equi"],
     )  # Files to transfer forward and backwards
     context = get_current_context()
@@ -159,7 +179,9 @@ def NVT_sim(job_work_dir):
     task = Task(
         command="lmp -i in.lammps",
         task_work_path="./",
-        forward_files=["in.lammps", "*lmp", "graph.pb"],
+        forward_files=_forward_files_with_model(
+            job_work_dir, "equi_settings.json", ["in.lammps", "*lmp"]
+        ),
         backward_files=["log.lammps"],
     )
     submission.register_task_list([task])
@@ -236,7 +258,9 @@ def HTI_sim(job_work_dir):
         Task(
             command="lmp -i in.lammps",
             task_work_path=ii,
-            forward_files=["in.lammps", "*lmp", "graph.pb"],
+            forward_files=_forward_files_with_model(
+                job_work_dir, "in.json", ["in.lammps", "*lmp"]
+            ),
             backward_files=["log.lammps"],
         )
         for ii in task_dir_list
@@ -322,7 +346,9 @@ def TI_sim(job_work_dir):
         Task(
             command="lmp -i in.lammps",
             task_work_path=ii,
-            forward_files=["in.lammps", "*lmp", "graph.pb"],
+            forward_files=_forward_files_with_model(
+                job_work_dir, "ti_settings.json", ["in.lammps", "*lmp"]
+            ),
             backward_files=["log.lammps"],
         )
         for ii in task_dir_list

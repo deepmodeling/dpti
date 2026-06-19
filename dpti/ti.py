@@ -1046,6 +1046,16 @@ def _is_completed_lammps_task(task_work_path):
         return False
 
 
+def _get_task_model_file(task_name):
+    settings_file = os.path.join(task_name, "ti_settings.json")
+    if not os.path.isfile(settings_file):
+        return "graph.pb"
+    with open(settings_file) as fp:
+        settings = json.load(fp)
+    model = settings.get("model", "graph.pb")
+    return os.path.basename(model) if model else None
+
+
 def run_task(task_name, machine_file):
     task_dir_list = glob.glob(os.path.join(task_name, "task.*"))
     task_dir_list = sorted(task_dir_list)
@@ -1064,10 +1074,15 @@ def run_task(task_name, machine_file):
         resources=resources,
         machine=machine,
     )
+    model_file = _get_task_model_file(task_name)
 
     task_list = [
         Task(
-            command=f"ln -s ../graph.pb graph.pb; {mdata['command']} -in in.lammps",
+            command=(
+                f"ln -s ../{model_file} {model_file}; {mdata['command']} -in in.lammps"
+                if model_file
+                else f"{mdata['command']} -in in.lammps"
+            ),
             task_work_path=ii,
             forward_files=["in.lammps", "*.lmp"],
             backward_files=["log*", "final.lmp", "traj.dump"],
@@ -1075,7 +1090,8 @@ def run_task(task_name, machine_file):
         for ii in task_dir_list
     ]
 
-    submission.forward_common_files = [os.path.join(task_name, "graph.pb")]
+    if model_file:
+        submission.forward_common_files = [os.path.join(task_name, model_file)]
     submission.register_task_list(task_list=task_list)
     submission.run_submission()
 

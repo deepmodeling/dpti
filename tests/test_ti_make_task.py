@@ -68,6 +68,14 @@ class TestEquiMakeTask(unittest.TestCase):
             f2 = os.path.join(test_dir, file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1, f2))
 
+    def test_run_task_model_file_from_settings(self):
+        test_dir = os.path.join(self.test_dir, "model_file_lookup")
+        os.makedirs(test_dir)
+        with open(os.path.join(test_dir, "ti_settings.json"), "w") as fp:
+            json.dump({"model": "/tmp/model.pth"}, fp)
+
+        self.assertEqual(dpti.ti._get_task_model_file(test_dir), "model.pth")
+
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree("tmp_ti/")

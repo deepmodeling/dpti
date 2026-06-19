@@ -318,17 +318,28 @@ def make_tasks(iter_name, jdata):
                     json.dump(settings, f, indent=4)
 
 
+def _get_task_model_file(task_name):
+    settings_file = os.path.join(task_name, "mti_settings.json")
+    if not os.path.isfile(settings_file):
+        return "graph.pb"
+    with open(settings_file) as fp:
+        settings = json.load(fp)
+    model = settings.get("model")
+    return os.path.basename(model) if model else None
+
+
 def run_task(task_name, jdata, machine_file):
     job_type = jdata["job_type"]
     nprocs_per_bead = jdata.get("nprocs_per_bead", 1)
+    model_file = _get_task_model_file(task_name)
     if job_type == "nbead_convergence":
         task_dir_list = glob.glob(
             os.path.join(task_name, "task.*/mass_scale_y.*/nbead.*")
         )
-        link_model = "ln -s ../../../graph.pb"
+        link_model = f"ln -s ../../../{model_file} {model_file}; " if model_file else ""
     elif job_type == "mass_ti":
         task_dir_list = glob.glob(os.path.join(task_name, "task.*/mass_scale_y.*"))
-        link_model = "ln -s ../../graph.pb"
+        link_model = f"ln -s ../../{model_file} {model_file}; " if model_file else ""
     else:
         raise RuntimeError(
             "Unknow job_type. Only nbead_convergence and mass_ti are supported."
@@ -360,9 +371,13 @@ def run_task(task_name, jdata, machine_file):
         )
 
         task = Task(
-            command=f"{link_model}; if ls *.restart.100000 1> /dev/null 2>&1; then {task_exec} -in in.lammps -p {nbead}x{nprocs_per_bead} -log log -v restart 1; else {task_exec} -in in.lammps -p {nbead}x{nprocs_per_bead} -log log -v restart 0; fi",
+            command=f"{link_model}if ls *.restart.100000 1> /dev/null 2>&1; then {task_exec} -in in.lammps -p {nbead}x{nprocs_per_bead} -log log -v restart 1; else {task_exec} -in in.lammps -p {nbead}x{nprocs_per_bead} -log log -v restart 0; fi",
             task_work_path=ii,
-            forward_files=["in.lammps", "*.lmp", "graph.pb"],
+            forward_files=[
+                forward_file
+                for forward_file in ["in.lammps", "*.lmp", model_file]
+                if forward_file
+            ],
             backward_files=["log*", "*out.lmp", "*.dump"],
         )
 

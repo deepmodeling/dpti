@@ -77,6 +77,13 @@ def relative_link_file(file_path, target_dir):
     return target_linkfile_path
 
 
+def get_model_filename(model, prefix="graph"):
+    if model is None:
+        return f"{prefix}.pb"
+    suffix = pathlib.PurePath(str(model)).suffix
+    return f"{prefix}{suffix}"
+
+
 def link_file_in_dict(dct, key_list, target_dir):
     if not dct:
         return {}

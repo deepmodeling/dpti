@@ -21,6 +21,7 @@ from dpti.lib.lammps import get_natoms
 from dpti.lib.utils import (
     create_path,
     get_first_matched_key_from_dict,
+    get_model_filename,
     relative_link_file,
 )
 from dpti.ti import _gen_lammps_input
@@ -108,9 +109,9 @@ def _make_tasks_onephase(
         os.symlink(os.path.relpath(conf_file), "conf.lmp")
     local_graph_file = graph_file
     if graph_file:
-        if not os.path.exists("graph.pb"):
-            os.symlink(os.path.relpath(graph_abs_file), "graph.pb")
-        local_graph_file = "graph.pb"
+        local_graph_file = os.path.basename(graph_file)
+        if not os.path.exists(local_graph_file):
+            os.symlink(os.path.relpath(graph_abs_file), local_graph_file)
 
     if if_meam:
         relative_link_file(meam_model["library_abs_path"], "./")
@@ -161,9 +162,11 @@ def _has_phase_specific_model(jdata):
 
 
 def _get_phase_graph_file(jdata, phase_idx):
+    phase_key = "phase_i" if phase_idx == 0 else "phase_ii"
+    phase_model = _get_phase_model(jdata, phase_key)
     if _has_phase_specific_model(jdata):
-        return f"graph.{phase_idx}.pb"
-    return "graph.pb"
+        return get_model_filename(phase_model, prefix=f"graph.{phase_idx}")
+    return get_model_filename(phase_model)
 
 
 def _setup_dpdt(task_path, jdata):
@@ -319,15 +322,20 @@ def make_dpdt(
         resources = Resources.load_from_dict(mdata["resources"])
 
         command = "lmp -i in.lammps"
-        forward_files = ["conf.lmp", "in.lammps", "graph.pb"]
         if if_meam:
             meam_library_basename = os.path.basename(meam_model["library"])
             meam_potential_basename = os.path.basename(meam_model["potential"])
-            forward_files.extend([meam_library_basename, meam_potential_basename])
         backward_files = ["log.lammps", "final.lmp"]
 
         task_list = []
         for ii in range(2):
+            forward_files = [
+                "conf.lmp",
+                "in.lammps",
+                _get_phase_graph_file(jdata, ii),
+            ]
+            if if_meam:
+                forward_files.extend([meam_library_basename, meam_potential_basename])
             task = Task(
                 command=command,
                 task_work_path=f"{ii}/",

@@ -104,6 +104,34 @@ class TestHtiMakeTask(unittest.TestCase):
             dpti.hti._graph_link_command("hti", "hti/00.deep_on"),
             "ln -s ../../graph.pb graph.pb",
         )
+        self.assertEqual(
+            dpti.hti._graph_link_command("hti", "hti", "graph.pth"),
+            "ln -s ../graph.pth graph.pth",
+        )
+
+    @patch("numpy.random.default_rng")
+    def test_deepmd_one_step_keeps_model_suffix(self, patch_random):
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
+        benchmark_dir = os.path.join(self.benchmark_dir, "one_step")
+        test_dir = os.path.join(self.test_dir, "one_step_pth")
+        model_file = os.path.join(self.test_dir, "model.pth")
+        shutil.copyfile("graph.pb", model_file)
+
+        json_file = os.path.join(benchmark_dir, "jdata.json")
+        with open(json_file) as f:
+            jdata = json.load(f)
+        jdata["model"] = model_file
+
+        dpti.hti.make_tasks(iter_name=test_dir, jdata=jdata, switch="one-step")
+
+        self.assertTrue(os.path.isfile(os.path.join(test_dir, "graph.pth")))
+        self.assertTrue(
+            os.path.isfile(os.path.join(test_dir, "task.000006", "graph.pth"))
+        )
+        with open(os.path.join(test_dir, "task.000006", "in.lammps")) as fp:
+            lmp_input = fp.read()
+        self.assertIn("pair_style      deepmd graph.pth", lmp_input)
+        self.assertNotIn("deepmd graph.pb", lmp_input)
 
     @patch("numpy.random.default_rng")
     def test_meam_three_step(self, patch_random):

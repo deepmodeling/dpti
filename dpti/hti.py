@@ -22,6 +22,7 @@ from dpti.lib.utils import (
     compute_nrefine,
     create_path,
     get_first_matched_key_from_dict,
+    get_model_filename,
     get_task_file_abspath,
     integrate_range_hti,
     parse_seq,
@@ -551,6 +552,7 @@ def make_tasks(iter_name, jdata, ref="einstein", switch="one-step", if_meam=None
     equi_conf = os.path.abspath(jdata["equi_conf"])
     meam_model = jdata.get("meam_model", None)
     model = os.path.abspath(jdata["model"])
+    model_file = get_model_filename(model)
 
     if if_meam is None:
         if_meam = jdata.get("if_meam", None)
@@ -575,7 +577,7 @@ def make_tasks(iter_name, jdata, ref="einstein", switch="one-step", if_meam=None
         copied_conf = os.path.join(os.path.abspath(iter_name), "conf.lmp")
         shutil.copyfile(equi_conf, copied_conf)
         jdata["equi_conf"] = "conf.lmp"
-        linked_model = os.path.join(os.path.abspath(iter_name), "graph.pb")
+        linked_model = os.path.join(os.path.abspath(iter_name), model_file)
 
         if if_meam:
             relative_link_file(meam_model["library"], job_abs_dir)
@@ -584,7 +586,7 @@ def make_tasks(iter_name, jdata, ref="einstein", switch="one-step", if_meam=None
             pass
 
         shutil.copyfile(model, linked_model)
-        jdata["model"] = "graph.pb"
+        jdata["model"] = model_file
         cwd = os.getcwd()
         os.chdir(iter_name)
         with open("in.json", "w") as fp:
@@ -703,6 +705,7 @@ def _make_tasks(
     equi_conf = os.path.abspath(equi_conf)
     model = jdata["model"]
     model = os.path.abspath(model)
+    model_file = get_model_filename(model)
     # mass_map = jdata['mass_map']
     mass_map = get_first_matched_key_from_dict(jdata, ["mass_map", "model_mass_map"])
     nsteps = jdata["nsteps"]
@@ -767,15 +770,15 @@ def _make_tasks(
         os.symlink(os.path.relpath(equi_conf), "conf.lmp")
         os.chdir(cwd)
     jdata["equi_conf"] = "conf.lmp"
-    linked_model = os.path.join(os.path.abspath(iter_name), "graph.pb")
+    linked_model = os.path.join(os.path.abspath(iter_name), model_file)
     if not link:
         shutil.copyfile(model, linked_model)
     else:
         cwd = os.getcwd()
         os.chdir(iter_name)
-        os.symlink(os.path.relpath(model), "graph.pb")
+        os.symlink(os.path.relpath(model), model_file)
         os.chdir(cwd)
-    jdata["model"] = "graph.pb"
+    jdata["model"] = model_file
     langevin = jdata.get("langevin", True)
 
     cwd = os.getcwd()
@@ -789,7 +792,7 @@ def _make_tasks(
         create_path(work_path)
         os.chdir(work_path)
         os.symlink(os.path.relpath(copied_conf), "conf.lmp")
-        os.symlink(os.path.relpath(linked_model), "graph.pb")
+        os.symlink(os.path.relpath(linked_model), model_file)
         if if_meam:
             meam_library_basename = os.path.basename(meam_model["library"])
             meam_potential_basename = os.path.basename(meam_model["potential"])
@@ -813,7 +816,7 @@ def _make_tasks(
                 "conf.lmp",
                 mass_map,
                 ii,
-                "graph.pb",
+                model_file,
                 m_spring_k,
                 nsteps,
                 timestep,
@@ -1494,12 +1497,22 @@ def _is_completed_lammps_task(task_work_path):
         return False
 
 
-def _graph_link_command(task_dir, job_work_dir):
+def _get_task_model_file(task_dir):
+    in_json = os.path.join(task_dir, "in.json")
+    if not os.path.isfile(in_json):
+        return "graph.pb"
+    with open(in_json) as fp:
+        jdata = json.load(fp)
+    model = jdata.get("model", "graph.pb")
+    return os.path.basename(model) if model else None
+
+
+def _graph_link_command(task_dir, job_work_dir, model_file="graph.pb"):
     graph_relpath = os.path.relpath(
-        os.path.join(task_dir, "graph.pb"),
+        os.path.join(task_dir, model_file),
         os.path.join(job_work_dir, "task.000000"),
     )
-    return f"ln -s {graph_relpath} graph.pb"
+    return f"ln -s {graph_relpath} {model_file}"
 
 
 def run_task(task_dir, machine_file, task_name, no_dp=False):
@@ -1528,15 +1541,14 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
         resources=resources,
         machine=machine,
     )
+    model_file = _get_task_model_file(task_dir)
 
-    command = (
-        f"{mdata['command']} -i in.lammps"
-        if no_dp
-        else (
-            f"{_graph_link_command(task_dir, job_work_dir)}; "
-            f"{mdata['command']} -i in.lammps"
+    command = f"{mdata['command']} -i in.lammps"
+    if not no_dp and model_file:
+        command = (
+            f"{_graph_link_command(task_dir, job_work_dir, model_file)}; "
+            f"{command}"
         )
-    )
     task_list = [
         Task(
             command=command,
@@ -1546,8 +1558,8 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
         )
         for ii in task_dir_list
     ]
-    if not no_dp:
-        submission.forward_common_files = [os.path.join(task_dir, "graph.pb")]
+    if not no_dp and model_file:
+        submission.forward_common_files = [os.path.join(task_dir, model_file)]
 
     submission.register_task_list(task_list=task_list)
     submission.run_submission()

@@ -21,6 +21,7 @@ from dpti.lib.utils import (
     compute_nrefine,
     create_path,
     get_first_matched_key_from_dict,
+    get_model_filename,
     get_task_file_abspath,
     integrate_range,
     parse_seq,
@@ -238,6 +239,7 @@ def _make_tasks(iter_name, jdata, step):
     pres = jdata["pres"]
     tau_t = jdata["tau_t"]
     tau_p = jdata["tau_p"]
+    model_file = os.path.basename(jdata["model"])
     copies = None
     if "copies" in jdata:
         copies = jdata["copies"]
@@ -247,7 +249,7 @@ def _make_tasks(iter_name, jdata, step):
     os.chdir(iter_name)
     os.symlink(os.path.join("..", "in.json"), "in.json")
     os.symlink(os.path.join("..", "conf.lmp"), "orig.lmp")
-    os.symlink(os.path.join("..", "graph.pb"), "graph.pb")
+    os.symlink(os.path.join("..", model_file), model_file)
     with open("orig.lmp") as f:
         lines = water.add_bonds(f.read().split("\n"))
     with open("conf.lmp", "w") as c:
@@ -258,13 +260,13 @@ def _make_tasks(iter_name, jdata, step):
         create_path(work_path)
         os.chdir(work_path)
         os.symlink(os.path.join("..", "conf.lmp"), "conf.lmp")
-        os.symlink(os.path.join("..", "graph.pb"), "graph.pb")
+        os.symlink(os.path.join("..", model_file), model_file)
         lmp_str = _gen_lammps_input(
             step,
             "conf.lmp",
             mass_map,
             all_lambda[idx],
-            "graph.pb",
+            model_file,
             bparam,
             sparam,
             nsteps,
@@ -357,14 +359,15 @@ def _refine_tasks(from_task, to_task, err, step):
 def make_tasks(iter_name, jdata):
     equi_conf = os.path.abspath(jdata["equi_conf"])
     model = os.path.abspath(jdata["model"])
+    model_file = get_model_filename(model)
 
     create_path(iter_name)
     copied_conf = os.path.join(os.path.abspath(iter_name), "conf.lmp")
     shutil.copyfile(equi_conf, copied_conf)
     jdata["equi_conf"] = "conf.lmp"
-    linked_model = os.path.join(os.path.abspath(iter_name), "graph.pb")
+    linked_model = os.path.join(os.path.abspath(iter_name), model_file)
     shutil.copyfile(model, linked_model)
-    jdata["model"] = "graph.pb"
+    jdata["model"] = model_file
 
     cwd = os.getcwd()
     os.chdir(iter_name)
@@ -383,14 +386,15 @@ def refine_tasks(from_task, to_task, err):
     jdata = json.load(open(os.path.join(from_task, "in.json")))
     equi_conf = get_task_file_abspath(from_task, jdata["equi_conf"])
     model = get_task_file_abspath(from_task, jdata["model"])
+    model_file = get_model_filename(model)
 
     create_path(to_task)
     copied_conf = os.path.join(os.path.abspath(to_task), "conf.lmp")
     shutil.copyfile(equi_conf, copied_conf)
     jdata["equi_conf"] = "conf.lmp"
-    linked_model = os.path.join(os.path.abspath(to_task), "graph.pb")
+    linked_model = os.path.join(os.path.abspath(to_task), model_file)
     shutil.copyfile(model, linked_model)
-    jdata["model"] = "graph.pb"
+    jdata["model"] = model_file
     jdata["orig_task"] = from_task
     jdata["refine_error"] = err
 

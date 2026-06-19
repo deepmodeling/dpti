@@ -5,7 +5,7 @@ import json
 import os
 
 from lib.lammps import get_last_dump
-from lib.utils import create_path, cvt_conf
+from lib.utils import create_path, cvt_conf, get_model_filename
 
 
 def _gen_lammps_relax(conf_file, mass_map, model, pres, thermo_freq=100, dump_freq=100):
@@ -60,8 +60,9 @@ def make_task(iter_name, jdata, pres):
     with open("in.json", "w") as fp:
         json.dump(jdata, fp, indent=4)
     os.symlink(os.path.relpath(equi_conf), "conf.lmp")
-    os.symlink(os.path.relpath(model), "graph.pb")
-    lmp_str = _gen_lammps_relax("conf.lmp", model_mass_map, "graph.pb", pres)
+    model_file = get_model_filename(model)
+    os.symlink(os.path.relpath(model), model_file)
+    lmp_str = _gen_lammps_relax("conf.lmp", model_mass_map, model_file, pres)
     with open("in.lammps", "w") as fp:
         fp.write(lmp_str)
     os.chdir(cwd)

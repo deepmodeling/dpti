@@ -561,6 +561,16 @@ def _compute_thermo(lmplog, natoms, stat_skip, stat_bsize):
     return thermo_info
 
 
+def _get_task_model_file(task_name):
+    settings_file = os.path.join(task_name, "equi_settings.json")
+    if not os.path.isfile(settings_file):
+        return "graph.pb"
+    with open(settings_file) as fp:
+        settings = json.load(fp)
+    model = settings.get("model")
+    return os.path.basename(model) if model else None
+
+
 def _print_thermo_info(info, more_head=""):
     ptr = f"# thermodynamics  {'value':>20s} {'err':>20s}  {more_head}\n"
     ptr += f"# E        [eV]:  {info['e']:20.8f} {info['e_err']:20.8f}\n"
@@ -642,12 +652,16 @@ def run_task(task_name, machine_file):
         resources=resources,
         machine=machine,
     )
+    model_file = _get_task_model_file(task_name)
+    forward_files = ["in.lammps", "*.lmp"]
+    if model_file:
+        forward_files.append(model_file)
 
     task_list = [
         Task(
             command=f"{mdata['command']} -in in.lammps",
             task_work_path=ii,
-            forward_files=["in.lammps", "*.lmp", "graph.pb"],
+            forward_files=forward_files,
             backward_files=["log*", "dump.equi", "out.lmp"],
         )
         for ii in task_dir_list

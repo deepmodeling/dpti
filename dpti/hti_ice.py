@@ -11,6 +11,7 @@ import scipy.constants as pc
 from dpti import einstein, hti
 from dpti.lib import lmp
 from dpti.lib.output import tee_stdout
+from dpti.lib.utils import get_model_filename
 
 
 def _main():
@@ -218,12 +219,13 @@ def refine_tasks(from_task, to_task, err, print_ref=False):
 
     equi_conf = hti.get_task_file_abspath(from_task, jdata["equi_conf"])
     model = hti.get_task_file_abspath(from_task, jdata["model"])
+    model_file = get_model_filename(model)
 
     hti.create_path(to_task)
     shutil.copyfile(equi_conf, os.path.join(to_task, "conf.lmp"))
     jdata["equi_conf"] = "conf.lmp"
-    shutil.copyfile(model, os.path.join(to_task, "graph.pb"))
-    jdata["model"] = "graph.pb"
+    shutil.copyfile(model, os.path.join(to_task, model_file))
+    jdata["model"] = model_file
     jdata["switch"] = switch
     jdata["orig_task"] = from_task
     jdata["refine_error"] = err
