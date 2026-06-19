@@ -3,6 +3,7 @@
 import glob
 import json
 import os
+import shlex
 import shutil
 
 import numpy as np
@@ -1512,7 +1513,7 @@ def _graph_link_command(task_dir, job_work_dir, model_file="graph.pb"):
         os.path.join(task_dir, model_file),
         os.path.join(job_work_dir, "task.000000"),
     )
-    return f"ln -s {graph_relpath} {model_file}"
+    return f"ln -sf {shlex.quote(graph_relpath)} {shlex.quote(model_file)}"
 
 
 def run_task(task_dir, machine_file, task_name, no_dp=False):

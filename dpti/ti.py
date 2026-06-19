@@ -1079,7 +1079,7 @@ def run_task(task_name, machine_file):
     task_list = [
         Task(
             command=(
-                f"ln -s ../{model_file} {model_file}; {mdata['command']} -in in.lammps"
+                f'ln -sf "../{model_file}" "{model_file}"; {mdata["command"]} -in in.lammps'
                 if model_file
                 else f"{mdata['command']} -in in.lammps"
             ),
