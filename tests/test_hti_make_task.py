@@ -98,15 +98,15 @@ class TestHtiMakeTask(unittest.TestCase):
     def test_graph_link_command(self):
         self.assertEqual(
             dpti.hti._graph_link_command("hti", "hti"),
-            "ln -s ../graph.pb graph.pb",
+            "ln -sf ../graph.pb graph.pb",
         )
         self.assertEqual(
             dpti.hti._graph_link_command("hti", "hti/00.deep_on"),
-            "ln -s ../../graph.pb graph.pb",
+            "ln -sf ../../graph.pb graph.pb",
         )
         self.assertEqual(
             dpti.hti._graph_link_command("hti", "hti", "graph.pth"),
-            "ln -s ../graph.pth graph.pth",
+            "ln -sf ../graph.pth graph.pth",
         )
 
     @patch("numpy.random.default_rng")
