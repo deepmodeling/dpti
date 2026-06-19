@@ -1546,8 +1546,7 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
     command = f"{mdata['command']} -i in.lammps"
     if not no_dp and model_file:
         command = (
-            f"{_graph_link_command(task_dir, job_work_dir, model_file)}; "
-            f"{command}"
+            f"{_graph_link_command(task_dir, job_work_dir, model_file)}; " f"{command}"
         )
     task_list = [
         Task(
