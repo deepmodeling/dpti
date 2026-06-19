@@ -336,10 +336,14 @@ def run_task(task_name, jdata, machine_file):
         task_dir_list = glob.glob(
             os.path.join(task_name, "task.*/mass_scale_y.*/nbead.*")
         )
-        link_model = f'ln -sf "../../../{model_file}" "{model_file}"; ' if model_file else ""
+        link_model = (
+            f'ln -sf "../../../{model_file}" "{model_file}"; ' if model_file else ""
+        )
     elif job_type == "mass_ti":
         task_dir_list = glob.glob(os.path.join(task_name, "task.*/mass_scale_y.*"))
-        link_model = f'ln -sf "../../{model_file}" "{model_file}"; ' if model_file else ""
+        link_model = (
+            f'ln -sf "../../{model_file}" "{model_file}"; ' if model_file else ""
+        )
     else:
         raise RuntimeError(
             "Unknow job_type. Only nbead_convergence and mass_ti are supported."
