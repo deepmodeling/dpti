@@ -1,4 +1,4 @@
-[<picture><source media="(prefers-color-scheme: dark)" srcset="./doc/_static/logo-dark.svg"><source media="(prefers-color-scheme: light)" srcset="./doc/_static/logo.svg"><img alt="dpti logo" src="./doc/_static/logo.svg"></picture>](./doc/logo.md)
+[<picture><source media="(prefers-color-scheme: dark)" srcset="./doc/_static/logo.png"><source media="(prefers-color-scheme: light)" srcset="./doc/_static/logo.png"><img alt="dpti logo" src="./doc/_static/logo.png"></picture>](./doc/logo.md)
 
 ______________________________________________________________________
 
