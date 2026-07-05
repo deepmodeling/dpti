@@ -1,4 +1,4 @@
-[<picture><source media="(prefers-color-scheme: dark)" srcset="./doc/_static/logo.png"><source media="(prefers-color-scheme: light)" srcset="./doc/_static/logo.png"><img alt="dpti logo" src="./doc/_static/logo.png"></picture>](./doc/logo.md)
+<a href="./doc/logo.md"><picture><source media="(prefers-color-scheme: dark)" srcset="./doc/_static/logo.png"><source media="(prefers-color-scheme: light)" srcset="./doc/_static/logo.png"><img alt="dpti logo" src="./doc/_static/logo.png" width="620"></picture></a>
 
 ______________________________________________________________________
 
@@ -191,29 +191,6 @@ The recommended interface is the command-line workflow described above. The
 repository still contains legacy Airflow DAG helpers under `dpti/dags/` for
 users who need Airflow-based orchestration, but new users should start with the
 CLI.
-
-## Documentation
-
-Documentation sources are in `docs/`. To build the documentation locally:
-
-```bash
-pip install -e ".[docs]"
-cd docs
-make html
-```
-
-The CLI reference is generated from the command-line parser, so it is the best
-place to check the current options for each module.
-
-## Testing
-
-Run the unit tests with:
-
-```bash
-pip install -e . coverage
-cd tests
-coverage run --source=../dpti -m unittest
-```
 
 ## License
 
