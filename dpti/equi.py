@@ -695,7 +695,7 @@ def run_task(task_name, machine_file):
 
     task_list = [
         Task(
-            command=f"{mdata['command']} -in in.lammps",
+            command=f"{mdata['command']} -in in.lammps -screen none",
             task_work_path=ii,
             forward_files=forward_files,
             backward_files=["log*", "dump.equi", "out.lmp"],

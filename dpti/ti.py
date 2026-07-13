@@ -1107,7 +1107,7 @@ def run_task(task_name, machine_file):
 
     task_list = []
     for ii in task_dir_list:
-        command = f"{mdata['command']} -in in.lammps"
+        command = f"{mdata['command']} -in in.lammps -screen none"
         forward_files = ["in.lammps", "*.lmp"]
         if uses_template:
             forward_files.extend(template_ff_files)

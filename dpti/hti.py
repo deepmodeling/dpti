@@ -1530,11 +1530,11 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
     )
 
     command = (
-        f"{mdata['command']} -i in.lammps"
+        f"{mdata['command']} -i in.lammps -screen none"
         if no_dp
         else (
             f"{_graph_link_command(task_dir, job_work_dir)}; "
-            f"{mdata['command']} -i in.lammps"
+            f"{mdata['command']} -i in.lammps -screen none"
         )
     )
     task_list = [
