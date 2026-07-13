@@ -228,6 +228,48 @@ class TestGdiMakeTask(unittest.TestCase):
         self.assertIn("pair_style      deepmd graph.pb", lmp_input)
         self.assertNotIn("pair_style      deepmd graph.0.pb", lmp_input)
 
+    @patch("numpy.random.default_rng")
+    def test_template_ff_onephase(self, patch_random):
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
+        test_dir = os.path.join(self.test_dir, "template_ff_onephase")
+        template_file = os.path.join(self.test_dir, "in.mlip")
+        support_file = os.path.join(self.test_dir, "input.nn")
+        with open(template_file, "w") as fp:
+            fp.write(
+                "pair_style      hdnnp 6.3501269880 dir .\n"
+                "pair_coeff      * * O H\n"
+            )
+        with open(support_file, "w") as fp:
+            fp.write("n2p2 support file placeholder\n")
+
+        dpti.gdi._make_tasks_onephase(
+            temp=300,
+            pres=1,
+            task_path=test_dir,
+            jdata={
+                "mass_map": [16.0, 1.0],
+                "nsteps": 1000,
+                "timestep": 0.0005,
+                "tau_t": 0.1,
+                "tau_p": 0.5,
+                "thermo_freq": 10,
+            },
+            ens="npt",
+            conf_file="conf.lmp",
+            graph_file=None,
+            template_ff_file=template_file,
+            template_ff_files=[support_file],
+            if_meam=False,
+            meam_model=None,
+        )
+
+        with open(os.path.join(test_dir, "in.lammps")) as fp:
+            lmp_input = fp.read()
+        self.assertIn("pair_style      hdnnp 6.3501269880 dir .", lmp_input)
+        self.assertIn("pair_coeff      * * O H", lmp_input)
+        self.assertNotIn("pair_style      deepmd", lmp_input)
+        self.assertTrue(os.path.exists(os.path.join(test_dir, "input.nn")))
+
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree("tmp_gdi/")

@@ -13,6 +13,7 @@ iter_format = "%06d"
 task_format = "%02d"
 log_iter_head = "iter " + iter_format + " task " + task_format + ": "
 float_protect = 1e-14
+DEFAULT_TEMPLATE_FF_FILE = "in.mlip"
 
 
 def make_iter_name(iter_index):
@@ -75,6 +76,41 @@ def relative_link_file(file_path, target_dir):
     target_linkfile_path = os.path.join(target_dir, basename)
     os.symlink(src=relative_path, dst=target_linkfile_path)
     return target_linkfile_path
+
+
+def get_template_ff_file(jdata):
+    template_ff_file = jdata.get("template_ff", None)
+    if template_ff_file is not None:
+        return template_ff_file
+    if jdata.get("model", None) is None and os.path.isfile(DEFAULT_TEMPLATE_FF_FILE):
+        return DEFAULT_TEMPLATE_FF_FILE
+    return None
+
+
+def read_template_ff(template_ff_file):
+    with open(template_ff_file) as fp:
+        template_ff = fp.read()
+    if template_ff and not template_ff.endswith("\n"):
+        template_ff += "\n"
+    return template_ff
+
+
+def uses_template_ff(jdata):
+    return get_template_ff_file(jdata) is not None
+
+
+def normalize_template_ff_files(jdata):
+    template_ff_files = jdata.get("template_ff_files", [])
+    if isinstance(template_ff_files, str):
+        template_ff_files = [template_ff_files]
+    return template_ff_files
+
+
+def relative_link_template_ff_files(jdata, target_dir):
+    linked_files = []
+    for file_path in normalize_template_ff_files(jdata):
+        linked_files.append(relative_link_file(file_path, target_dir))
+    return linked_files
 
 
 def link_file_in_dict(dct, key_list, target_dir):
