@@ -15,6 +15,56 @@ class TestHtiGenLammpsInput(unittest.TestCase):
         self.maxDiff = None
 
     @patch("numpy.random.default_rng")
+    def test_template_ff_one_step_is_scaled(self, patch_random):
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
+        generated = _gen_lammps_input(
+            conf_file="conf.lmp",
+            mass_map=[16.0, 1.0],
+            lamb=0.25,
+            model=None,
+            m_spring_k=[0.32, 0.02],
+            nsteps=100,
+            timestep=0.0005,
+            ens="nvt",
+            temp=300.0,
+            switch="one-step",
+            step="both",
+            crystal="frenkel",
+            template_ff=("pair_style hdnnp 6.35 dir .\n" "pair_coeff * * O H\n"),
+        )
+        self.assertIn("pair_style hybrid/scaled v_LAMBDA hdnnp 6.35 dir .", generated)
+        self.assertIn("pair_coeff * * hdnnp O H", generated)
+        self.assertIn("compute         e_deep all pe pair", generated)
+        self.assertNotIn("fix             l_deep all adapt", generated)
+        self.assertNotIn("pair_style      deepmd", generated)
+
+    @patch("numpy.random.default_rng")
+    def test_template_ff_three_step_reports_unscaled_energy(self, patch_random):
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
+        generated = _gen_lammps_input(
+            conf_file="conf.lmp",
+            mass_map=[118.71],
+            lamb=0.25,
+            model=None,
+            m_spring_k=[2.3742],
+            nsteps=100,
+            timestep=0.002,
+            ens="nvt",
+            temp=300.0,
+            switch="three-step",
+            step="deep_on",
+            sparam=soft_param,
+            crystal="frenkel",
+            template_ff=("pair_style hdnnp 6.35 dir .\n" "pair_coeff * * Sn\n"),
+        )
+        self.assertIn(
+            "pair_style hybrid/scaled v_LAMBDA hdnnp 6.35 dir . " "1.0 lj/cut/soft",
+            generated,
+        )
+        self.assertIn("compute         e_mlip all pair hdnnp", generated)
+        self.assertIn("c_e_mlip c_allmsd[*]", generated)
+
+    @patch("numpy.random.default_rng")
     def test_deepmd_lj_on(self, patch_random):
         patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
         input = {

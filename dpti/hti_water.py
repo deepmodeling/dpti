@@ -22,8 +22,12 @@ from dpti.lib.utils import (
     create_path,
     get_first_matched_key_from_dict,
     get_task_file_abspath,
+    get_template_ff_file,
     integrate_range,
+    normalize_template_ff_files,
     parse_seq,
+    read_template_ff,
+    render_scaled_template_ff,
 )
 
 
@@ -56,7 +60,7 @@ def _ff_angle_on(lamb, model, bparam, sparam):
     return ret
 
 
-def _ff_deep_on(lamb, model, bparam, sparam):
+def _ff_deep_on(lamb, model, bparam, sparam, template_ff=None):
     bond_k = bparam["bond_k"]
     bond_l = bparam["bond_l"]
     angle_k = bparam["angle_k"]
@@ -72,8 +76,16 @@ def _ff_deep_on(lamb, model, bparam, sparam):
     ret = ""
     ret += f"variable        EPSILON equal {epsilon:f}\n"
     ret += "variable        ONE equal 1\n"
-    ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}  \n"
-    ret += "pair_coeff      * * deepmd\n"
+    if template_ff is None:
+        ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}  \n"
+        ret += "pair_coeff      * * deepmd\n"
+    else:
+        rendered, pair_style = render_scaled_template_ff(
+            template_ff,
+            "v_LAMBDA",
+            [("1.0", "lj/cut/soft", [f"{nn:f}", f"{alpha_lj:f}", f"{rcut:f}"])],
+        )
+        ret += rendered
     ret += f"pair_coeff      1 1 lj/cut/soft ${{EPSILON}} {sigma_oo:f} {activation:f}\n"
     ret += f"pair_coeff      1 2 lj/cut/soft ${{EPSILON}} {sigma_oh:f} {activation:f}\n"
     ret += f"pair_coeff      2 2 lj/cut/soft ${{EPSILON}} {sigma_hh:f} {activation:f}\n"
@@ -81,12 +93,17 @@ def _ff_deep_on(lamb, model, bparam, sparam):
     ret += f"bond_coeff      1 {bond_k:f} {bond_l:f}\n"
     ret += "angle_style     harmonic\n"
     ret += f"angle_coeff     1 {angle_k:f} {angle_t:f}\n"
-    ret += "fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA\n"
-    ret += "compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE\n"
+    if template_ff is None:
+        ret += (
+            "fix             tot_pot all adapt/fep 0 pair deepmd scale * * v_LAMBDA\n"
+        )
+        ret += "compute         e_diff all fep ${TEMP} pair deepmd scale * * v_ONE\n"
+    else:
+        ret += f"compute         e_mlip all pair {pair_style}\n"
     return ret
 
 
-def _ff_bond_angle_off(lamb, model, bparam, sparam):
+def _ff_bond_angle_off(lamb, model, bparam, sparam, template_ff=None):
     bond_k = bparam["bond_k"]
     bond_l = bparam["bond_l"]
     angle_k = bparam["angle_k"]
@@ -103,8 +120,16 @@ def _ff_bond_angle_off(lamb, model, bparam, sparam):
     ret += "variable        INV_LAMBDA equal 1-${LAMBDA}\n"
     ret += f"variable        EPSILON equal {epsilon:f}\n"
     ret += "variable        INV_EPSILON equal -${EPSILON}\n"
-    ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}  \n"
-    ret += "pair_coeff      * * deepmd\n"
+    if template_ff is None:
+        ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}  \n"
+        ret += "pair_coeff      * * deepmd\n"
+    else:
+        rendered, _ = render_scaled_template_ff(
+            template_ff,
+            "1.0",
+            [("1.0", "lj/cut/soft", [f"{nn:f}", f"{alpha_lj:f}", f"{rcut:f}"])],
+        )
+        ret += rendered
     ret += f"pair_coeff      1 1 lj/cut/soft ${{EPSILON}} {sigma_oo:f} {activation:f}\n"
     ret += f"pair_coeff      1 2 lj/cut/soft ${{EPSILON}} {sigma_oh:f} {activation:f}\n"
     ret += f"pair_coeff      2 2 lj/cut/soft ${{EPSILON}} {sigma_hh:f} {activation:f}\n"
@@ -137,6 +162,7 @@ def _gen_lammps_input(
     prt_freq=100,
     dump_freq=100,
     copies=None,
+    template_ff=None,
 ):
     ret = ""
     ret += "clear\n"
@@ -165,15 +191,18 @@ def _gen_lammps_input(
     if step == "angle_on":
         ret += _ff_angle_on(lamb, model, bparam, sparam)
     elif step == "deep_on":
-        ret += _ff_deep_on(lamb, model, bparam, sparam)
+        ret += _ff_deep_on(lamb, model, bparam, sparam, template_ff=template_ff)
     elif step == "bond_angle_off":
-        ret += _ff_bond_angle_off(lamb, model, bparam, sparam)
+        ret += _ff_bond_angle_off(lamb, model, bparam, sparam, template_ff=template_ff)
     ret += "special_bonds   lj/coul 1 1 1 angle no\n"
     ret += "# --------------------- MD SETTINGS ----------------------\n"
     ret += "neighbor        1.0 bin\n"
     ret += f"timestep        {dt}\n"
     ret += "thermo          ${THERMO_FREQ}\n"
-    ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol ebond eangle c_e_diff[1]\n"
+    energy_compute = (
+        "c_e_mlip" if template_ff is not None and step == "deep_on" else "c_e_diff[1]"
+    )
+    ret += f"thermo_style    custom step ke pe etotal enthalpy temp press vol ebond eangle {energy_compute}\n"
     ret += "thermo_modify   format 9 %.16e\n"
     ret += "thermo_modify   format 10 %.16e\n"
     ret += "thermo_modify   format 11 %.16e\n"
@@ -217,8 +246,14 @@ def _make_tasks(iter_name, jdata, step):
             all_lambda[-1] -= protect_eps
     equi_conf = jdata["equi_conf"]
     equi_conf = os.path.abspath(equi_conf)
-    model = jdata["model"]
-    model = os.path.abspath(model)
+    model = jdata.get("model")
+    if model is not None:
+        model = os.path.abspath(model)
+    template_ff_file = get_template_ff_file(jdata)
+    template_ff = None
+    if template_ff_file is not None:
+        template_ff_path = os.path.join(os.path.dirname(iter_name), template_ff_file)
+        template_ff = read_template_ff(template_ff_path)
     # mass_map = jdata['mass_map']
     mass_map = get_first_matched_key_from_dict(jdata, ["mass_map", "model_mass_map"])
     nsteps = jdata["nsteps"]
@@ -247,7 +282,11 @@ def _make_tasks(iter_name, jdata, step):
     os.chdir(iter_name)
     os.symlink(os.path.join("..", "in.json"), "in.json")
     os.symlink(os.path.join("..", "conf.lmp"), "orig.lmp")
-    os.symlink(os.path.join("..", "graph.pb"), "graph.pb")
+    if model is not None:
+        os.symlink(os.path.join("..", "graph.pb"), "graph.pb")
+    for template_file in normalize_template_ff_files(jdata):
+        basename = os.path.basename(template_file)
+        os.symlink(os.path.join("..", basename), basename)
     with open("orig.lmp") as f:
         lines = water.add_bonds(f.read().split("\n"))
     with open("conf.lmp", "w") as c:
@@ -258,7 +297,11 @@ def _make_tasks(iter_name, jdata, step):
         create_path(work_path)
         os.chdir(work_path)
         os.symlink(os.path.join("..", "conf.lmp"), "conf.lmp")
-        os.symlink(os.path.join("..", "graph.pb"), "graph.pb")
+        if model is not None:
+            os.symlink(os.path.join("..", "graph.pb"), "graph.pb")
+        for template_file in normalize_template_ff_files(jdata):
+            basename = os.path.basename(template_file)
+            os.symlink(os.path.join("..", basename), basename)
         lmp_str = _gen_lammps_input(
             step,
             "conf.lmp",
@@ -277,6 +320,7 @@ def _make_tasks(iter_name, jdata, step):
             prt_freq=thermo_freq,
             dump_freq=dump_freq,
             copies=copies,
+            template_ff=template_ff,
         )
         with open("in.lammps", "w") as fp:
             fp.write(lmp_str)
@@ -356,15 +400,44 @@ def _refine_tasks(from_task, to_task, err, step):
 
 def make_tasks(iter_name, jdata):
     equi_conf = os.path.abspath(jdata["equi_conf"])
-    model = os.path.abspath(jdata["model"])
+    model = jdata.get("model")
+    template_ff_file = get_template_ff_file(jdata)
+    if model is not None and template_ff_file is not None:
+        raise RuntimeError(
+            "You can only set one of model and template_ff for hti_water"
+        )
+    if model is None and template_ff_file is None:
+        raise RuntimeError("hti_water requires either model or template_ff")
+    if model is not None:
+        model = os.path.abspath(model)
+    if template_ff_file is not None:
+        template_ff_file = os.path.abspath(template_ff_file)
+    template_ff_files = [
+        os.path.abspath(path) for path in normalize_template_ff_files(jdata)
+    ]
 
     create_path(iter_name)
     copied_conf = os.path.join(os.path.abspath(iter_name), "conf.lmp")
     shutil.copyfile(equi_conf, copied_conf)
     jdata["equi_conf"] = "conf.lmp"
-    linked_model = os.path.join(os.path.abspath(iter_name), "graph.pb")
-    shutil.copyfile(model, linked_model)
-    jdata["model"] = "graph.pb"
+    if model is not None:
+        linked_model = os.path.join(os.path.abspath(iter_name), "graph.pb")
+        shutil.copyfile(model, linked_model)
+        jdata["model"] = "graph.pb"
+    else:
+        copied_template = os.path.join(
+            os.path.abspath(iter_name), os.path.basename(template_ff_file)
+        )
+        shutil.copyfile(template_ff_file, copied_template)
+        jdata["template_ff"] = os.path.basename(copied_template)
+        copied_template_files = []
+        for source in template_ff_files:
+            destination = os.path.join(
+                os.path.abspath(iter_name), os.path.basename(source)
+            )
+            shutil.copyfile(source, destination)
+            copied_template_files.append(os.path.basename(destination))
+        jdata["template_ff_files"] = copied_template_files
 
     cwd = os.getcwd()
     os.chdir(iter_name)
@@ -382,15 +455,34 @@ def make_tasks(iter_name, jdata):
 def refine_tasks(from_task, to_task, err):
     jdata = json.load(open(os.path.join(from_task, "in.json")))
     equi_conf = get_task_file_abspath(from_task, jdata["equi_conf"])
-    model = get_task_file_abspath(from_task, jdata["model"])
+    model = None
+    if jdata.get("model") is not None:
+        model = get_task_file_abspath(from_task, jdata["model"])
 
     create_path(to_task)
     copied_conf = os.path.join(os.path.abspath(to_task), "conf.lmp")
     shutil.copyfile(equi_conf, copied_conf)
     jdata["equi_conf"] = "conf.lmp"
-    linked_model = os.path.join(os.path.abspath(to_task), "graph.pb")
-    shutil.copyfile(model, linked_model)
-    jdata["model"] = "graph.pb"
+    if model is not None:
+        linked_model = os.path.join(os.path.abspath(to_task), "graph.pb")
+        shutil.copyfile(model, linked_model)
+        jdata["model"] = "graph.pb"
+    else:
+        template_source = get_task_file_abspath(from_task, jdata["template_ff"])
+        template_destination = os.path.join(
+            os.path.abspath(to_task), os.path.basename(template_source)
+        )
+        shutil.copyfile(template_source, template_destination)
+        jdata["template_ff"] = os.path.basename(template_destination)
+        copied_template_files = []
+        for template_file in normalize_template_ff_files(jdata):
+            source = get_task_file_abspath(from_task, template_file)
+            destination = os.path.join(
+                os.path.abspath(to_task), os.path.basename(source)
+            )
+            shutil.copyfile(source, destination)
+            copied_template_files.append(os.path.basename(destination))
+        jdata["template_ff_files"] = copied_template_files
     jdata["orig_task"] = from_task
     jdata["refine_error"] = err
 

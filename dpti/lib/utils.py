@@ -3,6 +3,7 @@
 import hashlib
 import os
 import pathlib
+import shlex
 import shutil
 import subprocess as sp
 import warnings
@@ -93,6 +94,62 @@ def read_template_ff(template_ff_file):
     if template_ff and not template_ff.endswith("\n"):
         template_ff += "\n"
     return template_ff
+
+
+def render_scaled_template_ff(template_ff, scale, extra_pair_styles=None):
+    """Render a single-style force-field template as ``hybrid/scaled``.
+
+    The template must contain exactly one ``pair_style`` command and at least
+    one ``pair_coeff`` command.  DPTI inserts the original pair style name into
+    each coefficient command, as required when it becomes a hybrid sub-style.
+    Additional scaled sub-styles may be supplied as ``(scale, style, args)``
+    tuples.
+    """
+    lines = template_ff.splitlines()
+    pair_style_indices = []
+    pair_style_tokens = None
+    pair_coeff_indices = []
+
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        tokens = shlex.split(stripped, comments=True)
+        if not tokens:
+            continue
+        if tokens[0] == "pair_style":
+            pair_style_indices.append(index)
+            pair_style_tokens = tokens
+        elif tokens[0] == "pair_coeff":
+            pair_coeff_indices.append(index)
+
+    if len(pair_style_indices) != 1:
+        raise RuntimeError(
+            "template_ff must contain exactly one pair_style command for HTI scaling"
+        )
+    if not pair_coeff_indices:
+        raise RuntimeError(
+            "template_ff must contain at least one pair_coeff command for HTI scaling"
+        )
+    if len(pair_style_tokens) < 2:
+        raise RuntimeError("template_ff contains an incomplete pair_style command")
+
+    pair_style = pair_style_tokens[1]
+    rendered_style = ["pair_style", "hybrid/scaled", str(scale), *pair_style_tokens[1:]]
+    for extra_scale, extra_style, extra_args in extra_pair_styles or []:
+        rendered_style.extend([str(extra_scale), extra_style, *extra_args])
+    lines[pair_style_indices[0]] = " ".join(rendered_style)
+
+    for index in pair_coeff_indices:
+        tokens = shlex.split(lines[index].strip(), comments=True)
+        if len(tokens) < 3:
+            raise RuntimeError("template_ff contains an incomplete pair_coeff command")
+        lines[index] = " ".join([*tokens[:3], pair_style, *tokens[3:]])
+
+    rendered = "\n".join(lines)
+    if rendered and not rendered.endswith("\n"):
+        rendered += "\n"
+    return rendered, pair_style
 
 
 def uses_template_ff(jdata):
