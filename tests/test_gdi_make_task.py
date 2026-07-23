@@ -203,6 +203,78 @@ class TestGdiMakeTask(unittest.TestCase):
         self.assertEqual(dpti.gdi._get_phase_graph_file(jdata, 0), "graph.0.pb")
         self.assertEqual(dpti.gdi._get_phase_graph_file(jdata, 1), "graph.1.pb")
 
+    def test_setup_dpdt_preserves_same_basename_phase_support_files(self):
+        parent_dir = os.path.join(self.test_dir, "phase_template_files")
+        task_dir = os.path.join(parent_dir, "gdi_job")
+        phase_0_dir = os.path.join(parent_dir, "phase_0")
+        phase_1_dir = os.path.join(parent_dir, "phase_1")
+        os.makedirs(phase_0_dir)
+        os.makedirs(phase_1_dir)
+        shutil.copyfile("conf.lmp", os.path.join(parent_dir, "conf.0.lmp"))
+        shutil.copyfile("alpha.lmp", os.path.join(parent_dir, "conf.1.lmp"))
+        for phase_dir, marker in [(phase_0_dir, "phase 0"), (phase_1_dir, "phase 1")]:
+            with open(os.path.join(phase_dir, "in.mlip"), "w") as fp:
+                fp.write("pair_style hdnnp 6.35 dir .\npair_coeff * * O H\n")
+            with open(os.path.join(phase_dir, "input.nn"), "w") as fp:
+                fp.write(marker)
+        jdata = {
+            "phase_i": {
+                "name": "PHASE_0",
+                "equi_conf": "conf.0.lmp",
+                "template_ff": "phase_0/in.mlip",
+                "template_ff_files": ["phase_0/input.nn"],
+            },
+            "phase_ii": {
+                "name": "PHASE_1",
+                "equi_conf": "conf.1.lmp",
+                "template_ff": "phase_1/in.mlip",
+                "template_ff_files": ["phase_1/input.nn"],
+            },
+            "mass_map": [16.0, 1.0],
+            "nsteps": 5000,
+            "timestep": 0.0005,
+            "tau_t": 0.1,
+            "tau_p": 0.5,
+            "thermo_freq": 10,
+            "stat_skip": 100,
+            "stat_bsize": 10,
+        }
+
+        dpti.gdi._setup_dpdt(task_dir, jdata)
+
+        with open(os.path.join(task_dir, "template.0", "input.nn")) as fp:
+            self.assertEqual(fp.read(), "phase 0")
+        with open(os.path.join(task_dir, "template.1", "input.nn")) as fp:
+            self.assertEqual(fp.read(), "phase 1")
+        with open(os.path.join(task_dir, "in.json")) as fp:
+            staged_jdata = json.load(fp)
+        self.assertEqual(
+            staged_jdata["phase_i"]["template_ff_files"],
+            [os.path.join("template.0", "input.nn")],
+        )
+        self.assertEqual(
+            staged_jdata["phase_ii"]["template_ff_files"],
+            [os.path.join("template.1", "input.nn")],
+        )
+
+    def test_phase_forward_files_support_mixed_force_fields(self):
+        jdata = {
+            "phase_i": {
+                "template_ff": "in.0.mlip",
+                "template_ff_files": ["template.0/input.nn"],
+            },
+            "phase_ii": {"model": "graph.1.pb"},
+        }
+
+        self.assertEqual(
+            dpti.gdi._get_phase_forward_files(jdata, "phase_i"),
+            ["conf.lmp", "in.lammps", "input.nn"],
+        )
+        self.assertEqual(
+            dpti.gdi._get_phase_forward_files(jdata, "phase_ii"),
+            ["conf.lmp", "in.lammps", "graph.pb"],
+        )
+
     @patch("numpy.random.default_rng")
     def test_deepmd_uses_local_graph_name(self, patch_random):
         patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))

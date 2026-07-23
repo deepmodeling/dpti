@@ -1,11 +1,37 @@
+import json
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from dpti import mti
 
 
 class TestMtiGenLammpsInput(unittest.TestCase):
+    @patch.object(mti.Machine, "load_from_dict")
+    @patch.object(mti, "uses_template_ff", return_value=True)
+    def test_run_uses_persisted_settings(
+        self, mock_uses_template_ff, mock_load_machine
+    ):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            job_dir = os.path.join(tmpdir, "job")
+            os.mkdir(job_dir)
+            persisted = {
+                "job_type": "mass_ti",
+                "template_ff": "in.mlip",
+                "template_ff_files": ["input.nn"],
+            }
+            with open(os.path.join(job_dir, "mti_settings.json"), "w") as fp:
+                json.dump(persisted, fp)
+            machine_file = os.path.join(tmpdir, "machine.json")
+            with open(machine_file, "w") as fp:
+                json.dump({"command": "lmp", "machine": {}}, fp)
+
+            mti.run_task(job_dir, {"job_type": "invalid"}, machine_file)
+
+        mock_uses_template_ff.assert_called_once_with(persisted)
+        mock_load_machine.assert_called_once_with({})
+
     def test_npt_prints_potential_energy(self):
         ret = mti._gen_lammps_input(
             conf_file="conf.lmp",

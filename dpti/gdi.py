@@ -3,6 +3,7 @@
 import json
 import os
 import shutil
+from copy import deepcopy
 
 import numpy as np
 import scipy.constants as pc
@@ -208,7 +209,20 @@ def _get_phase_template_ff_name(jdata, phase_idx):
     return "in.mlip"
 
 
+def _get_phase_forward_files(jdata, phase_key):
+    forward_files = ["conf.lmp", "in.lammps"]
+    if _get_phase_template_ff_file(jdata, phase_key) is not None:
+        forward_files.extend(
+            os.path.basename(ii)
+            for ii in _get_phase_template_ff_files(jdata, phase_key)
+        )
+    else:
+        forward_files.append("graph.pb")
+    return forward_files
+
+
 def _setup_dpdt(task_path, jdata):
+    jdata = deepcopy(jdata)
     name_0 = jdata["phase_i"]["name"]
     name_1 = jdata["phase_ii"]["name"]
     conf_0 = os.path.join(task_path, "../", jdata["phase_i"]["equi_conf"])
@@ -259,16 +273,19 @@ def _setup_dpdt(task_path, jdata):
                 os.path.abspath(task_path), _get_phase_template_ff_name(jdata, 1)
             ),
         )
-    template_ff_files = []
-    for phase_key in ["phase_i", "phase_ii"]:
+    for phase_idx, phase_key in enumerate(["phase_i", "phase_ii"]):
+        staged_files = []
         for file_path in _get_phase_template_ff_files(jdata, phase_key):
             abs_file_path = os.path.abspath(os.path.join(task_path, "../", file_path))
+            support_dir = os.path.join(task_abs_dir, f"template.{phase_idx}")
+            os.makedirs(support_dir, exist_ok=True)
             copied_file_path = os.path.join(
-                os.path.abspath(task_path), os.path.basename(abs_file_path)
+                support_dir, os.path.basename(abs_file_path)
             )
-            if copied_file_path not in template_ff_files:
-                shutil.copyfile(abs_file_path, copied_file_path)
-                template_ff_files.append(copied_file_path)
+            shutil.copyfile(abs_file_path, copied_file_path)
+            staged_files.append(os.path.relpath(copied_file_path, task_abs_dir))
+        if staged_files:
+            jdata[phase_key]["template_ff_files"] = staged_files
 
     with open(os.path.join(os.path.abspath(task_path), "in.json"), "w") as fp:
         json.dump(jdata, fp, indent=4)
@@ -380,7 +397,7 @@ def make_dpdt(
                 else None
             ),
             template_ff_files=[
-                os.path.abspath(os.path.basename(ii))
+                os.path.abspath(ii)
                 for ii in _get_phase_template_ff_files(jdata, "phase_i")
             ],
             if_meam=if_meam,
@@ -404,7 +421,7 @@ def make_dpdt(
                 else None
             ),
             template_ff_files=[
-                os.path.abspath(os.path.basename(ii))
+                os.path.abspath(ii)
                 for ii in _get_phase_template_ff_files(jdata, "phase_ii")
             ],
             if_meam=if_meam,
@@ -417,25 +434,15 @@ def make_dpdt(
         resources = Resources.load_from_dict(mdata["resources"])
 
         command = "lmp -i in.lammps"
-        uses_template = (
-            _get_phase_template_ff_file(jdata, "phase_i") is not None
-            or _get_phase_template_ff_file(jdata, "phase_ii") is not None
-        )
-        forward_files = ["conf.lmp", "in.lammps"]
-        if uses_template:
-            template_ff_forward_files = set()
-            for phase_key in ["phase_i", "phase_ii"]:
-                template_ff_forward_files.update(
-                    os.path.basename(ii)
-                    for ii in _get_phase_template_ff_files(jdata, phase_key)
-                )
-            forward_files.extend(sorted(template_ff_forward_files))
-        else:
-            forward_files.append("graph.pb")
+        phase_forward_files = [
+            _get_phase_forward_files(jdata, phase_key)
+            for phase_key in ["phase_i", "phase_ii"]
+        ]
         if if_meam:
             meam_library_basename = os.path.basename(meam_model["library"])
             meam_potential_basename = os.path.basename(meam_model["potential"])
-            forward_files.extend([meam_library_basename, meam_potential_basename])
+            for forward_files in phase_forward_files:
+                forward_files.extend([meam_library_basename, meam_potential_basename])
         backward_files = ["log.lammps", "final.lmp"]
 
         task_list = []
@@ -443,7 +450,7 @@ def make_dpdt(
             task = Task(
                 command=command,
                 task_work_path=f"{ii}/",
-                forward_files=forward_files,
+                forward_files=phase_forward_files[ii],
                 backward_files=backward_files,
             )
             task_list.append(task)

@@ -103,6 +103,8 @@ def gen_equi_force_field(
     if not if_meam:
         if template_ff is not None:
             ret += template_ff
+            if template_ff and not template_ff.endswith("\n"):
+                ret += "\n"
         else:
             ret += f"pair_style      deepmd {model}"
             if append is not None:
@@ -433,6 +435,10 @@ def make_task(
     template_ff = None
     if template_ff_file is not None:
         template_ff = read_template_ff(template_ff_file)
+    if equi_settings["if_meam"] and template_ff is not None:
+        raise RuntimeError(
+            "You are providing both a MEAM model and a template forcefield. You can only set one of meam_model and template_ff."
+        )
     if model is not None and template_ff is not None:
         raise RuntimeError(
             "You are providing both a dp model and a template forcefield. You can only set one of model and template_ff."

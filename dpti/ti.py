@@ -165,6 +165,10 @@ def make_tasks(iter_name, jdata, if_meam=None):
     template_ff = None
     if template_ff_file is not None:
         template_ff = read_template_ff(template_ff_file)
+    if if_meam and template_ff is not None:
+        raise RuntimeError(
+            "You are providing both a MEAM model and a template forcefield. You can only set one of meam_model and template_ff."
+        )
     if model is not None and template_ff is not None:
         raise RuntimeError(
             "You are providing both a dp model and a template forcefield. You can only set one of model and template_ff."

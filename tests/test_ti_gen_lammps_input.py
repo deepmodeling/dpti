@@ -1,3 +1,5 @@
+import os
+import tempfile
 import textwrap
 import unittest
 from unittest.mock import MagicMock, patch
@@ -10,6 +12,22 @@ from dpti import ti
 class TestTiGenLammpsInput(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
+
+    def test_meam_and_explicit_template_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_ff = os.path.join(tmpdir, "in.mlip")
+            with open(template_ff, "w") as fp:
+                fp.write("pair_style hdnnp 6.35 dir .\npair_coeff * * Sn\n")
+            with self.assertRaisesRegex(RuntimeError, "both a MEAM model"):
+                ti.make_tasks(
+                    os.path.join(tmpdir, "job"),
+                    {
+                        "equi_conf": "unused.lmp",
+                        "if_meam": True,
+                        "model": None,
+                        "template_ff": template_ff,
+                    },
+                )
 
     @patch("numpy.random.default_rng")
     def test_deepmd(self, patch_random):

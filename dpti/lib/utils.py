@@ -83,7 +83,11 @@ def get_template_ff_file(jdata):
     template_ff_file = jdata.get("template_ff", None)
     if template_ff_file is not None:
         return template_ff_file
-    if jdata.get("model", None) is None and os.path.isfile(DEFAULT_TEMPLATE_FF_FILE):
+    if (
+        jdata.get("model", None) is None
+        and not jdata.get("if_meam", False)
+        and os.path.isfile(DEFAULT_TEMPLATE_FF_FILE)
+    ):
         return DEFAULT_TEMPLATE_FF_FILE
     return None
 
@@ -91,6 +95,8 @@ def get_template_ff_file(jdata):
 def read_template_ff(template_ff_file):
     with open(template_ff_file) as fp:
         template_ff = fp.read()
+    if not template_ff.strip():
+        raise RuntimeError(f"Template force-field file is empty: {template_ff_file}")
     if template_ff and not template_ff.endswith("\n"):
         template_ff += "\n"
     return template_ff
@@ -158,6 +164,8 @@ def uses_template_ff(jdata):
 
 def normalize_template_ff_files(jdata):
     template_ff_files = jdata.get("template_ff_files", [])
+    if template_ff_files is None:
+        return []
     if isinstance(template_ff_files, str):
         template_ff_files = [template_ff_files]
     return template_ff_files

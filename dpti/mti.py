@@ -329,6 +329,10 @@ def make_tasks(iter_name, jdata):
 
 
 def run_task(task_name, jdata, machine_file):
+    settings_file = os.path.join(task_name, "mti_settings.json")
+    if os.path.isfile(settings_file):
+        with open(settings_file) as fp:
+            jdata = json.load(fp)
     job_type = jdata["job_type"]
     nprocs_per_bead = jdata.get("nprocs_per_bead", 1)
     uses_template = uses_template_ff(jdata)
