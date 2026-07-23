@@ -40,6 +40,31 @@ class TestEquiForceField(unittest.TestCase):
         ret2 = dpti.equi.gen_equi_force_field(**input)
         self.assertEqual(ret1, ret2)
 
+    def test_template_ff(self):
+        params = {
+            "model": None,
+            "if_meam": False,
+            "meam_model": None,
+            "template_ff": "pair_style      hdnnp 6.3501269880 dir .\npair_coeff      * * O H\n",
+        }
+
+        ret1 = textwrap.dedent(
+            """\
+        # --------------------- FORCE FIELDS ---------------------
+        pair_style      hdnnp 6.3501269880 dir .
+        pair_coeff      * * O H
+        """
+        )
+        ret2 = dpti.equi.gen_equi_force_field(**params)
+        self.assertEqual(ret1, ret2)
+
+    def test_template_ff_without_trailing_newline(self):
+        ret = dpti.equi.gen_equi_force_field(
+            model=None,
+            template_ff="pair_style hdnnp 6.35 dir .\npair_coeff * * O H",
+        )
+        self.assertTrue(ret.endswith("pair_coeff * * O H\n"))
+
     def test_meam(self):
         input = {"model": None, "if_meam": True, "meam_model": meam_model}
         ret1 = textwrap.dedent(

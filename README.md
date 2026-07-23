@@ -140,6 +140,14 @@ dpti hti compute hti --npt ../equi/npt
 Atomic liquids use the `hti_liq` module; ice and liquid water use `hti_ice` and
 `hti_water`, respectively.
 
+The `hti`, `hti_ice`, and `hti_water` modules accept `template_ff` and
+`template_ff_files` in place of `model`. For HTI scaling, the template must
+contain exactly one `pair_style` command and at least one `pair_coeff` command.
+DPTI rewrites that style as a LAMMPS `hybrid/scaled` sub-style and uses the
+unscaled sub-style energy as the coupling derivative. See the
+[`n2p2-water`](examples/ti/n2p2-water/README.md) example for a complete HTI and
+TI path.
+
 ### TTI and pTI
 
 The `ti` module generates and computes temperature or pressure integration tasks
@@ -159,6 +167,11 @@ dpti ti compute ti_p -H ../hti/hti
 The `-H/--hti` option reads the anchor free energy from an HTI job directory.
 Alternatively, provide the starting free energy explicitly with `-e/--Eo`,
 `-E/--Eo-err`, and `-t/--To`.
+
+The self-contained
+[`examples/ti/n2p2-water`](examples/ti/n2p2-water/README.md) case uses a
+LAMMPS force-field template and its supporting n2p2 model files instead of a
+Deep Potential model.
 
 ### GDI
 

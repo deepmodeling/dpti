@@ -217,13 +217,29 @@ def refine_tasks(from_task, to_task, err, print_ref=False):
         return
 
     equi_conf = hti.get_task_file_abspath(from_task, jdata["equi_conf"])
-    model = hti.get_task_file_abspath(from_task, jdata["model"])
+    model = None
+    if jdata.get("model") is not None:
+        model = hti.get_task_file_abspath(from_task, jdata["model"])
 
     hti.create_path(to_task)
     shutil.copyfile(equi_conf, os.path.join(to_task, "conf.lmp"))
     jdata["equi_conf"] = "conf.lmp"
-    shutil.copyfile(model, os.path.join(to_task, "graph.pb"))
-    jdata["model"] = "graph.pb"
+    if model is not None:
+        shutil.copyfile(model, os.path.join(to_task, "graph.pb"))
+        jdata["model"] = "graph.pb"
+    else:
+        template_source = hti.get_task_file_abspath(from_task, jdata["template_ff"])
+        shutil.copyfile(
+            template_source,
+            os.path.join(to_task, os.path.basename(template_source)),
+        )
+        jdata["template_ff"] = os.path.basename(template_source)
+        copied_template_files = []
+        for template_file in hti.normalize_template_ff_files(jdata):
+            source = hti.get_task_file_abspath(from_task, template_file)
+            shutil.copyfile(source, os.path.join(to_task, os.path.basename(source)))
+            copied_template_files.append(os.path.basename(source))
+        jdata["template_ff_files"] = copied_template_files
     jdata["switch"] = switch
     jdata["orig_task"] = from_task
     jdata["refine_error"] = err

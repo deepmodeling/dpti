@@ -15,9 +15,14 @@ from dpti.lib.utils import (
     create_path,
     get_first_matched_key_from_dict,
     get_task_file_abspath,
+    get_template_ff_file,
     integrate_range,
+    normalize_template_ff_files,
     parse_seq,
+    read_template_ff,
     relative_link_file,
+    relative_link_template_ff_files,
+    uses_template_ff,
 )
 
 
@@ -124,18 +129,17 @@ def make_tasks(iter_name, jdata):
     if "copies" in jdata:
         copies = jdata["copies"]
     model = jdata.get("model", None)
-    template_ff_file = jdata.get("template_ff", None)
+    template_ff_file = get_template_ff_file(jdata)
     template_ff = None
     if template_ff_file is not None:
-        with open(template_ff_file) as f:
-            template_ff = f.read()
+        template_ff = read_template_ff(template_ff_file)
     if model is not None and template_ff is not None:
         raise RuntimeError(
             "You are providing both a dp model and a template forcefield. You can only set one of model and template_ff."
         )
     if model is None and template_ff is None:
         raise RuntimeError(
-            "You must provide a dp model or a template forcefield. Please set either model or template_ff."
+            "You must provide a dp model or a template forcefield. Please set model, template_ff, or put an in.mlip file in the current directory."
         )
     mass_map = get_first_matched_key_from_dict(jdata, ["model_mass_map", "mass_map"])
     nsteps = jdata["nsteps"]
@@ -190,6 +194,10 @@ def make_tasks(iter_name, jdata):
         ti_settings["model"] = relative_link_file(model, job_abs_dir)
     if template_ff is not None:
         ti_settings["template_ff"] = relative_link_file(template_ff_file, job_abs_dir)
+        ti_settings["template_ff_files"] = [
+            os.path.basename(ii)
+            for ii in relative_link_template_ff_files(jdata, job_abs_dir)
+        ]
     with open(os.path.join(job_abs_dir, "mti_settings.json"), "w") as f:
         json.dump(ti_settings, f, indent=4)
 
@@ -240,6 +248,7 @@ def make_tasks(iter_name, jdata):
                             copies=copies,
                         )
                     elif template_ff is not None:
+                        relative_link_template_ff_files(jdata, nbead_abs_dir)
                         lmp_str = _gen_lammps_input(
                             os.path.basename(equi_conf),
                             mass_map,
@@ -293,6 +302,7 @@ def make_tasks(iter_name, jdata):
                         copies=copies,
                     )
                 elif template_ff is not None:
+                    relative_link_template_ff_files(jdata, mass_scale_y_abs_dir)
                     lmp_str = _gen_lammps_input(
                         os.path.basename(equi_conf),
                         mass_map,
@@ -319,8 +329,13 @@ def make_tasks(iter_name, jdata):
 
 
 def run_task(task_name, jdata, machine_file):
+    settings_file = os.path.join(task_name, "mti_settings.json")
+    if os.path.isfile(settings_file):
+        with open(settings_file) as fp:
+            jdata = json.load(fp)
     job_type = jdata["job_type"]
     nprocs_per_bead = jdata.get("nprocs_per_bead", 1)
+    uses_template = uses_template_ff(jdata)
     if job_type == "nbead_convergence":
         task_dir_list = glob.glob(
             os.path.join(task_name, "task.*/mass_scale_y.*/nbead.*")
@@ -333,6 +348,8 @@ def run_task(task_name, jdata, machine_file):
         raise RuntimeError(
             "Unknow job_type. Only nbead_convergence and mass_ti are supported."
         )
+    if uses_template:
+        link_model = None
     task_dir_list = sorted(task_dir_list)
     work_base_dir = os.getcwd()
     with open(machine_file) as f:
@@ -359,10 +376,24 @@ def run_task(task_name, jdata, machine_file):
             machine=machine,
         )
 
+        restart_command = f"if ls *.restart.100000 1> /dev/null 2>&1; then {task_exec} -in in.lammps -p {nbead}x{nprocs_per_bead} -log log -v restart 1; else {task_exec} -in in.lammps -p {nbead}x{nprocs_per_bead} -log log -v restart 0; fi"
+        command = (
+            restart_command
+            if link_model is None
+            else f"{link_model}; {restart_command}"
+        )
+        forward_files = ["in.lammps", "*.lmp"]
+        if uses_template:
+            forward_files.extend(
+                [os.path.basename(ii) for ii in normalize_template_ff_files(jdata)]
+            )
+        else:
+            forward_files.append("graph.pb")
+
         task = Task(
-            command=f"{link_model}; if ls *.restart.100000 1> /dev/null 2>&1; then {task_exec} -in in.lammps -p {nbead}x{nprocs_per_bead} -log log -v restart 1; else {task_exec} -in in.lammps -p {nbead}x{nprocs_per_bead} -log log -v restart 0; fi",
+            command=command,
             task_work_path=ii,
-            forward_files=["in.lammps", "*.lmp", "graph.pb"],
+            forward_files=forward_files,
             backward_files=["log*", "*out.lmp", "*.dump"],
         )
 

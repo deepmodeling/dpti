@@ -1,11 +1,20 @@
 import os
 import shutil
+import tempfile
 import unittest
 
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from dpti.lib.utils import block_avg, integrate_range_hti, parse_seq, relative_link_file
+from dpti.lib.utils import (
+    block_avg,
+    get_template_ff_file,
+    integrate_range_hti,
+    normalize_template_ff_files,
+    parse_seq,
+    read_template_ff,
+    relative_link_file,
+)
 
 lambda_seq = [
     "0.00:0.05:0.010",
@@ -171,6 +180,41 @@ class TestRelativeLinkFile(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree("relative_link_file_test_dir/")
+
+
+class TestTemplateForceFieldUtils(unittest.TestCase):
+    def test_meam_does_not_use_default_template(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                with open("in.mlip", "w") as fp:
+                    fp.write("pair_style zero 10.0\npair_coeff * *\n")
+                self.assertIsNone(
+                    get_template_ff_file({"model": None, "if_meam": True})
+                )
+                self.assertEqual(
+                    get_template_ff_file(
+                        {
+                            "model": None,
+                            "if_meam": True,
+                            "template_ff": "explicit.mlip",
+                        }
+                    ),
+                    "explicit.mlip",
+                )
+            finally:
+                os.chdir(old_cwd)
+
+    def test_empty_template_is_rejected(self):
+        with tempfile.NamedTemporaryFile(mode="w") as fp:
+            fp.write("  \n")
+            fp.flush()
+            with self.assertRaisesRegex(RuntimeError, "is empty"):
+                read_template_ff(fp.name)
+
+    def test_null_template_file_list_is_empty(self):
+        self.assertEqual(normalize_template_ff_files({"template_ff_files": None}), [])
 
 
 if __name__ == "__main__":

@@ -1,3 +1,5 @@
+import os
+import tempfile
 import textwrap
 import unittest
 from unittest.mock import MagicMock, patch
@@ -10,6 +12,22 @@ from dpti import ti
 class TestTiGenLammpsInput(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
+
+    def test_meam_and_explicit_template_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_ff = os.path.join(tmpdir, "in.mlip")
+            with open(template_ff, "w") as fp:
+                fp.write("pair_style hdnnp 6.35 dir .\npair_coeff * * Sn\n")
+            with self.assertRaisesRegex(RuntimeError, "both a MEAM model"):
+                ti.make_tasks(
+                    os.path.join(tmpdir, "job"),
+                    {
+                        "equi_conf": "unused.lmp",
+                        "if_meam": True,
+                        "model": None,
+                        "template_ff": template_ff,
+                    },
+                )
 
     @patch("numpy.random.default_rng")
     def test_deepmd(self, patch_random):
@@ -142,6 +160,32 @@ class TestTiGenLammpsInput(unittest.TestCase):
         )
         ret2 = ti._gen_lammps_input(**input)
         self.assertEqual(ret1, ret2)
+
+    @patch("numpy.random.default_rng")
+    def test_template_ff(self, patch_random):
+        patch_random.return_value = MagicMock(integers=MagicMock(return_value=7858))
+        ret = ti._gen_lammps_input(
+            conf_file="conf.lmp",
+            mass_map=[16.0, 1.0],
+            model=None,
+            nsteps=1000,
+            timestep=0.0005,
+            ens="npt",
+            temp=300,
+            pres=1,
+            tau_t=0.1,
+            tau_p=0.5,
+            thermo_freq=10,
+            dump_freq=10,
+            if_meam=False,
+            meam_model=None,
+            template_ff=(
+                "pair_style      hdnnp 6.3501269880 dir .\n" "pair_coeff      * * O H\n"
+            ),
+        )
+        self.assertIn("pair_style      hdnnp 6.3501269880 dir .", ret)
+        self.assertIn("pair_coeff      * * O H", ret)
+        self.assertNotIn("pair_style      deepmd", ret)
 
 
 if __name__ == "__main__":
