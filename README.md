@@ -160,6 +160,11 @@ The `-H/--hti` option reads the anchor free energy from an HTI job directory.
 Alternatively, provide the starting free energy explicitly with `-e/--Eo`,
 `-E/--Eo-err`, and `-t/--To`.
 
+The self-contained
+[`examples/ti/n2p2-water`](examples/ti/n2p2-water/README.md) case shows how to
+use a LAMMPS force-field template and its supporting n2p2 model files instead of
+a Deep Potential model.
+
 ### GDI
 
 GDI propagates a phase boundary from an initial coexistence point. The phase

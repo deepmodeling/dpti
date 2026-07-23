@@ -1,0 +1,2 @@
+pair_style      hdnnp 6.3501269880 dir . showew no showewsum 1000 resetew yes maxew 1000000 cflength 1.8897261328 cfenergy 0.0367493254
+pair_coeff      * * O H
