@@ -373,7 +373,11 @@ def run_task(task_name, jdata, machine_file):
         )
 
         restart_command = f"if ls *.restart.100000 1> /dev/null 2>&1; then {task_exec} -in in.lammps -p {nbead}x{nprocs_per_bead} -log log -v restart 1; else {task_exec} -in in.lammps -p {nbead}x{nprocs_per_bead} -log log -v restart 0; fi"
-        command = restart_command if link_model is None else f"{link_model}; {restart_command}"
+        command = (
+            restart_command
+            if link_model is None
+            else f"{link_model}; {restart_command}"
+        )
         forward_files = ["in.lammps", "*.lmp"]
         if uses_template:
             forward_files.extend(

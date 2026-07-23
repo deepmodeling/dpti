@@ -1,6 +1,6 @@
-import unittest
 import os
 import tempfile
+import unittest
 
 from dpti import mti
 
@@ -57,8 +57,7 @@ class TestMtiGenLammpsInput(unittest.TestCase):
 
     def test_default_in_mlip_is_used_as_template_ff(self):
         template_ff = (
-            "pair_style      hdnnp 6.3501269880 dir .\n"
-            "pair_coeff      * * O H\n"
+            "pair_style      hdnnp 6.3501269880 dir .\n" "pair_coeff      * * O H\n"
         )
         with tempfile.TemporaryDirectory() as tmpdir:
             cwd = os.getcwd()
@@ -90,9 +89,7 @@ class TestMtiGenLammpsInput(unittest.TestCase):
                     },
                 )
 
-                with open(
-                    "job/task.000000/mass_scale_y.000000/in.lammps"
-                ) as fp:
+                with open("job/task.000000/mass_scale_y.000000/in.lammps") as fp:
                     ret = fp.read()
             finally:
                 os.chdir(cwd)

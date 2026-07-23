@@ -248,12 +248,16 @@ def _setup_dpdt(task_path, jdata):
     if template_ff_0:
         shutil.copyfile(
             template_ff_0,
-            os.path.join(os.path.abspath(task_path), _get_phase_template_ff_name(jdata, 0)),
+            os.path.join(
+                os.path.abspath(task_path), _get_phase_template_ff_name(jdata, 0)
+            ),
         )
     if template_ff_1:
         shutil.copyfile(
             template_ff_1,
-            os.path.join(os.path.abspath(task_path), _get_phase_template_ff_name(jdata, 1)),
+            os.path.join(
+                os.path.abspath(task_path), _get_phase_template_ff_name(jdata, 1)
+            ),
         )
     template_ff_files = []
     for phase_key in ["phase_i", "phase_ii"]:
