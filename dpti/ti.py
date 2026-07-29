@@ -557,14 +557,11 @@ def post_tasks(
             ea, ee = block_avg(data[:, stat_col], skip=stat_skip, block_size=stat_bsize)
         enthalpy, _ = block_avg(data[:, 4], skip=stat_skip, block_size=stat_bsize)
         msd_xyz = data[-1, -1]
-        # COM corr
+        # COM kinetic-energy correction applies only to temperature paths
         if path == "t" or path == "t-ginv":
             ea += 1.5 * pc.Boltzmann * tt / pc.electron_volt
             # print('~~', tt, ea, 1.5 * pc.Boltzmann * tt / pc.electron_volt)
-        elif path == "p":
-            temp = jdata["temp"]
-            ea += 1.5 * pc.Boltzmann * temp / pc.electron_volt
-        else:
+        elif path != "p":
             raise RuntimeError("invalid path setting")
         # normalized by number of atoms
         ea /= natoms
