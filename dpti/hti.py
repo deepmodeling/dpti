@@ -25,9 +25,14 @@ from dpti.lib.utils import (
     get_first_matched_key_from_dict,
     get_model_filename,
     get_task_file_abspath,
+    get_template_ff_file,
     integrate_range_hti,
+    normalize_template_ff_files,
     parse_seq,
+    read_template_ff,
     relative_link_file,
+    render_scaled_template_ff,
+    uses_template_ff,
 )
 
 
@@ -93,7 +98,15 @@ def _ff_lj_on(lamb, model, sparam):
     return ret
 
 
-def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None, append=None):
+def _ff_deep_on(
+    lamb,
+    model,
+    sparam,
+    if_meam=False,
+    meam_model=None,
+    append=None,
+    template_ff=None,
+):
     nn = sparam["n"]
     alpha_lj = sparam["alpha_lj"]
     rcut = sparam["rcut"]
@@ -109,7 +122,14 @@ def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None, append=None
     # if if_meam:
     #     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n' % (nn, alpha_lj, rcut)
     #     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn \n'
-    if if_meam:
+    if template_ff is not None:
+        rendered, pair_style = render_scaled_template_ff(
+            template_ff,
+            "v_LAMBDA",
+            [("1.0", "lj/cut/soft", [f"{nn:f}", f"{alpha_lj:f}", f"{rcut:f}"])],
+        )
+        ret += rendered
+    elif if_meam:
         ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
     else:
@@ -135,7 +155,9 @@ def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None, append=None
     # ret += 'pair_coeff      1 1 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oo, activation)
     # ret += 'pair_coeff      1 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_oh, activation)
     # ret += 'pair_coeff      2 2 lj/cut/soft ${EPSILON} %f %f\n' % (sigma_hh, activation)
-    if if_meam:
+    if template_ff is not None:
+        ret += f"compute         e_mlip all pair {pair_style}\n"
+    elif if_meam:
         ret += "fix             tot_pot all adapt/fep 0 pair meam scale * * v_LAMBDA\n"
         ret += "compute         e_diff all fep ${TEMP} pair meam scale * * v_ONE\n"
     else:
@@ -182,7 +204,15 @@ def _ff_deep_on(lamb, model, sparam, if_meam=False, meam_model=None, append=None
 #     return ret
 
 
-def _ff_lj_off(lamb, model, sparam, if_meam=False, meam_model=None, append=None):
+def _ff_lj_off(
+    lamb,
+    model,
+    sparam,
+    if_meam=False,
+    meam_model=None,
+    append=None,
+    template_ff=None,
+):
     nn = sparam["n"]
     alpha_lj = sparam["alpha_lj"]
     rcut = sparam["rcut"]
@@ -198,7 +228,14 @@ def _ff_lj_off(lamb, model, sparam, if_meam=False, meam_model=None, append=None)
     # if if_meam:
     #     ret += 'pair_style      hybrid/overlay meam lj/cut/soft %f %f %f  \n'  % (nn, alpha_lj, rcut)
     #     ret += 'pair_coeff      * * meam /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
-    if if_meam:
+    if template_ff is not None:
+        rendered, _ = render_scaled_template_ff(
+            template_ff,
+            "1.0",
+            [("1.0", "lj/cut/soft", [f"{nn:f}", f"{alpha_lj:f}", f"{rcut:f}"])],
+        )
+        ret += rendered
+    elif if_meam:
         ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
         ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
@@ -283,7 +320,15 @@ def _ff_spring(lamb, m_spring_k, var_spring):
 
 
 def _ff_soft_lj(
-    lamb, model, m_spring_k, step, sparam, if_meam=False, meam_model=None, append=None
+    lamb,
+    model,
+    m_spring_k,
+    step,
+    sparam,
+    if_meam=False,
+    meam_model=None,
+    append=None,
+    template_ff=None,
 ):
     ret = ""
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
@@ -293,13 +338,25 @@ def _ff_soft_lj(
     elif step == "deep_on":
         # ret += _ff_meam_on(lamb, model, sparam)
         ret += _ff_deep_on(
-            lamb, model, sparam, if_meam=if_meam, meam_model=meam_model, append=append
+            lamb,
+            model,
+            sparam,
+            if_meam=if_meam,
+            meam_model=meam_model,
+            append=append,
+            template_ff=template_ff,
         )
         var_spring = False
     elif step == "spring_off":
         # ret += _ff_meam_lj_off(lamb, model, sparam)
         ret += _ff_lj_off(
-            lamb, model, sparam, if_meam=if_meam, meam_model=meam_model, append=append
+            lamb,
+            model,
+            sparam,
+            if_meam=if_meam,
+            meam_model=meam_model,
+            append=append,
+            template_ff=template_ff,
         )
         var_spring = True
     else:
@@ -310,14 +367,19 @@ def _ff_soft_lj(
     return ret
 
 
-def _ff_two_steps(lamb, model, m_spring_k, step, append=None):
+def _ff_two_steps(lamb, model, m_spring_k, step, append=None, template_ff=None):
     ret = ""
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
-    if append:
+    if template_ff is not None:
+        scale = "v_LAMBDA" if step in {"both", "deep_on"} else "1.0"
+        rendered, _ = render_scaled_template_ff(template_ff, scale)
+        ret += rendered
+    elif append:
         ret += f"pair_style      deepmd {model:s} {append:s}\n"
+        ret += "pair_coeff * *\n"
     else:
         ret += f"pair_style      deepmd {model:s}\n"
-    ret += "pair_coeff * *\n"
+        ret += "pair_coeff * *\n"
 
     if step == "both" or step == "spring_off":
         var_spring = True
@@ -334,7 +396,7 @@ def _ff_two_steps(lamb, model, m_spring_k, step, append=None):
 
     ret += _ff_spring(lamb, m_spring_k, var_spring)
 
-    if var_deep:
+    if var_deep and template_ff is None:
         ret += "fix             l_deep all adapt 1 pair deepmd scale * * v_LAMBDA\n"
     ret += "compute         e_deep all pe pair\n"
     return ret
@@ -364,6 +426,7 @@ def _gen_lammps_input(
     meam_model=None,
     custom_variables=None,
     append=None,
+    template_ff=None,
 ):
     ret = ""
     ret += "clear\n"
@@ -395,7 +458,9 @@ def _gen_lammps_input(
 
     # force field setting
     if switch == "one-step" or switch == "two-step":
-        ret += _ff_two_steps(lamb, model, m_spring_k, step, append)
+        ret += _ff_two_steps(
+            lamb, model, m_spring_k, step, append, template_ff=template_ff
+        )
     elif switch == "three-step":
         ret += _ff_soft_lj(
             lamb,
@@ -406,6 +471,7 @@ def _gen_lammps_input(
             if_meam=if_meam,
             meam_model=meam_model,
             append=append,
+            template_ff=template_ff,
         )
     else:
         raise RuntimeError("unknow switch", switch)
@@ -418,12 +484,22 @@ def _gen_lammps_input(
     if 1 - lamb != 0:
         if not isinstance(m_spring_k, list):
             if switch == "three-step":
-                ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring c_e_diff[1] c_allmsd[*]\n"
+                energy_compute = (
+                    "c_e_mlip"
+                    if template_ff is not None and step == "deep_on"
+                    else "c_e_diff[1]"
+                )
+                ret += f"thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring {energy_compute} c_allmsd[*]\n"
             else:
                 ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol f_l_spring c_e_deep c_allmsd[*]\n"
         else:
             if switch == "three-step":
-                ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol v_l_spring c_e_diff[1] c_allmsd[*]\n"
+                energy_compute = (
+                    "c_e_mlip"
+                    if template_ff is not None and step == "deep_on"
+                    else "c_e_diff[1]"
+                )
+                ret += f"thermo_style    custom step ke pe etotal enthalpy temp press vol v_l_spring {energy_compute} c_allmsd[*]\n"
             else:
                 ret += "thermo_style    custom step ke pe etotal enthalpy temp press vol v_l_spring c_e_deep c_allmsd[*]\n"
     else:
@@ -552,8 +628,16 @@ def make_tasks(iter_name, jdata, ref="einstein", switch="one-step", if_meam=None
         if_meam = jdata.get("if_meam", False)
     equi_conf = os.path.abspath(jdata["equi_conf"])
     meam_model = jdata.get("meam_model", None)
-    model = os.path.abspath(jdata["model"])
-    model_file = get_model_filename(model)
+    model = jdata.get("model")
+    if model is not None:
+        model = os.path.abspath(model)
+    model_file = get_model_filename(model) if model is not None else None
+    template_ff_file = None if if_meam else get_template_ff_file(jdata)
+    if template_ff_file is not None:
+        template_ff_file = os.path.abspath(template_ff_file)
+    template_ff_files = [
+        os.path.abspath(path) for path in normalize_template_ff_files(jdata)
+    ]
 
     if if_meam is None:
         if_meam = jdata.get("if_meam", None)
@@ -578,16 +662,31 @@ def make_tasks(iter_name, jdata, ref="einstein", switch="one-step", if_meam=None
         copied_conf = os.path.join(os.path.abspath(iter_name), "conf.lmp")
         shutil.copyfile(equi_conf, copied_conf)
         jdata["equi_conf"] = "conf.lmp"
-        linked_model = os.path.join(os.path.abspath(iter_name), model_file)
+        linked_model = None
 
         if if_meam:
             relative_link_file(meam_model["library"], job_abs_dir)
             relative_link_file(meam_model["potential"], job_abs_dir)
+        elif model is not None:
+            linked_model = os.path.join(os.path.abspath(iter_name), model_file)
+            shutil.copyfile(model, linked_model)
+            jdata["model"] = model_file
+        elif template_ff_file is not None:
+            template_destination = os.path.join(
+                os.path.abspath(iter_name), os.path.basename(template_ff_file)
+            )
+            shutil.copyfile(template_ff_file, template_destination)
+            jdata["template_ff"] = os.path.basename(template_destination)
+            copied_template_files = []
+            for source in template_ff_files:
+                destination = os.path.join(
+                    os.path.abspath(iter_name), os.path.basename(source)
+                )
+                shutil.copyfile(source, destination)
+                copied_template_files.append(os.path.basename(destination))
+            jdata["template_ff_files"] = copied_template_files
         else:
-            pass
-
-        shutil.copyfile(model, linked_model)
-        jdata["model"] = model_file
+            raise RuntimeError("HTI requires model, template_ff, or a MEAM model")
         cwd = os.getcwd()
         os.chdir(iter_name)
         with open("in.json", "w") as fp:
@@ -704,9 +803,19 @@ def _make_tasks(
 
     equi_conf = jdata["equi_conf"]
     equi_conf = os.path.abspath(equi_conf)
-    model = jdata["model"]
-    model = os.path.abspath(model)
-    model_file = get_model_filename(model)
+    model = jdata.get("model")
+    if model is not None:
+        model = os.path.abspath(model)
+    model_file = get_model_filename(model) if model is not None else None
+    template_ff_file = None if if_meam else get_template_ff_file(jdata)
+    template_ff = None
+    if template_ff_file is not None:
+        template_ff_file = os.path.abspath(template_ff_file)
+        template_ff = read_template_ff(template_ff_file)
+    if model is not None and template_ff is not None:
+        raise RuntimeError("You can only set one of model and template_ff for HTI")
+    if model is None and template_ff is None and not if_meam:
+        raise RuntimeError("HTI requires model, template_ff, or a MEAM model")
     # mass_map = jdata['mass_map']
     mass_map = get_first_matched_key_from_dict(jdata, ["mass_map", "model_mass_map"])
     nsteps = jdata["nsteps"]
@@ -771,15 +880,45 @@ def _make_tasks(
         os.symlink(os.path.relpath(equi_conf), "conf.lmp")
         os.chdir(cwd)
     jdata["equi_conf"] = "conf.lmp"
-    linked_model = os.path.join(os.path.abspath(iter_name), model_file)
-    if not link:
-        shutil.copyfile(model, linked_model)
-    else:
-        cwd = os.getcwd()
-        os.chdir(iter_name)
-        os.symlink(os.path.relpath(model), model_file)
-        os.chdir(cwd)
-    jdata["model"] = model_file
+    linked_model = None
+    linked_template_files = []
+    if model is not None:
+        linked_model = os.path.join(os.path.abspath(iter_name), model_file)
+        if not link:
+            shutil.copyfile(model, linked_model)
+        else:
+            cwd = os.getcwd()
+            os.chdir(iter_name)
+            os.symlink(os.path.relpath(model), model_file)
+            os.chdir(cwd)
+        jdata["model"] = model_file
+    elif template_ff is not None:
+        template_destination = os.path.join(
+            os.path.abspath(iter_name), os.path.basename(template_ff_file)
+        )
+        if not link:
+            shutil.copyfile(template_ff_file, template_destination)
+        else:
+            os.symlink(
+                os.path.relpath(template_ff_file, os.path.abspath(iter_name)),
+                template_destination,
+            )
+        jdata["template_ff"] = os.path.basename(template_destination)
+        for source in normalize_template_ff_files(jdata):
+            source = os.path.abspath(source)
+            destination = os.path.join(
+                os.path.abspath(iter_name), os.path.basename(source)
+            )
+            if not link:
+                shutil.copyfile(source, destination)
+            else:
+                os.symlink(
+                    os.path.relpath(source, os.path.abspath(iter_name)), destination
+                )
+            linked_template_files.append(destination)
+        jdata["template_ff_files"] = [
+            os.path.basename(path) for path in linked_template_files
+        ]
     langevin = jdata.get("langevin", True)
 
     cwd = os.getcwd()
@@ -793,7 +932,13 @@ def _make_tasks(
         create_path(work_path)
         os.chdir(work_path)
         os.symlink(os.path.relpath(copied_conf), "conf.lmp")
-        os.symlink(os.path.relpath(linked_model), model_file)
+        if linked_model is not None:
+            os.symlink(os.path.relpath(linked_model), model_file)
+        for template_file in linked_template_files:
+            os.symlink(
+                os.path.relpath(template_file, os.path.abspath(".")),
+                os.path.basename(template_file),
+            )
         if if_meam:
             meam_library_basename = os.path.basename(meam_model["library"])
             meam_potential_basename = os.path.basename(meam_model["potential"])
@@ -834,6 +979,7 @@ def _make_tasks(
                 meam_model=meam_model,
                 custom_variables=custom_variables,
                 append=append,
+                template_ff=template_ff,
             )
         elif ref == "ideal":
             raise RuntimeError("choose hti_liq.py")
@@ -920,7 +1066,16 @@ def refine_task(
     to_jdata["back_map"] = back_map
     to_jdata["refine_error"] = err
     to_jdata["equi_conf"] = get_task_file_abspath(from_task, from_jdata["equi_conf"])
-    to_jdata["model"] = get_task_file_abspath(from_task, from_jdata["model"])
+    if from_jdata.get("model") is not None:
+        to_jdata["model"] = get_task_file_abspath(from_task, from_jdata["model"])
+    else:
+        to_jdata["template_ff"] = get_task_file_abspath(
+            from_task, from_jdata["template_ff"]
+        )
+        to_jdata["template_ff_files"] = [
+            get_task_file_abspath(from_task, path)
+            for path in normalize_template_ff_files(from_jdata)
+        ]
 
     if switch == "one-step" or step == "both":
         make_tasks(to_task, to_jdata, to_jdata["reference"], if_meam=if_meam)
@@ -1517,6 +1672,15 @@ def _graph_link_command(task_dir, job_work_dir, model_file="graph.pb"):
 
 
 def run_task(task_dir, machine_file, task_name, no_dp=False):
+    settings_file = os.path.join(task_dir, "in.json")
+    jdata = {}
+    if os.path.isfile(settings_file):
+        with open(settings_file) as fp:
+            jdata = json.load(fp)
+    uses_template = uses_template_ff(jdata)
+    template_ff_files = [
+        os.path.basename(path) for path in normalize_template_ff_files(jdata)
+    ]
     if task_name == "00" or task_name == "01" or task_name == "02":
         job_work_dir_ = glob.glob(os.path.join(task_dir, task_name + "*"))
         assert (
@@ -1542,18 +1706,19 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
         resources=resources,
         machine=machine,
     )
-    model_file = _get_task_model_file(task_dir)
+    model_file = None if uses_template else _get_task_model_file(task_dir)
 
-    command = f"{mdata['command']} -i in.lammps"
+    command = f"{mdata['command']} -i in.lammps -screen none"
     if not no_dp and model_file:
-        command = (
-            f"{_graph_link_command(task_dir, job_work_dir, model_file)}; " f"{command}"
-        )
+        command = f"{_graph_link_command(task_dir, job_work_dir, model_file)}; {command}"
+    forward_files = ["in.lammps", "conf.lmp"]
+    if uses_template:
+        forward_files.extend(template_ff_files)
     task_list = [
         Task(
             command=command,
             task_work_path=ii,
-            forward_files=["in.lammps", "conf.lmp"],
+            forward_files=forward_files,
             backward_files=["log*", "dump.hti", "out.lmp"],
         )
         for ii in task_dir_list

@@ -21,9 +21,14 @@ from dpti.lib.utils import (
     create_path,
     get_first_matched_key_from_dict,
     get_task_file_abspath,
+    get_template_ff_file,
     integrate_range,
+    normalize_template_ff_files,
     parse_seq,
+    read_template_ff,
     relative_link_file,
+    relative_link_template_ff_files,
+    uses_template_ff,
 )
 
 # from dpti.equi import gen_equi_lammps_input
@@ -62,6 +67,7 @@ def _gen_lammps_input(
     meam_model=None,
     custom_variables=None,
     append=None,
+    template_ff=None,
 ):
     ret = ""
     ret += "clear\n"
@@ -95,6 +101,8 @@ def _gen_lammps_input(
     if if_meam:
         ret += "pair_style      meam\n"
         ret += f'pair_coeff      * * {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
+    elif template_ff is not None:
+        ret += template_ff
     else:
         if append:
             ret += f"pair_style      deepmd {model:s} {append:s}\n"
@@ -152,7 +160,23 @@ def make_tasks(iter_name, jdata, if_meam=None):
     copies = None
     if "copies" in jdata:
         copies = jdata["copies"]
-    model = jdata["model"]
+    model = jdata.get("model", None)
+    template_ff_file = get_template_ff_file(jdata)
+    template_ff = None
+    if template_ff_file is not None:
+        template_ff = read_template_ff(template_ff_file)
+    if if_meam and template_ff is not None:
+        raise RuntimeError(
+            "You are providing both a MEAM model and a template forcefield. You can only set one of meam_model and template_ff."
+        )
+    if model is not None and template_ff is not None:
+        raise RuntimeError(
+            "You are providing both a dp model and a template forcefield. You can only set one of model and template_ff."
+        )
+    if model is None and template_ff is None and not if_meam:
+        raise RuntimeError(
+            "You must provide a dp model, a MEAM model, or a template forcefield. Please set model, meam_model, template_ff, or put an in.mlip file in the current directory."
+        )
     custom_variables = jdata.get("custom_variables", None)
     append = jdata.get("append", None)
     meam_model = jdata.get("meam_model", None)
@@ -235,6 +259,12 @@ def make_tasks(iter_name, jdata, if_meam=None):
     ti_settings["equi_conf"] = relative_link_file(equi_conf, job_abs_dir)
     if model:
         ti_settings["model"] = relative_link_file(model, job_abs_dir)
+    if template_ff is not None:
+        ti_settings["template_ff"] = relative_link_file(template_ff_file, job_abs_dir)
+        ti_settings["template_ff_files"] = [
+            os.path.basename(ii)
+            for ii in relative_link_template_ff_files(jdata, job_abs_dir)
+        ]
     if if_meam:
         relative_link_file(meam_model["library"], job_abs_dir)
         relative_link_file(meam_model["potential"], job_abs_dir)
@@ -252,6 +282,8 @@ def make_tasks(iter_name, jdata, if_meam=None):
         if model:
             relative_link_file(model, task_abs_dir)
             task_model = os.path.basename(model)
+        if template_ff is not None:
+            relative_link_template_ff_files(jdata, task_abs_dir)
         if if_meam:
             relative_link_file(meam_model["library"], task_abs_dir)
             relative_link_file(meam_model["potential"], task_abs_dir)
@@ -280,6 +312,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                 meam_model=meam_model,
                 custom_variables=custom_variables,
                 append=append,
+                template_ff=template_ff,
             )
             thermo_out = temp_list[ii]
             # with open('thermo.out', 'w') as fp :
@@ -303,6 +336,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                 meam_model=meam_model,
                 custom_variables=custom_variables,
                 append=append,
+                template_ff=template_ff,
             )
             thermo_out = temp_list[ii]
             # with open('thermo.out', 'w') as fp :
@@ -326,6 +360,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
                 meam_model=meam_model,
                 custom_variables=custom_variables,
                 append=append,
+                template_ff=template_ff,
             )
             thermo_out = pres_list[ii]
         else:
@@ -522,14 +557,11 @@ def post_tasks(
             ea, ee = block_avg(data[:, stat_col], skip=stat_skip, block_size=stat_bsize)
         enthalpy, _ = block_avg(data[:, 4], skip=stat_skip, block_size=stat_bsize)
         msd_xyz = data[-1, -1]
-        # COM corr
+        # COM kinetic-energy correction applies only to temperature paths
         if path == "t" or path == "t-ginv":
             ea += 1.5 * pc.Boltzmann * tt / pc.electron_volt
             # print('~~', tt, ea, 1.5 * pc.Boltzmann * tt / pc.electron_volt)
-        elif path == "p":
-            temp = jdata["temp"]
-            ea += 1.5 * pc.Boltzmann * temp / pc.electron_volt
-        else:
+        elif path != "p":
             raise RuntimeError("invalid path setting")
         # normalized by number of atoms
         ea /= natoms
@@ -1057,6 +1089,15 @@ def _get_task_model_file(task_name):
 
 
 def run_task(task_name, machine_file):
+    settings_file = os.path.join(task_name, "ti_settings.json")
+    jdata = {}
+    if os.path.isfile(settings_file):
+        with open(settings_file) as fp:
+            jdata = json.load(fp)
+    uses_template = uses_template_ff(jdata)
+    template_ff_files = [
+        os.path.basename(ii) for ii in normalize_template_ff_files(jdata)
+    ]
     task_dir_list = glob.glob(os.path.join(task_name, "task.*"))
     task_dir_list = sorted(task_dir_list)
     task_dir_list = [ii for ii in task_dir_list if not _is_completed_lammps_task(ii)]
@@ -1074,24 +1115,28 @@ def run_task(task_name, machine_file):
         resources=resources,
         machine=machine,
     )
-    model_file = _get_task_model_file(task_name)
+    model_file = None if uses_template else _get_task_model_file(task_name)
 
-    task_list = [
-        Task(
-            command=(
-                f'ln -sf "../{model_file}" "{model_file}"; {mdata["command"]} -in in.lammps'
-                if model_file
-                else f"{mdata['command']} -in in.lammps"
-            ),
-            task_work_path=ii,
-            forward_files=["in.lammps", "*.lmp"],
-            backward_files=["log*", "final.lmp", "traj.dump"],
+    task_list = []
+    for ii in task_dir_list:
+        command = f"{mdata['command']} -in in.lammps -screen none"
+        forward_files = ["in.lammps", "*.lmp"]
+        if uses_template:
+            forward_files.extend(template_ff_files)
+        elif model_file:
+            command = f'ln -sf "../{model_file}" "{model_file}"; {command}'
+        task_list.append(
+            Task(
+                command=command,
+                task_work_path=ii,
+                forward_files=forward_files,
+                backward_files=["log*", "final.lmp", "traj.dump"],
+            )
         )
-        for ii in task_dir_list
-    ]
 
-    if model_file:
-        submission.forward_common_files = [os.path.join(task_name, model_file)]
+    submission.forward_common_files = (
+        [os.path.join(task_name, model_file)] if model_file else []
+    )
     submission.register_task_list(task_list=task_list)
     submission.run_submission()
 

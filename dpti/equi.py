@@ -21,7 +21,12 @@ from dpti.lib.utils import (
     create_dict_not_empty_key,
     create_path,
     get_task_file_abspath,
+    get_template_ff_file,
+    normalize_template_ff_files,
+    read_template_ff,
     relative_link_file,
+    relative_link_template_ff_files,
+    uses_template_ff,
 )
 from dpti.lib.water import compute_bonds, posi_diff
 
@@ -76,7 +81,9 @@ def gen_equi_header(
 
 
 # def gen_equi_force_field(model, if_meam=None):
-def gen_equi_force_field(model, if_meam=False, meam_model=None, append=None):
+def gen_equi_force_field(
+    model, if_meam=False, meam_model=None, append=None, template_ff=None
+):
     # equi_settings =
     # model = equi_settings['model']
     # assert type(model) is dict, f"equi_settings['model] must be a dict. model:{model}"
@@ -94,11 +101,16 @@ def gen_equi_force_field(model, if_meam=False, meam_model=None, append=None):
     ret = ""
     ret += "# --------------------- FORCE FIELDS ---------------------\n"
     if not if_meam:
-        ret += f"pair_style      deepmd {model}"
-        if append is not None:
-            ret += " " + append
-        ret += "\n"
-        ret += "pair_coeff * *\n"
+        if template_ff is not None:
+            ret += template_ff
+            if template_ff and not template_ff.endswith("\n"):
+                ret += "\n"
+        else:
+            ret += f"pair_style      deepmd {model}"
+            if append is not None:
+                ret += " " + append
+            ret += "\n"
+            ret += "pair_coeff * *\n"
     else:
         meam_library = meam_model["library"]
         meam_potential = meam_model["potential"]
@@ -183,6 +195,7 @@ def gen_equi_lammps_input(
     meam_model=None,
     custom_variables=None,
     append=None,
+    template_ff=None,
 ):
     if dump_freq is None:
         dump_freq = thermo_freq
@@ -199,7 +212,11 @@ def gen_equi_lammps_input(
         custom_variables=custom_variables,
     )
     equi_force_field = gen_equi_force_field(
-        model, if_meam=if_meam, meam_model=meam_model, append=append
+        model,
+        if_meam=if_meam,
+        meam_model=meam_model,
+        append=append,
+        template_ff=template_ff,
     )
     equi_thermo_settings = gen_equi_thermo_settings(timestep=timestep)
     equi_dump_settings = gen_equi_dump_settings(if_dump_avg_posi=if_dump_avg_posi)
@@ -367,7 +384,7 @@ def make_task(
     equi_args = [
         Argument("equi_conf", str),
         Argument("mass_map", list, alias=["model_mass_map"]),
-        Argument("model", str),
+        Argument("model", str, optional=True, default=None),
         Argument("nsteps", int),
         Argument("timestep", float, alias=["dt"]),
         Argument("ens", str),
@@ -383,6 +400,8 @@ def make_task(
         Argument("is_water", bool, optional=True, default=False, alias=["if_water"]),
         Argument("if_meam", bool, optional=True, default=False),
         Argument("meam_model", list, optional=True, default=False),
+        Argument("template_ff", str, optional=True, default=None),
+        Argument("template_ff_files", [str, list], optional=True, default=[]),
     ]
 
     equi_format = Argument("equi", dict, equi_args)
@@ -412,9 +431,32 @@ def make_task(
         equi_settings["equi_conf"] = os.path.basename(equi_conf)
 
     model = equi_settings["model"]
+    template_ff_file = get_template_ff_file(equi_settings)
+    template_ff = None
+    if template_ff_file is not None:
+        template_ff = read_template_ff(template_ff_file)
+    if equi_settings["if_meam"] and template_ff is not None:
+        raise RuntimeError(
+            "You are providing both a MEAM model and a template forcefield. You can only set one of meam_model and template_ff."
+        )
+    if model is not None and template_ff is not None:
+        raise RuntimeError(
+            "You are providing both a dp model and a template forcefield. You can only set one of model and template_ff."
+        )
+    if model is None and template_ff is None and not equi_settings["if_meam"]:
+        raise RuntimeError(
+            "You must provide a dp model, a MEAM model, or a template forcefield. Please set model, meam_model, template_ff, or put an in.mlip file in the current directory."
+        )
     if model:
         relative_link_file(model, task_abs_dir)
         equi_settings["model"] = os.path.basename(model)
+    if template_ff is not None:
+        relative_link_file(template_ff_file, task_abs_dir)
+        equi_settings["template_ff"] = os.path.basename(template_ff_file)
+        equi_settings["template_ff_files"] = [
+            os.path.basename(ii)
+            for ii in relative_link_template_ff_files(equi_settings, task_abs_dir)
+        ]
 
     if_meam = equi_settings.get("if_meam", None)
     meam_model = equi_settings.get("meam_model", None)
@@ -447,6 +489,7 @@ def make_task(
         meam_model=equi_settings["meam_model"],
         custom_variables=equi_settings.get("custom_variables", None),
         append=equi_settings.get("append", None),
+        template_ff=template_ff,
     )
 
     with open(os.path.join(task_abs_dir, "in.lammps"), "w") as fp:
@@ -641,6 +684,21 @@ def post_task(iter_name, natoms=None, is_water=None):
 
 def run_task(task_name, machine_file):
     task_dir_list = [task_name]
+    settings_file = os.path.join(task_name, "equi_settings.json")
+    jdata = {}
+    if os.path.isfile(settings_file):
+        with open(settings_file) as fp:
+            jdata = json.load(fp)
+    uses_template = uses_template_ff(jdata)
+    forward_files = ["in.lammps", "*.lmp"]
+    if uses_template:
+        forward_files.extend(
+            [os.path.basename(ii) for ii in normalize_template_ff_files(jdata)]
+        )
+    else:
+        model_file = _get_task_model_file(task_name)
+        if model_file:
+            forward_files.append(model_file)
     work_base_dir = os.getcwd()
     with open(machine_file) as f:
         mdata = json.load(f)
@@ -652,14 +710,10 @@ def run_task(task_name, machine_file):
         resources=resources,
         machine=machine,
     )
-    model_file = _get_task_model_file(task_name)
-    forward_files = ["in.lammps", "*.lmp"]
-    if model_file:
-        forward_files.append(model_file)
 
     task_list = [
         Task(
-            command=f"{mdata['command']} -in in.lammps",
+            command=f"{mdata['command']} -in in.lammps -screen none",
             task_work_path=ii,
             forward_files=forward_files,
             backward_files=["log*", "dump.equi", "out.lmp"],
