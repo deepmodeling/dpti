@@ -14,7 +14,12 @@ from dpti.lib.dump import system_data
 # import dpti
 from dpti.lib.lammps import get_last_dump, get_natoms, get_thermo
 from dpti.lib.lmp import from_system_data
-from dpti.lib.utils import block_avg, create_path, get_task_file_abspath
+from dpti.lib.utils import (
+    block_avg,
+    create_path,
+    get_model_filename,
+    get_task_file_abspath,
+)
 from dpti.lib.water import compute_bonds, posi_diff
 
 # from lib import dump
@@ -218,11 +223,12 @@ def make_task(
         os.symlink(os.path.realpath(equi_conf), "conf.lmp")
     else:
         open("conf.lmp", "w").write(npt_equi_conf(npt_conf))
-    os.symlink(os.path.realpath(model), "graph.pb")
+    model_file = get_model_filename(model)
+    os.symlink(os.path.realpath(model), model_file)
     lmp_str = _gen_lammps_input(
         "conf.lmp",
         model_mass_map,
-        "graph.pb",
+        model_file,
         nsteps,
         dt,
         ens,

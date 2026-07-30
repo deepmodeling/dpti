@@ -22,6 +22,7 @@ from dpti.lib.lammps import get_natoms
 from dpti.lib.utils import (
     create_path,
     get_first_matched_key_from_dict,
+    get_model_filename,
     get_template_ff_file,
     normalize_template_ff_files,
     read_template_ff,
@@ -120,9 +121,9 @@ def _make_tasks_onephase(
         os.symlink(os.path.relpath(conf_file), "conf.lmp")
     local_graph_file = graph_file
     if graph_file:
-        if not os.path.exists("graph.pb"):
-            os.symlink(os.path.relpath(graph_abs_file), "graph.pb")
-        local_graph_file = "graph.pb"
+        local_graph_file = os.path.basename(graph_file)
+        if not os.path.exists(local_graph_file):
+            os.symlink(os.path.relpath(graph_abs_file), local_graph_file)
     if template_ff_files is not None:
         for file_path in template_ff_files:
             relative_link_file(file_path, "./")
@@ -198,9 +199,11 @@ def _has_phase_specific_template_ff(jdata):
 
 
 def _get_phase_graph_file(jdata, phase_idx):
+    phase_key = "phase_i" if phase_idx == 0 else "phase_ii"
+    phase_model = _get_phase_model(jdata, phase_key)
     if _has_phase_specific_model(jdata):
-        return f"graph.{phase_idx}.pb"
-    return "graph.pb"
+        return get_model_filename(phase_model, prefix=f"graph.{phase_idx}")
+    return get_model_filename(phase_model)
 
 
 def _get_phase_template_ff_name(jdata, phase_idx):
@@ -210,6 +213,8 @@ def _get_phase_template_ff_name(jdata, phase_idx):
 
 
 def _get_phase_forward_files(jdata, phase_key):
+    """Return files staged for one GDI phase and its selected force field."""
+    phase_idx = 0 if phase_key == "phase_i" else 1
     forward_files = ["conf.lmp", "in.lammps"]
     if _get_phase_template_ff_file(jdata, phase_key) is not None:
         forward_files.extend(
@@ -217,7 +222,7 @@ def _get_phase_forward_files(jdata, phase_key):
             for ii in _get_phase_template_ff_files(jdata, phase_key)
         )
     else:
-        forward_files.append("graph.pb")
+        forward_files.append(_get_phase_graph_file(jdata, phase_idx))
     return forward_files
 
 

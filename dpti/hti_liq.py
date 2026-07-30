@@ -19,6 +19,7 @@ from dpti.lib.utils import (
     compute_nrefine,
     create_path,
     get_first_matched_key_from_dict,
+    get_model_filename,
     integrate,
     integrate_sys_err,
     parse_seq,
@@ -318,6 +319,7 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None):
                 ), f"there must be key-value for sigma or {sigma_key_name} in soft_param"
 
     job_abs_dir = create_path(iter_name)
+    model_file = os.path.basename(jdata["model"]) if jdata.get("model") else None
 
     if meam_model:
         relative_link_file(os.path.abspath(meam_model["library"]), job_abs_dir)
@@ -329,7 +331,8 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None):
     os.chdir(iter_name)
     os.symlink(os.path.join("..", "in.json"), "in.json")
     os.symlink(os.path.join("..", "conf.lmp"), "conf.lmp")
-    os.symlink(os.path.join("..", "graph.pb"), "graph.pb")
+    if model_file:
+        os.symlink(os.path.join("..", model_file), model_file)
 
     os.chdir(cwd)
     # print(9898, meam_model)
@@ -338,7 +341,8 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None):
         create_path(work_path)
         os.chdir(work_path)
         os.symlink(os.path.join("..", "conf.lmp"), "conf.lmp")
-        os.symlink(os.path.join("..", "graph.pb"), "graph.pb")
+        if model_file:
+            os.symlink(os.path.join("..", model_file), model_file)
         if meam_model:
             meam_library_basename = os.path.basename(meam_model["library"])
             meam_potential_basename = os.path.basename(meam_model["potential"])
@@ -352,7 +356,7 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None):
             mass_map,
             ii,
             soft_param,
-            "graph.pb",
+            model_file,
             nsteps,
             timestep,
             "nvt",
@@ -378,6 +382,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
         model = os.path.abspath(jdata["model"])
     else:
         model = None
+    model_file = get_model_filename(model) if model else None
     meam_model = jdata.get("meam_model", None)
 
     create_path(iter_name)
@@ -385,7 +390,7 @@ def make_tasks(iter_name, jdata, if_meam=None):
     shutil.copyfile(equi_conf, copied_conf)
     jdata["equi_conf"] = copied_conf
     if model:
-        copied_model = os.path.join(os.path.abspath(iter_name), "graph.pb")
+        copied_model = os.path.join(os.path.abspath(iter_name), model_file)
         shutil.copyfile(model, copied_model)
         jdata["model"] = copied_model
     else:
@@ -569,14 +574,15 @@ def refine_tasks(from_task, to_task, err, print_ref=False):
 
     equi_conf = hti.get_task_file_abspath(from_task, jdata["equi_conf"])
     model = hti.get_task_file_abspath(from_task, jdata["model"])
+    model_file = get_model_filename(model)
     if_meam = jdata.get("if_meam", False)
     meam_model = jdata.get("meam_model", None)
 
     create_path(to_task)
     shutil.copyfile(equi_conf, os.path.join(to_task, "conf.lmp"))
     jdata["equi_conf"] = "conf.lmp"
-    shutil.copyfile(model, os.path.join(to_task, "graph.pb"))
-    jdata["model"] = "graph.pb"
+    shutil.copyfile(model, os.path.join(to_task, model_file))
+    jdata["model"] = model_file
     jdata["orig_task"] = from_task
     jdata["refine_error"] = err
 

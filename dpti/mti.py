@@ -4,6 +4,7 @@ import argparse
 import glob
 import json
 import os
+import shlex
 from collections import defaultdict
 
 import numpy as np
@@ -328,6 +329,16 @@ def make_tasks(iter_name, jdata):
                     json.dump(settings, f, indent=4)
 
 
+def _get_task_model_file(task_name):
+    settings_file = os.path.join(task_name, "mti_settings.json")
+    if not os.path.isfile(settings_file):
+        return "graph.pb"
+    with open(settings_file) as fp:
+        settings = json.load(fp)
+    model = settings.get("model")
+    return os.path.basename(model) if model else None
+
+
 def run_task(task_name, jdata, machine_file):
     settings_file = os.path.join(task_name, "mti_settings.json")
     if os.path.isfile(settings_file):
@@ -336,20 +347,27 @@ def run_task(task_name, jdata, machine_file):
     job_type = jdata["job_type"]
     nprocs_per_bead = jdata.get("nprocs_per_bead", 1)
     uses_template = uses_template_ff(jdata)
+    model_file = None if uses_template else _get_task_model_file(task_name)
     if job_type == "nbead_convergence":
         task_dir_list = glob.glob(
             os.path.join(task_name, "task.*/mass_scale_y.*/nbead.*")
         )
-        link_model = "ln -s ../../../graph.pb"
+        link_model = (
+            f"ln -sf {shlex.quote(f'../../../{model_file}')} {shlex.quote(model_file)}"
+            if model_file
+            else None
+        )
     elif job_type == "mass_ti":
         task_dir_list = glob.glob(os.path.join(task_name, "task.*/mass_scale_y.*"))
-        link_model = "ln -s ../../graph.pb"
+        link_model = (
+            f"ln -sf {shlex.quote(f'../../{model_file}')} {shlex.quote(model_file)}"
+            if model_file
+            else None
+        )
     else:
         raise RuntimeError(
             "Unknow job_type. Only nbead_convergence and mass_ti are supported."
         )
-    if uses_template:
-        link_model = None
     task_dir_list = sorted(task_dir_list)
     work_base_dir = os.getcwd()
     with open(machine_file) as f:
@@ -387,8 +405,8 @@ def run_task(task_name, jdata, machine_file):
             forward_files.extend(
                 [os.path.basename(ii) for ii in normalize_template_ff_files(jdata)]
             )
-        else:
-            forward_files.append("graph.pb")
+        elif model_file:
+            forward_files.append(model_file)
 
         task = Task(
             command=command,

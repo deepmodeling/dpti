@@ -3,6 +3,7 @@
 import glob
 import json
 import os
+import shlex
 import shutil
 
 import numpy as np
@@ -1078,6 +1079,16 @@ def _is_completed_lammps_task(task_work_path):
         return False
 
 
+def _get_task_model_file(task_name):
+    settings_file = os.path.join(task_name, "ti_settings.json")
+    if not os.path.isfile(settings_file):
+        return "graph.pb"
+    with open(settings_file) as fp:
+        settings = json.load(fp)
+    model = settings.get("model", "graph.pb")
+    return os.path.basename(model) if model else None
+
+
 def run_task(task_name, machine_file):
     settings_file = os.path.join(task_name, "ti_settings.json")
     jdata = {}
@@ -1105,6 +1116,7 @@ def run_task(task_name, machine_file):
         resources=resources,
         machine=machine,
     )
+    model_file = None if uses_template else _get_task_model_file(task_name)
 
     task_list = []
     for ii in task_dir_list:
@@ -1112,8 +1124,8 @@ def run_task(task_name, machine_file):
         forward_files = ["in.lammps", "*.lmp"]
         if uses_template:
             forward_files.extend(template_ff_files)
-        else:
-            command = f"ln -s ../graph.pb graph.pb; {command}"
+        elif model_file:
+            command = f'ln -sf {shlex.quote(f"../{model_file}")} {shlex.quote(model_file)}; {command}'
         task_list.append(
             Task(
                 command=command,
@@ -1124,7 +1136,7 @@ def run_task(task_name, machine_file):
         )
 
     submission.forward_common_files = (
-        [] if uses_template else [os.path.join(task_name, "graph.pb")]
+        [os.path.join(task_name, model_file)] if model_file else []
     )
     submission.register_task_list(task_list=task_list)
     submission.run_submission()

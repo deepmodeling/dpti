@@ -3,6 +3,7 @@
 import glob
 import json
 import os
+import shlex
 import shutil
 
 import numpy as np
@@ -22,6 +23,7 @@ from dpti.lib.utils import (
     compute_nrefine,
     create_path,
     get_first_matched_key_from_dict,
+    get_model_filename,
     get_task_file_abspath,
     get_template_ff_file,
     integrate_range_hti,
@@ -629,6 +631,7 @@ def make_tasks(iter_name, jdata, ref="einstein", switch="one-step", if_meam=None
     model = jdata.get("model")
     if model is not None:
         model = os.path.abspath(model)
+    model_file = get_model_filename(model) if model is not None else None
     template_ff_file = None if if_meam else get_template_ff_file(jdata)
     if template_ff_file is not None:
         template_ff_file = os.path.abspath(template_ff_file)
@@ -665,9 +668,9 @@ def make_tasks(iter_name, jdata, ref="einstein", switch="one-step", if_meam=None
             relative_link_file(meam_model["library"], job_abs_dir)
             relative_link_file(meam_model["potential"], job_abs_dir)
         elif model is not None:
-            linked_model = os.path.join(os.path.abspath(iter_name), "graph.pb")
+            linked_model = os.path.join(os.path.abspath(iter_name), model_file)
             shutil.copyfile(model, linked_model)
-            jdata["model"] = "graph.pb"
+            jdata["model"] = model_file
         elif template_ff_file is not None:
             template_destination = os.path.join(
                 os.path.abspath(iter_name), os.path.basename(template_ff_file)
@@ -803,6 +806,7 @@ def _make_tasks(
     model = jdata.get("model")
     if model is not None:
         model = os.path.abspath(model)
+    model_file = get_model_filename(model) if model is not None else None
     template_ff_file = None if if_meam else get_template_ff_file(jdata)
     template_ff = None
     if template_ff_file is not None:
@@ -879,15 +883,15 @@ def _make_tasks(
     linked_model = None
     linked_template_files = []
     if model is not None:
-        linked_model = os.path.join(os.path.abspath(iter_name), "graph.pb")
+        linked_model = os.path.join(os.path.abspath(iter_name), model_file)
         if not link:
             shutil.copyfile(model, linked_model)
         else:
             cwd = os.getcwd()
             os.chdir(iter_name)
-            os.symlink(os.path.relpath(model), "graph.pb")
+            os.symlink(os.path.relpath(model), model_file)
             os.chdir(cwd)
-        jdata["model"] = "graph.pb"
+        jdata["model"] = model_file
     elif template_ff is not None:
         template_destination = os.path.join(
             os.path.abspath(iter_name), os.path.basename(template_ff_file)
@@ -929,7 +933,7 @@ def _make_tasks(
         os.chdir(work_path)
         os.symlink(os.path.relpath(copied_conf), "conf.lmp")
         if linked_model is not None:
-            os.symlink(os.path.relpath(linked_model), "graph.pb")
+            os.symlink(os.path.relpath(linked_model), model_file)
         for template_file in linked_template_files:
             os.symlink(
                 os.path.relpath(template_file, os.path.abspath(".")),
@@ -958,7 +962,7 @@ def _make_tasks(
                 "conf.lmp",
                 mass_map,
                 ii,
-                "graph.pb",
+                model_file,
                 m_spring_k,
                 nsteps,
                 timestep,
@@ -1649,12 +1653,22 @@ def _is_completed_lammps_task(task_work_path):
         return False
 
 
-def _graph_link_command(task_dir, job_work_dir):
+def _get_task_model_file(task_dir):
+    in_json = os.path.join(task_dir, "in.json")
+    if not os.path.isfile(in_json):
+        return "graph.pb"
+    with open(in_json) as fp:
+        jdata = json.load(fp)
+    model = jdata.get("model", "graph.pb")
+    return os.path.basename(model) if model else None
+
+
+def _graph_link_command(task_dir, job_work_dir, model_file="graph.pb"):
     graph_relpath = os.path.relpath(
-        os.path.join(task_dir, "graph.pb"),
+        os.path.join(task_dir, model_file),
         os.path.join(job_work_dir, "task.000000"),
     )
-    return f"ln -s {graph_relpath} graph.pb"
+    return f"ln -sf {shlex.quote(graph_relpath)} {shlex.quote(model_file)}"
 
 
 def run_task(task_dir, machine_file, task_name, no_dp=False):
@@ -1692,15 +1706,13 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
         resources=resources,
         machine=machine,
     )
+    model_file = None if uses_template else _get_task_model_file(task_dir)
 
-    command = (
-        f"{mdata['command']} -i in.lammps -screen none"
-        if no_dp or uses_template
-        else (
-            f"{_graph_link_command(task_dir, job_work_dir)}; "
-            f"{mdata['command']} -i in.lammps -screen none"
+    command = f"{mdata['command']} -i in.lammps -screen none"
+    if not no_dp and model_file:
+        command = (
+            f"{_graph_link_command(task_dir, job_work_dir, model_file)}; {command}"
         )
-    )
     forward_files = ["in.lammps", "conf.lmp"]
     if uses_template:
         forward_files.extend(template_ff_files)
@@ -1713,8 +1725,8 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
         )
         for ii in task_dir_list
     ]
-    if not no_dp and not uses_template:
-        submission.forward_common_files = [os.path.join(task_dir, "graph.pb")]
+    if not no_dp and model_file:
+        submission.forward_common_files = [os.path.join(task_dir, model_file)]
 
     submission.register_task_list(task_list=task_list)
     submission.run_submission()

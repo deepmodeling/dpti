@@ -8,6 +8,7 @@ from numpy.testing import assert_almost_equal
 
 from dpti.lib.utils import (
     block_avg,
+    get_model_filename,
     get_template_ff_file,
     integrate_range_hti,
     normalize_template_ff_files,
@@ -180,6 +181,22 @@ class TestRelativeLinkFile(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree("relative_link_file_test_dir/")
+
+
+class TestGetModelFilename(unittest.TestCase):
+    def test_preserves_backend_suffix(self):
+        self.assertEqual(get_model_filename("graph.pb"), "graph.pb")
+        self.assertEqual(get_model_filename("/tmp/model.pth"), "graph.pth")
+        self.assertEqual(get_model_filename("model.savedmodel"), "graph.savedmodel")
+
+    def test_phase_prefix(self):
+        self.assertEqual(
+            get_model_filename("/tmp/model.pth", prefix="graph.0"),
+            "graph.0.pth",
+        )
+
+    def test_default_model_name(self):
+        self.assertEqual(get_model_filename(None), "graph.pb")
 
 
 class TestTemplateForceFieldUtils(unittest.TestCase):

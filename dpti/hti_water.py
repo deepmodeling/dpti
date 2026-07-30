@@ -21,6 +21,7 @@ from dpti.lib.utils import (
     compute_nrefine,
     create_path,
     get_first_matched_key_from_dict,
+    get_model_filename,
     get_task_file_abspath,
     get_template_ff_file,
     integrate_range,
@@ -273,6 +274,7 @@ def _make_tasks(iter_name, jdata, step):
     pres = jdata["pres"]
     tau_t = jdata["tau_t"]
     tau_p = jdata["tau_p"]
+    model_file = os.path.basename(model) if model is not None else None
     copies = None
     if "copies" in jdata:
         copies = jdata["copies"]
@@ -283,7 +285,7 @@ def _make_tasks(iter_name, jdata, step):
     os.symlink(os.path.join("..", "in.json"), "in.json")
     os.symlink(os.path.join("..", "conf.lmp"), "orig.lmp")
     if model is not None:
-        os.symlink(os.path.join("..", "graph.pb"), "graph.pb")
+        os.symlink(os.path.join("..", model_file), model_file)
     for template_file in normalize_template_ff_files(jdata):
         basename = os.path.basename(template_file)
         os.symlink(os.path.join("..", basename), basename)
@@ -298,7 +300,7 @@ def _make_tasks(iter_name, jdata, step):
         os.chdir(work_path)
         os.symlink(os.path.join("..", "conf.lmp"), "conf.lmp")
         if model is not None:
-            os.symlink(os.path.join("..", "graph.pb"), "graph.pb")
+            os.symlink(os.path.join("..", model_file), model_file)
         for template_file in normalize_template_ff_files(jdata):
             basename = os.path.basename(template_file)
             os.symlink(os.path.join("..", basename), basename)
@@ -307,7 +309,7 @@ def _make_tasks(iter_name, jdata, step):
             "conf.lmp",
             mass_map,
             all_lambda[idx],
-            "graph.pb",
+            model_file,
             bparam,
             sparam,
             nsteps,
@@ -421,9 +423,10 @@ def make_tasks(iter_name, jdata):
     shutil.copyfile(equi_conf, copied_conf)
     jdata["equi_conf"] = "conf.lmp"
     if model is not None:
-        linked_model = os.path.join(os.path.abspath(iter_name), "graph.pb")
+        model_file = get_model_filename(model)
+        linked_model = os.path.join(os.path.abspath(iter_name), model_file)
         shutil.copyfile(model, linked_model)
-        jdata["model"] = "graph.pb"
+        jdata["model"] = model_file
     else:
         copied_template = os.path.join(
             os.path.abspath(iter_name), os.path.basename(template_ff_file)
@@ -464,9 +467,10 @@ def refine_tasks(from_task, to_task, err):
     shutil.copyfile(equi_conf, copied_conf)
     jdata["equi_conf"] = "conf.lmp"
     if model is not None:
-        linked_model = os.path.join(os.path.abspath(to_task), "graph.pb")
+        model_file = get_model_filename(model)
+        linked_model = os.path.join(os.path.abspath(to_task), model_file)
         shutil.copyfile(model, linked_model)
-        jdata["model"] = "graph.pb"
+        jdata["model"] = model_file
     else:
         template_source = get_task_file_abspath(from_task, jdata["template_ff"])
         template_destination = os.path.join(

@@ -79,6 +79,19 @@ def relative_link_file(file_path, target_dir):
     return target_linkfile_path
 
 
+def get_model_filename(model, prefix="graph"):
+    """Return the staged model name while preserving its backend suffix.
+
+    DeepMD selects some model backends from the filename extension, so task
+    generation must not rename, for example, a ``.pth`` model to ``.pb``.
+    ``None`` retains the historical ``graph.pb`` default.
+    """
+    if model is None:
+        return f"{prefix}.pb"
+    suffix = pathlib.PurePath(str(model)).suffix
+    return f"{prefix}{suffix}"
+
+
 def get_template_ff_file(jdata):
     template_ff_file = jdata.get("template_ff", None)
     if template_ff_file is not None:
