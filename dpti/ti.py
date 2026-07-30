@@ -3,6 +3,7 @@
 import glob
 import json
 import os
+import shlex
 import shutil
 
 import numpy as np
@@ -1124,7 +1125,7 @@ def run_task(task_name, machine_file):
         if uses_template:
             forward_files.extend(template_ff_files)
         elif model_file:
-            command = f'ln -sf "../{model_file}" "{model_file}"; {command}'
+            command = f'ln -sf {shlex.quote(f"../{model_file}")} {shlex.quote(model_file)}; {command}'
         task_list.append(
             Task(
                 command=command,

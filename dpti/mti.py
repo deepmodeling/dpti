@@ -4,6 +4,7 @@ import argparse
 import glob
 import json
 import os
+import shlex
 from collections import defaultdict
 
 import numpy as np
@@ -352,12 +353,12 @@ def run_task(task_name, jdata, machine_file):
             os.path.join(task_name, "task.*/mass_scale_y.*/nbead.*")
         )
         link_model = (
-            f'ln -sf "../../../{model_file}" "{model_file}"' if model_file else None
+            f'ln -sf {shlex.quote(f"../../../{model_file}")} {shlex.quote(model_file)}' if model_file else None
         )
     elif job_type == "mass_ti":
         task_dir_list = glob.glob(os.path.join(task_name, "task.*/mass_scale_y.*"))
         link_model = (
-            f'ln -sf "../../{model_file}" "{model_file}"' if model_file else None
+            f'ln -sf {shlex.quote(f"../../{model_file}")} {shlex.quote(model_file)}' if model_file else None
         )
     else:
         raise RuntimeError(
