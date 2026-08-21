@@ -87,6 +87,7 @@ can point to a local machine, a Slurm/PBS cluster, or another supported backend.
 | `ti_water` | TTI or pTI for water systems. |
 | `gdi` | Gibbs-Duhem integration of phase boundaries. |
 | `mti` | Mass thermodynamic integration for quantum free-energy corrections. |
+| `soft_lj` | Fit a soft-core Lennard-Jones reference system to DeepMD-format data. |
 
 Use `-h` at any level to inspect the available options:
 
@@ -95,7 +96,26 @@ dpti -h
 dpti hti -h
 dpti hti gen -h
 dpti ti compute -h
+dpti soft_lj fit -h
 ```
+
+### Soft-LJ parameter fitting
+
+Fit a soft-core Lennard-Jones reference system to energies and forces stored in
+DeepMD NumPy format:
+
+```bash
+pip install 'dpti[soft-lj]'
+dpti soft_lj fit deepmd_data \
+  --n-exp 1 --alpha-lj 0.5 --cutoff 6 \
+  --activation 0.5 --batch-size 64
+```
+
+The energy loss uses centered energies because the reference potential need
+not reproduce the arbitrary energy zero of the target model. The output is a
+LAMMPS input fragment containing `pair_style lj/cut/soft` and all pair
+coefficients. By default, the activation is fixed; pass `--fit-activation` to
+optimize it along with epsilon and sigma.
 
 ## Examples
 
