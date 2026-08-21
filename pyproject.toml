@@ -34,6 +34,10 @@ homepage = "https://github.com/deepmodeling/dpti"
 dpti = "dpti.main:main"
 
 [project.optional-dependencies]
+soft-lj = [
+    "jax",
+    "optax",
+]
 docs = [
     'sphinx',
     'myst-parser',
