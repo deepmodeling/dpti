@@ -430,9 +430,9 @@ def fit(args: argparse.Namespace) -> None:
                 best_theta = theta
                 best_metrics = metrics
 
-    epsilon, sigma, activation = [
+    epsilon, sigma, activation = (
         np.asarray(jax.device_get(value)) for value in unpack(best_theta)
-    ]
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     lines = [
         "# Fitted soft-core Lennard-Jones parameters for LAMMPS",
