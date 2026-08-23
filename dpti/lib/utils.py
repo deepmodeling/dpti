@@ -483,7 +483,7 @@ def integrate_range_simpson(xx, yy, ye):
     # error esti series 0
     xx0, inte0, stat_err0 = _integrate_range_simpson_inner(xx, yy, ye)
     if len(xx) < 5:
-        return xx0, inte0, stat_err0, np.zeros(xx0.shape)
+        return xx0, inte0, np.zeros(xx0.shape), stat_err0
     xx1, inte1, stat_err1 = _integrate_range_simpson_inner(xx[::2], yy[::2], ye[::2])
     diff1 = np.abs(inte1 - inte0[::2]) / 16.0
     assert np.linalg.norm(xx1 - xx0[::2]) < 1e-10

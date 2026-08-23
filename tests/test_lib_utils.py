@@ -152,6 +152,19 @@ class TestIntegrateRangeHti(unittest.TestCase):
         self.assertAlmostEqual(stt_err1, stt_err2, places=8)
         self.assertAlmostEqual(sys_err2, sys_err2, places=8)
 
+    def test_short_simpson_range_preserves_error_order(self):
+        """Short Simpson ranges report statistical error in the second slot."""
+        lambdas = np.array([0.0, 0.5, 1.0])
+        values = lambdas**2
+        errors = np.full_like(values, 0.1)
+
+        _, stat_err, integration_err = integrate_range_hti(
+            lambdas, values, errors, scheme="simpson"
+        )
+
+        self.assertGreater(stat_err, 0.0)
+        self.assertEqual(integration_err, 0.0)
+
 
 class TestRelativeLinkFile(unittest.TestCase):
     @classmethod
