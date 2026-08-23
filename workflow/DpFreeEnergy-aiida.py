@@ -11,8 +11,6 @@ from dpdispatcher.submission import Machine, Resources, Submission, Task
 
 from dpti import equi, hti, hti_liq, ti
 
-aiida.load_profile()
-
 
 def get_empty_submission(job_work_dir):
     machine_file = os.path.join(job_work_dir, "../", "../", "../", "machine.json")
@@ -352,10 +350,19 @@ def TI_workflow(dag_run):
     return TI_end_info
 
 
-with open("../examples/FreeEnergy.json") as f:
-    jdata = json.load(f)
+def main():
+    """Load the bundled example and execute the AiiDA workflow explicitly."""
+    aiida.load_profile()
+    repository_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    input_path = os.path.join(repository_root, "examples", "FreeEnergy.json")
+    with open(input_path) as f:
+        jdata = json.load(f)
 
-print(jdata)
-dag_run = Dict(dict=jdata)
-result = TI_workflow(dag_run=dag_run)
-print(result)
+    print(jdata)
+    dag_run = Dict(dict=jdata)
+    result = TI_workflow(dag_run=dag_run)
+    print(result)
+
+
+if __name__ == "__main__":
+    main()
