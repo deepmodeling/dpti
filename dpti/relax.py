@@ -4,8 +4,8 @@ import argparse
 import json
 import os
 
-from lib.lammps import get_last_dump
-from lib.utils import create_path, cvt_conf
+from dpti.lib.lammps import get_last_dump
+from dpti.lib.utils import create_path, cvt_conf
 
 
 def _gen_lammps_relax(conf_file, mass_map, model, pres, thermo_freq=100, dump_freq=100):
