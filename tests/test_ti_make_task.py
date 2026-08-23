@@ -68,6 +68,23 @@ class TestEquiMakeTask(unittest.TestCase):
             f2 = os.path.join(test_dir, file)
             self.assertEqual(get_file_md5(f1), get_file_md5(f2), msg=(f1, f2))
 
+    @patch("dpti.ti._gen_lammps_input", return_value="# generated input\n")
+    def test_nvt_path_t_does_not_require_pressure(self, gen_lammps_input):
+        """NVT generation must not read an NPT-only pressure setting."""
+        benchmark_dir = os.path.join(self.benchmark_dir, "path-t")
+        with open(os.path.join(benchmark_dir, "jdata.json")) as f:
+            jdata = json.load(f)
+        jdata["ens"] = "nvt"
+        jdata["temp_seq"] = [200]
+        jdata.pop("pres")
+        jdata.pop("tau_p")
+
+        dpti.ti.make_tasks(
+            iter_name=os.path.join(self.test_dir, "nvt-path-t"), jdata=jdata
+        )
+
+        self.assertNotIn("pres", gen_lammps_input.call_args.kwargs)
+
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree("tmp_ti/")
