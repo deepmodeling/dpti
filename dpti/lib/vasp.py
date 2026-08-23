@@ -3,65 +3,71 @@
 import numpy as np
 
 
-def regulate_poscar(poscar_in, poscar_out):
-    with open(poscar_in) as fp:
-        lines = fp.read().split("\n")
+def _poscar_coordinate_records(lines):
+    """Return header-derived element ownership for POSCAR coordinate lines."""
     names = lines[5].split()
     counts = [int(ii) for ii in lines[6].split()]
-    assert len(names) == len(counts)
-    uniq_name = []
-    for ii in names:
-        if ii not in uniq_name:
-            uniq_name.append(ii)
-    uniq_count = np.zeros(len(uniq_name), dtype=int)
-    for nn, cc in zip(names, counts):
-        uniq_count[uniq_name.index(nn)] += cc
-    natoms = np.sum(uniq_count)
-    posis = lines[8 : 8 + natoms]
-    all_lines = []
-    for ele in uniq_name:
-        ele_lines = []
-        for ii in posis:
-            ele_name = ii.split()[-1]
-            if ele_name == ele:
-                ele_lines.append(ii)
-        all_lines += ele_lines
-    all_lines.append("")
-    ret = lines[0:5]
-    ret.append(" ".join(uniq_name))
-    ret.append(" ".join([str(ii) for ii in uniq_count]))
-    ret.append("Direct")
-    ret += all_lines
+    if len(names) != len(counts):
+        raise ValueError("POSCAR element names and counts must have equal lengths")
+
+    coordinate_mode_index = 7
+    if lines[coordinate_mode_index].strip().lower().startswith("s"):
+        coordinate_mode_index += 1
+    coordinate_start = coordinate_mode_index + 1
+    natoms = sum(counts)
+    positions = lines[coordinate_start : coordinate_start + natoms]
+    if len(positions) != natoms:
+        raise ValueError("POSCAR contains fewer coordinate lines than declared atoms")
+
+    header_elements = [
+        name for name, count in zip(names, counts) for _ in range(count)
+    ]
+    explicit_elements = [line.split()[-1] if line.split() else "" for line in positions]
+    if all(element in names for element in explicit_elements):
+        elements = explicit_elements
+    else:
+        # Standard POSCAR coordinates are unlabeled and follow header count order.
+        elements = header_elements
+    return names, counts, coordinate_start, list(zip(elements, positions))
+
+
+def _write_grouped_poscar(poscar_in, poscar_out, ordered_names):
+    with open(poscar_in) as fp:
+        lines = fp.read().splitlines()
+    names, counts, coordinate_start, records = _poscar_coordinate_records(lines)
+    unique_names = list(dict.fromkeys(names))
+    if len(ordered_names) != len(set(ordered_names)) or set(ordered_names) != set(
+        unique_names
+    ):
+        raise ValueError("requested POSCAR order must contain each element exactly once")
+
+    grouped = {
+        name: [line for element, line in records if element == name]
+        for name in ordered_names
+    }
+    new_counts = [len(grouped[name]) for name in ordered_names]
+    coordinate_lines = [line for name in ordered_names for line in grouped[name]]
+    ret = lines[:5]
+    ret.append(" ".join(ordered_names))
+    ret.append(" ".join(str(count) for count in new_counts))
+    ret.extend(lines[7:coordinate_start])
+    ret.extend(coordinate_lines)
+    ret.extend(lines[coordinate_start + sum(counts) :])
     with open(poscar_out, "w") as fp:
-        fp.write("\n".join(ret))
+        fp.write("\n".join(ret) + "\n")
+
+
+def regulate_poscar(poscar_in, poscar_out):
+    """Merge duplicate POSCAR element groups while retaining all coordinates."""
+    with open(poscar_in) as fp:
+        lines = fp.read().splitlines()
+    names = lines[5].split()
+    _write_grouped_poscar(poscar_in, poscar_out, list(dict.fromkeys(names)))
 
 
 def sort_poscar(poscar_in, poscar_out, new_names):
-    with open(poscar_in) as fp:
-        lines = fp.read().split("\n")
-    names = lines[5].split()
-    counts = [int(ii) for ii in lines[6].split()]
-    new_counts = np.zeros(len(counts), dtype=int)
-    for nn, cc in zip(names, counts):
-        new_counts[new_names.index(nn)] += cc
-    natoms = np.sum(new_counts)
-    posis = lines[8 : 8 + natoms]
-    all_lines = []
-    for ele in new_names:
-        ele_lines = []
-        for ii in posis:
-            ele_name = ii.split()[-1]
-            if ele_name == ele:
-                ele_lines.append(ii)
-        all_lines += ele_lines
-    all_lines.append("")
-    ret = lines[0:5]
-    ret.append(" ".join(new_names))
-    ret.append(" ".join([str(ii) for ii in new_counts]))
-    ret.append("Direct")
-    ret += all_lines
-    with open(poscar_out, "w") as fp:
-        fp.write("\n".join(ret))
+    """Reorder POSCAR element groups using header counts for unlabeled coordinates."""
+    _write_grouped_poscar(poscar_in, poscar_out, new_names)
 
 
 def perturb_xz(poscar_in, poscar_out, pert=0.01):
