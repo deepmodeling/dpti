@@ -303,7 +303,6 @@ def make_tasks(iter_name, jdata, if_meam=None):
                 timestep,
                 ens,
                 temp_list[ii],
-                pres=pres,
                 tau_t=tau_t,
                 thermo_freq=thermo_freq,
                 dump_freq=dump_freq,
