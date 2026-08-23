@@ -1,3 +1,7 @@
+import json
+import os
+import shutil
+import tempfile
 import unittest
 
 # from numpy.testing import assert_almost_equal
@@ -25,6 +29,21 @@ class TestEinstein(unittest.TestCase):
         fe1 = -0.13882760104909486
         fe2 = free_energy("hti_test_files/vega")
         self.assertAlmostEqual(fe1, fe2)
+
+    def test_vega_accepts_per_type_spring_constants(self):
+        """A spring-constant list is used directly for each atom type."""
+        source = "hti_test_files/vega"
+        with tempfile.TemporaryDirectory() as job:
+            shutil.copy(os.path.join(source, "conf.lmp"), job)
+            with open(os.path.join(source, "in.json")) as fp:
+                jdata = json.load(fp)
+            jdata["spring_k"] = [jdata["spring_k"] * jdata["mass_map"][0]]
+            with open(os.path.join(job, "in.json"), "w") as fp:
+                json.dump(jdata, fp)
+
+            fe = free_energy(job)
+
+        self.assertAlmostEqual(fe, -0.13882760104909486)
 
     def test_ideal(self):
         fe1 = -1.8983591660560315
