@@ -125,7 +125,7 @@ class TestIntegrateRangeHti(unittest.TestCase):
     def test_lamb_array_odd(self):
         result1 = -0.07001571298782591
         stt_err1 = 2.1394708051996743e-05
-        sys_err2 = 2.0797767427780528e-07
+        sys_err1 = 2.0797767427780528e-07
         data = np.loadtxt("hti_test_files/odd.hti.out")
         lamb_array = data[:, 0]
         dU_array = data[:, 1]
@@ -135,12 +135,12 @@ class TestIntegrateRangeHti(unittest.TestCase):
         )
         self.assertAlmostEqual(result1, result2, places=8)
         self.assertAlmostEqual(stt_err1, stt_err2, places=8)
-        self.assertAlmostEqual(sys_err2, sys_err2, places=8)
+        self.assertAlmostEqual(sys_err1, sys_err2, places=8)
 
     def test_lamb_array_even(self):
         result1 = -35.48046669098458
         stt_err1 = 0.0001625198805022198
-        sys_err2 = 8.812949063852216e-07
+        sys_err1 = 8.812949063852216e-07
         data = np.loadtxt("hti_test_files/even.hti.out")
         lamb_array = data[:, 0]
         dU_array = data[:, 1]
@@ -150,7 +150,7 @@ class TestIntegrateRangeHti(unittest.TestCase):
         )
         self.assertAlmostEqual(result1, result2, places=8)
         self.assertAlmostEqual(stt_err1, stt_err2, places=8)
-        self.assertAlmostEqual(sys_err2, sys_err2, places=8)
+        self.assertAlmostEqual(sys_err1, sys_err2, places=8)
 
 
 class TestRelativeLinkFile(unittest.TestCase):
