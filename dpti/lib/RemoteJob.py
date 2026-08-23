@@ -15,6 +15,8 @@ class JobStatus(Enum):
     running = 3
     terminated = 4
     finished = 5
+    unknown = 100
+    # Preserve the legacy misspelling for callers that may still reference it.
     unknow = 100
 
 
