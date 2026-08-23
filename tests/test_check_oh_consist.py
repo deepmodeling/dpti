@@ -8,9 +8,7 @@ import unittest
 class TestCheckOhConsist(unittest.TestCase):
     def setUp(self):
         self.repository_root = os.path.abspath("..")
-        self.script = os.path.join(
-            self.repository_root, "tools", "check_oh_consist.py"
-        )
+        self.script = os.path.join(self.repository_root, "tools", "check_oh_consist.py")
 
     def test_import_has_no_dump_file_side_effect(self):
         """Loading the tool defines its API without reading dump.hti."""
