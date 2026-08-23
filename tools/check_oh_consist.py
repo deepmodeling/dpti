@@ -1,47 +1,53 @@
 #!/usr/bin/env python3
 
-import lib.dump as dump
-import lib.water as water
+import argparse
+import sys
+from pathlib import Path
+
 import numpy as np
-from lib.dump import split_traj
 
-# def func (xx) :
-#     return 0.02*xx*xx+0.01*xx+0.03
+# Direct execution sets sys.path to tools/, so add the repository for source-tree use.
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-# x0 = np.arange(0,10.1)
-# x1 = np.arange(0,10.1, 0.5)
-# x2 = np.arange(0,10.1, 0.25)
+from dpti.lib import dump, water
 
 
-# i0 = integrate(x0, func(x0), np.zeros(x0.shape))
-# i1 = integrate(x1, func(x1), np.zeros(x1.shape))
-# i2 = integrate(x2, func(x2), np.zeros(x2.shape))
-# e0 = integrate_sys_err(x0, func(x0))
-# e1 = integrate_sys_err(x1, func(x1))
-# e2 = integrate_sys_err(x2, func(x2))
+def get_oh_distance_stats(dump_path):
+    """Return per-frame O-H distance statistics from a LAMMPS dump trajectory."""
+    trajectories = dump.split_traj(Path(dump_path).read_text().splitlines())
+    if not trajectories:
+        raise ValueError(f"no LAMMPS trajectory frames found in {dump_path}")
 
-# print(i0[0], e0)
-# print(i1[0], e1)
-# print(i2[0], e2)
+    bounds, tilt = dump.get_dumpbox(trajectories[0])
+    _, box = dump.dumpbox2box(bounds, tilt)
+    atom_types = dump.get_atype(trajectories[0])
+    positions = dump.get_posi(trajectories[0])
+    oh_list = water.min_oh_list(box, atom_types, positions)
 
-# get_thermo('log.lammps')
+    stats = []
+    for index, trajectory in enumerate(trajectories):
+        bounds, tilt = dump.get_dumpbox(trajectory)
+        _, box = dump.dumpbox2box(bounds, tilt)
+        positions = dump.get_posi(trajectory)
+        distances = water.dist_via_oh_list(box, positions, oh_list)
+        stats.append(
+            (index, np.min(distances), np.max(distances), np.average(distances))
+        )
+    return stats
 
-lines = open("dump.hti").read().split("\n")
-ret = split_traj(lines)
-# print(get_posi(ret[0]))
-# print(get_posi(ret[0])[127:130])
-# print(get_atype(ret[0]))
-# print(get_atype(ret[0])[127:130])
 
-bd, tl = dump.get_dumpbox(ret[0])
-orig, box = dump.dumpbox2box(bd, tl)
-atype = dump.get_atype(ret[0])
-posi = dump.get_posi(ret[0])
-oh_list = water.min_oh_list(box, atype, posi)
+def main(argv=None):
+    """Parse command-line arguments and print O-H distance statistics."""
+    parser = argparse.ArgumentParser(
+        description="Check O-H bond consistency across a LAMMPS dump trajectory"
+    )
+    parser.add_argument("DUMP", help="LAMMPS dump trajectory to inspect")
+    args = parser.parse_args(argv)
 
-for idx, ii in enumerate(ret):
-    bd, tl = dump.get_dumpbox(ii)
-    orig, box = dump.dumpbox2box(bd, tl)
-    posi = dump.get_posi(ii)
-    dists = water.dist_via_oh_list(box, posi, oh_list)
-    print(idx, np.min(dists), np.max(dists), np.average(dists))
+    for values in get_oh_distance_stats(args.DUMP):
+        print(*values)
+
+
+if __name__ == "__main__":
+    main()
