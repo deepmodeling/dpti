@@ -556,7 +556,9 @@ def get_task_file_abspath(task_name, file_name):
 
 
 def integrate_range_hti(all_lambda, de, de_err, scheme="s"):
-    new_lambda, i, i_e, s_e = integrate_range(all_lambda, de, de_err, scheme="s")
+    new_lambda, i, i_e, s_e = integrate_range(
+        all_lambda, de, de_err, scheme=scheme
+    )
     # print('debug:range_hti', new_lambda[-1], all_lambda[-1])
     if new_lambda[-1] != all_lambda[-1]:
         if new_lambda[-1] == all_lambda[-2]:
