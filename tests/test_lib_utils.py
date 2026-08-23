@@ -152,6 +152,17 @@ class TestIntegrateRangeHti(unittest.TestCase):
         self.assertAlmostEqual(stt_err1, stt_err2, places=8)
         self.assertAlmostEqual(sys_err2, sys_err2, places=8)
 
+    def test_trapezoidal_scheme_is_forwarded(self):
+        """HTI range integration must honor the caller's selected scheme."""
+        lambdas = np.array([0.0, 1.0, 2.0])
+        values = lambdas**2
+
+        result, _, _ = integrate_range_hti(
+            lambdas, values, np.zeros_like(values), scheme="trapezoidal"
+        )
+
+        self.assertAlmostEqual(result, 3.0)
+
 
 class TestRelativeLinkFile(unittest.TestCase):
     @classmethod
