@@ -21,9 +21,7 @@ class TestHtiWaterMbar(unittest.TestCase):
         de = np.array([2.0, -4.0])
         lambdas = np.array([0.25, 0.75])
 
-        actual = hti_water._build_mbar_reduced_potential(
-            de, lambdas, "bond_angle_off"
-        )
+        actual = hti_water._build_mbar_reduced_potential(de, lambdas, "bond_angle_off")
 
         np.testing.assert_allclose(
             actual,
