@@ -19,6 +19,7 @@ from airflow.operators.python import get_current_context
 from airflow.utils.state import State
 from dpdispatcher import Machine, Resources, Submission, Task
 
+from dpti.dags.utils import is_transient_dag_run_state
 from dpti.gdi import gdi_main_loop
 
 # default_args = {'owner': 'airflow',
@@ -187,7 +188,7 @@ class GDIWorkflow:
             if dag_run_state == State.SUCCESS:
                 print(f"dag_run_state: {dag_run_state}")
                 break
-            elif dag_run_state == State.RUNNING:
+            elif is_transient_dag_run_state(dag_run_state):
                 print(f"dag_run_state: {dag_run_state}")
                 time.sleep(30)
             else:
