@@ -24,6 +24,7 @@ def _default_item(resources, key, value):
 
 
 def _set_default_resource(res):
+    """Return a resource mapping populated with scheduler-safe defaults."""
     if res is None:
         res = {}
     _default_item(res, "numb_node", 1)
@@ -42,6 +43,7 @@ def _set_default_resource(res):
     _default_item(res, "source_list", [])
     _default_item(res, "envs", None)
     _default_item(res, "with_mpi", False)
+    return res
 
 
 class SSHSession:
@@ -228,7 +230,7 @@ class CloudMachineJob(RemoteJob):
         return stdout.channel.recv_exit_status()
 
     def _make_script(self, job_dirs, cmd, args=None, resources=None):
-        _set_default_resource(resources)
+        resources = _set_default_resource(resources)
         envs = resources["envs"]
         module_list = resources["module_list"]
         module_unload_list = resources["module_unload_list"]
@@ -346,7 +348,7 @@ class SlurmJob(RemoteJob):
         return ret
 
     def _make_script(self, job_dirs, cmd, args=None, res=None):
-        _set_default_resource(res)
+        res = _set_default_resource(res)
         ret = ""
         ret += "#!/bin/bash -l\n"
         ret += "#SBATCH -N %d\n" % res["numb_node"]
@@ -473,7 +475,7 @@ class PBSJob(RemoteJob):
         return ret
 
     def _make_script(self, job_dirs, cmd, args=None, res=None):
-        _set_default_resource(res)
+        res = _set_default_resource(res)
         ret = ""
         ret += "#!/bin/bash -l\n"
         if res.get("hpc_job_name", None):
