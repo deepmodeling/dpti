@@ -17,22 +17,28 @@ requirements:
   build:
     - git
   host:
-    - python >=3.6
+    - python >=3.10
     - pip
+    - setuptools
     - setuptools_scm
-    - dargs
-    - dpdata
-    - dpdispatcher
+    - wheel
 
   run:
-    - python >=3.6
+    - python >=3.10
+    - apache-airflow >=2.0
+    - scipy
+    - numpy
+    - pymbar
     - dargs
     - paramiko
-    - dpdispatcher
+    - dpdispatcher >=0.3
+    - sqlalchemy >=1.4.28,<2.0
 
 test:
   imports:
     - dpti
+  commands:
+    - python -c "import dpti.ti; import dpti.dags.dp_ti_gdi"
 
 about:
   home: https://github.com/deepmodeling/dpti
