@@ -72,17 +72,20 @@ def ideal_gas_fe(job):
 
 
 def free_energy(job):
-    # vega style free energy
-    # print(898, job, os.getcwd())
-    with open(os.path.join(job, "in.json")) as f:
+    """Compute Vega-style free energy from a job directory or JSON input path."""
+    if os.path.isdir(job):
+        job_dir = os.path.abspath(job)
+        input_path = os.path.join(job_dir, "in.json")
+    else:
+        input_path = os.path.abspath(job)
+        job_dir = os.path.dirname(input_path)
+
+    with open(input_path) as f:
         jdata = json.load(f)
-    # jdata = json.load(open(os.path.join(job, 'in.json'), 'r'))
     equi_conf = jdata["equi_conf"]
-    cwd = os.getcwd()
-    os.chdir(job)
+    equi_conf = os.path.join(job_dir, equi_conf)
     assert os.path.isfile(equi_conf)
     equi_conf = os.path.abspath(equi_conf)
-    os.chdir(cwd)
     temp = jdata["temp"]
     # mass_map = jdata['mass_map']
     mass_map = get_first_matched_key_from_dict(jdata, ["mass_map", "model_mass_map"])
@@ -208,8 +211,7 @@ def _main():
     parser.add_argument("PARAM", type=str, help="json parameter file")
     args = parser.parse_args()
 
-    jdata = json.load(open(args.PARAM))
-    fe = free_energy(jdata)
+    fe = free_energy(args.PARAM)
     print("# free energy of Einstein molecule in eV:")
     print(fe)
 
