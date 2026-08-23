@@ -205,6 +205,12 @@ repository still contains legacy Airflow DAG helpers under `dpti/dags/` for
 users who need Airflow-based orchestration, but new users should start with the
 CLI.
 
+The legacy `workflow/DpFreeEnergy.py` file defines the `TI_taskflow` DAG. Place
+that file in Airflow's DAG directory before running `examples/airflow.sh`, or
+set `DPTI_AIRFLOW_DAG_ID` if the DAG is registered under another name. The
+example script resolves its input and work directory from the checkout instead
+of relying on a developer-specific absolute path.
+
 ## License
 
 `dpti` is distributed under the GNU Lesser General Public License v3.0. See
