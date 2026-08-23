@@ -87,11 +87,12 @@ def free_energy(job):
     # mass_map = jdata['mass_map']
     mass_map = get_first_matched_key_from_dict(jdata, ["mass_map", "model_mass_map"])
     spring_k = jdata["spring_k"]
-    if not isinstance(spring_k, list):
+    if isinstance(spring_k, list):
+        m_spring_k = list(spring_k)
+    else:
         m_spring_k = []
         for ii in mass_map:
             m_spring_k.append(spring_k * ii)
-        # spring_k = spring_k_1
     assert len(mass_map) == len(m_spring_k)
     if "copies" in jdata:
         ncopies = np.prod(jdata["copies"])
