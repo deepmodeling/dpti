@@ -26,6 +26,12 @@ class TestEinstein(unittest.TestCase):
         fe2 = free_energy("hti_test_files/vega")
         self.assertAlmostEqual(fe1, fe2)
 
+    def test_vega_json_input_path(self):
+        """The standalone CLI input form accepts the JSON path directly."""
+        fe = free_energy("hti_test_files/vega/in.json")
+
+        self.assertAlmostEqual(fe, -0.13882760104909486)
+
     def test_ideal(self):
         fe1 = -1.8983591660560315
         fe2 = ideal_gas_fe("hti_test_files/ideal")
