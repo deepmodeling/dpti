@@ -116,6 +116,14 @@ class TestBlockAvg(unittest.TestCase):
         self.assertAlmostEqual(avg1, avg2, places=8)
         self.assertAlmostEqual(err1, err2, places=8)
 
+    def test_rejects_partial_only_input(self):
+        with self.assertRaisesRegex(ValueError, "at least one complete block"):
+            block_avg(np.arange(5), block_size=10)
+
+    def test_rejects_empty_post_skip_input(self):
+        with self.assertRaisesRegex(ValueError, "got 0 samples"):
+            block_avg(np.arange(5), skip=5, block_size=2)
+
 
 class TestIntegrateRangeHti(unittest.TestCase):
     def setUp(self):

@@ -206,14 +206,20 @@ def copy_file_list(file_list, from_path, to_path):
 
 
 def block_avg(inp, skip=0, block_size=10):
+    """Return a block average and error from complete post-skip blocks."""
+    if block_size <= 0:
+        raise ValueError("block_size must be a positive integer")
     inp = inp[skip:]
+    if len(inp) < block_size:
+        raise ValueError(
+            "block_avg requires at least one complete block after skip: "
+            f"got {len(inp)} samples for block_size={block_size}"
+        )
+    nblocks = len(inp) // block_size
     data_chunks = [
-        list(inp[i : i + block_size]) for i in range(0, len(inp), block_size)
+        list(inp[i : i + block_size])
+        for i in range(0, nblocks * block_size, block_size)
     ]
-    nblocks = len(data_chunks)
-    if len(data_chunks[-1]) != block_size:
-        nblocks -= 1
-        data_chunks = data_chunks[:nblocks]
     assert len(data_chunks) == nblocks
     # naive avg
     naive_avg = np.average(inp)
