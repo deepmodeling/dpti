@@ -626,6 +626,15 @@ def _post_tasks(iter_name, step, natoms, scheme="s"):
     return diff_e, [err, sys_err], thermo_info
 
 
+def _build_mbar_reduced_potential(de, all_lambda, step):
+    """Build reduced potentials for every sampled water HTI state."""
+    if step in ("angle_on", "deep_on"):
+        return np.array([de * ll for ll in all_lambda])
+    if step == "bond_angle_off":
+        return np.array([-de * (1 - ll) for ll in all_lambda])
+    raise RuntimeError(f"unknown water HTI step: {step}")
+
+
 def _post_tasks_mbar(iter_name, step, natoms):
     jdata = json.load(open(os.path.join(iter_name, "in.json")))
     stat_skip = jdata["stat_skip"]
@@ -662,12 +671,7 @@ def _post_tasks_mbar(iter_name, step, natoms):
         else:
             raise RuntimeError("unknow step")
         nk.append(de.size)
-        block_u = []
-        for ll in all_lambda:
-            if step == "angle_on" or "deep_on":
-                block_u.append(de * ll)
-            else:
-                block_u.append(-de * (1 - ll))
+        block_u = _build_mbar_reduced_potential(de, all_lambda, step)
         block_u = np.reshape(block_u, [nlambda, -1])
         if ukn.size == 0:
             ukn = block_u

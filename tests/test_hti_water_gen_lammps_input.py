@@ -9,8 +9,24 @@ import unittest
 # from dpti.lib.dump import from_system_data
 from unittest.mock import MagicMock, patch
 
+import numpy as np
+
 from dpti import hti_water
 from dpti.lib.utils import get_file_md5
+
+
+class TestHtiWaterMbar(unittest.TestCase):
+    def test_bond_angle_off_uses_reverse_lambda_scaling(self):
+        """The disappearing bond/angle term scales with ``1 - lambda``."""
+        de = np.array([2.0, -4.0])
+        lambdas = np.array([0.25, 0.75])
+
+        actual = hti_water._build_mbar_reduced_potential(de, lambdas, "bond_angle_off")
+
+        np.testing.assert_allclose(
+            actual,
+            np.array([[-1.5, 3.0], [-0.5, 1.0]]),
+        )
 
 
 class TestHtiWaterGenLammpsInput(unittest.TestCase):
