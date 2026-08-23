@@ -19,9 +19,7 @@ def _poscar_coordinate_records(lines):
     if len(positions) != natoms:
         raise ValueError("POSCAR contains fewer coordinate lines than declared atoms")
 
-    header_elements = [
-        name for name, count in zip(names, counts) for _ in range(count)
-    ]
+    header_elements = [name for name, count in zip(names, counts) for _ in range(count)]
     explicit_elements = [line.split()[-1] if line.split() else "" for line in positions]
     if all(element in names for element in explicit_elements):
         elements = explicit_elements
@@ -39,7 +37,9 @@ def _write_grouped_poscar(poscar_in, poscar_out, ordered_names):
     if len(ordered_names) != len(set(ordered_names)) or set(ordered_names) != set(
         unique_names
     ):
-        raise ValueError("requested POSCAR order must contain each element exactly once")
+        raise ValueError(
+            "requested POSCAR order must contain each element exactly once"
+        )
 
     grouped = {
         name: [line for element, line in records if element == name]
