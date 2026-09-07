@@ -100,7 +100,7 @@ def _gen_lammps_input(
     #     ret += 'pair_coeff      * * /home/fengbo/4_Sn/meam_files/library_18Metal.meam Sn /home/fengbo/4_Sn/meam_files/Sn_18Metal.meam Sn\n'
     if if_meam:
         ret += "pair_style      meam\n"
-        ret += f'pair_coeff      * * {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
+        ret += f"pair_coeff      * * {meam_model['library']} {meam_model['element']} {meam_model['potential']} {meam_model['element']}\n"
     elif template_ff is not None:
         ret += template_ff
     else:
@@ -818,7 +818,7 @@ def post_tasks_mbar(iter_name, jdata, Eo, natoms=None, output_dir=None, hti_path
     _print_thermo_info(info1, "at end point")
 
     mbar = pymbar.MBAR(ukn, nk)
-    Deltaf_ij, dDeltaf_ij, Theta_ij = mbar.getFreeEnergyDifferences()
+    Deltaf_ij, dDeltaf_ij, _Theta_ij = mbar.getFreeEnergyDifferences()
     Deltaf_ij = Deltaf_ij / natoms
     dDeltaf_ij = dDeltaf_ij / natoms
 

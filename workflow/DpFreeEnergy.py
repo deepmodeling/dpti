@@ -33,18 +33,18 @@ def all_start_check():
     )
     dag_work_dir = os.path.join(work_base_abs_dir, dag_work_dirname)
 
-    assert (
-        os.path.isdir(work_base_dir) is True
-    ), f"work_base_dir {work_base_dir} must exist "
+    assert os.path.isdir(work_base_dir) is True, (
+        f"work_base_dir {work_base_dir} must exist "
+    )
     if os.path.isdir(dag_work_dir) is False:
         os.mkdir(dag_work_dir)
     else:
         pass
 
     conf_lmp_abs_path = os.path.join(work_base_abs_dir, conf_lmp)
-    assert (
-        os.path.isfile(conf_lmp_abs_path) is True
-    ), f"structure file {conf_lmp_abs_path} must exist"
+    assert os.path.isfile(conf_lmp_abs_path) is True, (
+        f"structure file {conf_lmp_abs_path} must exist"
+    )
     assert str(ti_path) in ["t", "p"], 'value for "path" must be "t" or "p" '
 
     start_info = {
