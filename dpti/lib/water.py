@@ -87,7 +87,7 @@ def add_bonds(lines_, max_roh=1.3):
     atype = lmp.get_atype(lines)
     posis = lmp.get_posi(lines)
     bounds, tilt = lmp.get_lmpbox(lines)
-    orig, box = lmp.lmpbox2box(bounds, tilt)
+    _orig, box = lmp.lmpbox2box(bounds, tilt)
     bonds = compute_bonds(box, atype, posis, max_roh)
 
     # check water moles

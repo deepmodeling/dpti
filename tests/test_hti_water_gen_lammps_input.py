@@ -66,7 +66,7 @@ class TestHtiWaterGenLammpsInput(unittest.TestCase):
             template_ff = os.path.join(tmpdir, "in.mlip")
             support_file = os.path.join(tmpdir, "input.nn")
             with open(template_ff, "w") as fp:
-                fp.write("pair_style hdnnp 6.35 dir .\n" "pair_coeff * * O H\n")
+                fp.write("pair_style hdnnp 6.35 dir .\npair_coeff * * O H\n")
             with open(support_file, "w") as fp:
                 fp.write("n2p2 support file placeholder\n")
 
@@ -117,7 +117,7 @@ class TestHtiWaterGenLammpsInput(unittest.TestCase):
             with open(deep_on_input) as fp:
                 generated = fp.read()
             self.assertIn(
-                "pair_style hybrid/scaled v_LAMBDA hdnnp 6.35 dir . " "1.0 lj/cut/soft",
+                "pair_style hybrid/scaled v_LAMBDA hdnnp 6.35 dir . 1.0 lj/cut/soft",
                 generated,
             )
             self.assertIn("pair_coeff * * hdnnp O H", generated)

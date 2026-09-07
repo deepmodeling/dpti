@@ -30,7 +30,7 @@ class TestHtiGenLammpsInput(unittest.TestCase):
             switch="one-step",
             step="both",
             crystal="frenkel",
-            template_ff=("pair_style hdnnp 6.35 dir .\n" "pair_coeff * * O H\n"),
+            template_ff=("pair_style hdnnp 6.35 dir .\npair_coeff * * O H\n"),
         )
         self.assertIn("pair_style hybrid/scaled v_LAMBDA hdnnp 6.35 dir .", generated)
         self.assertIn("pair_coeff * * hdnnp O H", generated)
@@ -55,10 +55,10 @@ class TestHtiGenLammpsInput(unittest.TestCase):
             step="deep_on",
             sparam=soft_param,
             crystal="frenkel",
-            template_ff=("pair_style hdnnp 6.35 dir .\n" "pair_coeff * * Sn\n"),
+            template_ff=("pair_style hdnnp 6.35 dir .\npair_coeff * * Sn\n"),
         )
         self.assertIn(
-            "pair_style hybrid/scaled v_LAMBDA hdnnp 6.35 dir . " "1.0 lj/cut/soft",
+            "pair_style hybrid/scaled v_LAMBDA hdnnp 6.35 dir . 1.0 lj/cut/soft",
             generated,
         )
         self.assertIn("compute         e_mlip all pair hdnnp", generated)

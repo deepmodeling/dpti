@@ -50,9 +50,9 @@ def parse_lj_sigma_epsilon(ret, sparam, hybrid=False):
     activation_ij = np.zeros((element_num, element_num))
 
     if epsilon is not None:
-        assert (
-            epsilon_0_0 is None
-        ), "epsilon and epsilon_0_0 cannot be set at the same time"
+        assert epsilon_0_0 is None, (
+            "epsilon and epsilon_0_0 cannot be set at the same time"
+        )
         for i, j in sigma_key_index:
             epsilon_ij[i, j] = epsilon
     else:
@@ -70,9 +70,9 @@ def parse_lj_sigma_epsilon(ret, sparam, hybrid=False):
             sigma_ij[i, j] = sparam["sigma_" + str(i) + "_" + str(j)]
 
     if activation is not None:
-        assert (
-            activation_0_0 is None
-        ), "activation and activation_0_0 cannot be set at the same time"
+        assert activation_0_0 is None, (
+            "activation and activation_0_0 cannot be set at the same time"
+        )
         for i, j in sigma_key_index:
             activation_ij[i, j] = activation
     else:
@@ -135,7 +135,7 @@ def _ff_deep_on(lamb, sparam, model, if_meam=False, meam_model=None):
     ret += "variable        ONE equal 1\n"
     if if_meam:
         ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
-        ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
+        ret += f"pair_coeff      * * meam {meam_model['library']} {meam_model['element']} {meam_model['potential']} {meam_model['element']}\n"
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
         ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
@@ -163,7 +163,7 @@ def _ff_soft_off(lamb, sparam, model, if_meam=False, meam_model=None):
     ret += "variable        INV_LAMBDA equal 1-${LAMBDA}\n"
     if if_meam:
         ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
-        ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
+        ret += f"pair_coeff      * * meam {meam_model['library']} {meam_model['element']} {meam_model['potential']} {meam_model['element']}\n"
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1} {meam_model[2]} \n'
     else:
         ret += f"pair_style      hybrid/overlay deepmd {model} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
@@ -313,9 +313,9 @@ def _make_tasks(iter_name, jdata, step, if_meam=False, meam_model=None):
                 "sigma_" + str(t[0]) + "_" + str(t[1]) for t in sigma_key_index
             ]
             for sigma_key_name in sigma_key_name_list:
-                assert sparam.get(
-                    sigma_key_name, None
-                ), f"there must be key-value for sigma or {sigma_key_name} in soft_param"
+                assert sparam.get(sigma_key_name, None), (
+                    f"there must be key-value for sigma or {sigma_key_name} in soft_param"
+                )
 
     job_abs_dir = create_path(iter_name)
 
@@ -492,11 +492,11 @@ def post_tasks(iter_name, natoms):
     print(f"# fe of ideal gas : {fe:20.12f}")
 
     subtask_name = os.path.join(iter_name, "00.soft_on")
-    e0, err0, tinfo0 = _post_tasks(subtask_name, "soft_on", natoms)
+    e0, err0, _tinfo0 = _post_tasks(subtask_name, "soft_on", natoms)
     print(f"# fe of soft_on   : {e0:20.12f}  {err0[0]:10.3e} {err0[1]:10.3e}")
 
     subtask_name = os.path.join(iter_name, "01.deep_on")
-    e1, err1, tinfo1 = _post_tasks(subtask_name, "deep_on", natoms)
+    e1, err1, _tinfo1 = _post_tasks(subtask_name, "deep_on", natoms)
     print(f"# fe of deep_on   : {e1:20.12f}  {err1[0]:10.3e} {err1[1]:10.3e}")
 
     subtask_name = os.path.join(iter_name, "02.soft_off")
