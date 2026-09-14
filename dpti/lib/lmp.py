@@ -104,7 +104,7 @@ def get_id(lines):
     alines = get_atoms(lines)
     idx_list = []
     for ii in alines:
-        idx, at, x, y, z = _atom_info_atom(ii)
+        idx, _at, _x, _y, _z = _atom_info_atom(ii)
         idx_list.append(idx)
     return np.array(idx_list, dtype=int)
 
@@ -114,7 +114,7 @@ def get_atype(lines):
     atype = []
     for ii in alines:
         # idx, mt, at, q, x, y, z = _atom_info_mol(ii)
-        idx, at, x, y, z = _atom_info_atom(ii)
+        _idx, at, _x, _y, _z = _atom_info_atom(ii)
         atype.append(at)
     return np.array(atype, dtype=int)
 
