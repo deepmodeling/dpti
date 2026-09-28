@@ -676,7 +676,7 @@ def _post_tasks_mbar(iter_name, step, natoms):
 
     nk = np.array(nk)
     mbar = pymbar.MBAR(ukn, nk)
-    Deltaf_ij, dDeltaf_ij, Theta_ij = mbar.getFreeEnergyDifferences()
+    Deltaf_ij, dDeltaf_ij, _Theta_ij = mbar.getFreeEnergyDifferences()
     Deltaf_ij = Deltaf_ij / natoms
     dDeltaf_ij = dDeltaf_ij / natoms
 
@@ -765,7 +765,7 @@ def post_tasks(iter_name, natoms, method="inte", scheme="s"):
     if method == "inte":
         e0, err0, tinfo0 = _post_tasks(subtask_name, "angle_on", natoms, scheme=scheme)
     elif method == "mbar":
-        e0, err0, tinfo0 = _post_tasks_mbar(subtask_name, "angle_on", natoms)
+        e0, err0, _tinfo0 = _post_tasks_mbar(subtask_name, "angle_on", natoms)
     print(f"# fe of angle_on : {e0:20.12f}  {err0[0]:10.3e} {err0[1]:10.3e}")
     # _print_thermo_info(tinfo)
     # print(e, err)
@@ -773,7 +773,7 @@ def post_tasks(iter_name, natoms, method="inte", scheme="s"):
     if method == "inte":
         e1, err1, tinfo1 = _post_tasks(subtask_name, "deep_on", natoms, scheme=scheme)
     elif method == "mbar":
-        e1, err1, tinfo1 = _post_tasks_mbar(subtask_name, "deep_on", natoms)
+        e1, err1, _tinfo1 = _post_tasks_mbar(subtask_name, "deep_on", natoms)
     print(f"# fe of deep_on  : {e1:20.12f}  {err1[0]:10.3e} {err1[1]:10.3e}")
     # _print_thermo_info(tinfo)
     # print(e, err)

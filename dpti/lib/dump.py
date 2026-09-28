@@ -38,7 +38,7 @@ def get_atype(lines):
 
 
 def get_natoms(lines):
-    blk, head = _get_block(lines, "NUMBER OF ATOMS")
+    blk, _head = _get_block(lines, "NUMBER OF ATOMS")
     return int(blk[0])
 
 
@@ -82,7 +82,7 @@ def get_posi(lines):
 
 
 def get_dumpbox(lines):
-    blk, h = _get_block(lines, "BOX BOUNDS")
+    blk, _h = _get_block(lines, "BOX BOUNDS")
     bounds = np.zeros([3, 2])
     tilt = np.zeros([3])
     for dd in range(3):

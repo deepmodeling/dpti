@@ -129,7 +129,7 @@ def _ff_deep_on(
         ret += rendered
     elif if_meam:
         ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
-        ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
+        ret += f"pair_coeff      * * meam {meam_model['library']} {meam_model['element']} {meam_model['potential']} {meam_model['element']}\n"
     else:
         if append:
             ret += f"pair_style      hybrid/overlay deepmd {model:s} {append:s} lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
@@ -235,7 +235,7 @@ def _ff_lj_off(
         ret += rendered
     elif if_meam:
         ret += f"pair_style      hybrid/overlay meam lj/cut/soft {nn:f} {alpha_lj:f} {rcut:f}\n"
-        ret += f'pair_coeff      * * meam {meam_model["library"]} {meam_model["element"]} {meam_model["potential"]} {meam_model["element"]}\n'
+        ret += f"pair_coeff      * * meam {meam_model['library']} {meam_model['element']} {meam_model['potential']} {meam_model['element']}\n"
         # ret += f'pair_coeff      * * meam {meam_model[0]} {meam_model[2]} {meam_model[1]} {meam_model[2]}\n'
     else:
         if append:
@@ -841,9 +841,9 @@ def _make_tasks(
             "sigma_" + str(t[0]) + "_" + str(t[1]) for t in sigma_key_index
         ]
         for sigma_key_name in sigma_key_name_list:
-            assert sparam.get(
-                sigma_key_name, None
-            ), f"there must be key-value for {sigma_key_name} in soft_param"
+            assert sparam.get(sigma_key_name, None), (
+                f"there must be key-value for {sigma_key_name} in soft_param"
+            )
 
     if crystal == "frenkel":
         m_spring_k = []
@@ -1192,7 +1192,7 @@ def post_tasks(iter_name, jdata, natoms=None, method="inte", scheme="s"):
                 step="lj_on",
             )
         elif method == "mbar":
-            e0, err0, tinfo0 = _post_tasks_mbar(
+            e0, err0, _tinfo0 = _post_tasks_mbar(
                 subtask_name, jdata, natoms=natoms, switch=switch, step="lj_on"
             )
         else:
@@ -1669,9 +1669,9 @@ def run_task(task_dir, machine_file, task_name, no_dp=False):
     ]
     if task_name == "00" or task_name == "01" or task_name == "02":
         job_work_dir_ = glob.glob(os.path.join(task_dir, task_name + "*"))
-        assert (
-            len(job_work_dir_) == 1
-        ), f"The task_name you entered is {task_name}. It indicates that you want to run tasks for step {task_name} of the two-step or three-step HTI. Please make sure that there is one and only one {task_name}.* directory in the hti task directory."
+        assert len(job_work_dir_) == 1, (
+            f"The task_name you entered is {task_name}. It indicates that you want to run tasks for step {task_name} of the two-step or three-step HTI. Please make sure that there is one and only one {task_name}.* directory in the hti task directory."
+        )
         job_work_dir = job_work_dir_[0]
     elif task_name == "one-step":
         job_work_dir = task_dir
