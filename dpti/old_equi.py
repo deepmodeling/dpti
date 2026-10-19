@@ -123,12 +123,12 @@ def npt_equi_conf(npt_name):
     stat_bsize = jdata["stat_bsize"]
 
     data = get_thermo(thermo_file)
-    lx, lxe = block_avg(data[:, 8], skip=stat_skip, block_size=stat_bsize)
-    ly, lye = block_avg(data[:, 9], skip=stat_skip, block_size=stat_bsize)
-    lz, lze = block_avg(data[:, 10], skip=stat_skip, block_size=stat_bsize)
-    xy, xye = block_avg(data[:, 11], skip=stat_skip, block_size=stat_bsize)
-    xz, xze = block_avg(data[:, 12], skip=stat_skip, block_size=stat_bsize)
-    yz, yze = block_avg(data[:, 13], skip=stat_skip, block_size=stat_bsize)
+    lx, _lxe = block_avg(data[:, 8], skip=stat_skip, block_size=stat_bsize)
+    ly, _lye = block_avg(data[:, 9], skip=stat_skip, block_size=stat_bsize)
+    lz, _lze = block_avg(data[:, 10], skip=stat_skip, block_size=stat_bsize)
+    xy, _xye = block_avg(data[:, 11], skip=stat_skip, block_size=stat_bsize)
+    xz, _xze = block_avg(data[:, 12], skip=stat_skip, block_size=stat_bsize)
+    yz, _yze = block_avg(data[:, 13], skip=stat_skip, block_size=stat_bsize)
     print("~~~", lx, ly, lz, xy, xz, yz)
 
     last_dump = get_last_dump(dump_file).split("\n")
