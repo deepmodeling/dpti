@@ -484,12 +484,14 @@ def integrate_range_simpson(xx, yy, ye):
     xx0, inte0, stat_err0 = _integrate_range_simpson_inner(xx, yy, ye)
     if len(xx) < 5:
         return xx0, inte0, stat_err0, np.zeros(xx0.shape)
-    xx1, inte1, stat_err1 = _integrate_range_simpson_inner(xx[::2], yy[::2], ye[::2])
+    xx1, inte1, _stat_err1 = _integrate_range_simpson_inner(xx[::2], yy[::2], ye[::2])
     diff1 = np.abs(inte1 - inte0[::2]) / 16.0
     assert np.linalg.norm(xx1 - xx0[::2]) < 1e-10
     # error esti series 1, shifted from series 0
-    xx2, inte2, stat_err2 = _integrate_range_simpson_inner(xx[2:], yy[2:], ye[2:])
-    xx3, inte3, stat_err3 = _integrate_range_simpson_inner(xx[2::2], yy[2::2], ye[2::2])
+    xx2, inte2, _stat_err2 = _integrate_range_simpson_inner(xx[2:], yy[2:], ye[2:])
+    xx3, inte3, _stat_err3 = _integrate_range_simpson_inner(
+        xx[2::2], yy[2::2], ye[2::2]
+    )
     from scipy.interpolate import interp1d
 
     f = interp1d(xx1, diff1)
