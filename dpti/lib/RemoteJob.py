@@ -274,7 +274,7 @@ class CloudMachineJob(RemoteJob):
 class SlurmJob(RemoteJob):
     def submit(self, job_dirs, cmd, args=None, resources=None):
         script_name = self._make_script(job_dirs, cmd, args, res=resources)
-        stdin, stdout, stderr = self.block_checkcall(
+        _stdin, stdout, _stderr = self.block_checkcall(
             f"cd {self.remote_root}; sbatch {script_name}"
         )
         subret = stdout.readlines()
@@ -288,7 +288,7 @@ class SlurmJob(RemoteJob):
         job_id = self._get_job_id()
         if job_id == "":
             raise RuntimeError(f"job {self.remote_root} is has not been submitted")
-        ret, stdin, stdout, stderr = self.block_call("squeue --job " + job_id)
+        ret, _stdin, stdout, stderr = self.block_call("squeue --job " + job_id)
         err_str = stderr.read().decode("utf-8")
         if ret != 0:
             if "Invalid job id specified" in err_str:
@@ -413,7 +413,7 @@ class SlurmJob(RemoteJob):
 class PBSJob(RemoteJob):
     def submit(self, job_dirs, cmd, args=None, resources=None):
         script_name = self._make_script(job_dirs, cmd, args, res=resources)
-        stdin, stdout, stderr = self.block_checkcall(
+        _stdin, stdout, _stderr = self.block_checkcall(
             f"cd {self.remote_root}; qsub {script_name}"
         )
         subret = stdout.readlines()
@@ -427,7 +427,7 @@ class PBSJob(RemoteJob):
         job_id = self._get_job_id()
         if job_id == "":
             raise RuntimeError(f"job {self.remote_root} is has not been submitted")
-        ret, stdin, stdout, stderr = self.block_call("qstat -x " + job_id)
+        ret, _stdin, stdout, stderr = self.block_call("qstat -x " + job_id)
         err_str = stderr.read().decode("utf-8")
         if ret != 0:
             if "qstat: Unknown Job Id" in err_str:
