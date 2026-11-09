@@ -180,7 +180,7 @@ class TestTiGenLammpsInput(unittest.TestCase):
             if_meam=False,
             meam_model=None,
             template_ff=(
-                "pair_style      hdnnp 6.3501269880 dir .\n" "pair_coeff      * * O H\n"
+                "pair_style      hdnnp 6.3501269880 dir .\npair_coeff      * * O H\n"
             ),
         )
         self.assertIn("pair_style      hdnnp 6.3501269880 dir .", ret)
