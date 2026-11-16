@@ -308,7 +308,7 @@ class TestGdiMakeTask(unittest.TestCase):
         support_file = os.path.join(self.test_dir, "input.nn")
         with open(template_file, "w") as fp:
             fp.write(
-                "pair_style      hdnnp 6.3501269880 dir .\n" "pair_coeff      * * O H\n"
+                "pair_style      hdnnp 6.3501269880 dir .\npair_coeff      * * O H\n"
             )
         with open(support_file, "w") as fp:
             fp.write("n2p2 support file placeholder\n")
